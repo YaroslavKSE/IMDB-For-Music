@@ -18,3 +18,12 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# .Net Wep API project specific files
+*.http
+launchSettings.json
