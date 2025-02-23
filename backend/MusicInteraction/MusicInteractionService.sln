@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicInteraction.Domain", "MusicInteraction.Domain\MusicInteraction.Domain.csproj", "{98D430D9-FD9E-4456-BF74-62502CE3373B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicInteraction.Application", "MusicInteraction.Application\MusicInteraction.Application.csproj", "{8ECC112C-B3B8-4733-B86C-C71A876D53AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicInteraction.Infrastructure", "MusicInteraction.Infrastructure\MusicInteraction.Infrastructure.csproj", "{F830DCE7-0272-45CA-A6AF-DBF1BF91DAE7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicInteraction.Presentation", "MusicInteraction.Presentation\MusicInteraction.Presentation.csproj", "{55D47C0A-0B5C-4629-AAC0-330EE78D0C76}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{98D430D9-FD9E-4456-BF74-62502CE3373B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98D430D9-FD9E-4456-BF74-62502CE3373B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98D430D9-FD9E-4456-BF74-62502CE3373B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98D430D9-FD9E-4456-BF74-62502CE3373B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8ECC112C-B3B8-4733-B86C-C71A876D53AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8ECC112C-B3B8-4733-B86C-C71A876D53AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8ECC112C-B3B8-4733-B86C-C71A876D53AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8ECC112C-B3B8-4733-B86C-C71A876D53AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F830DCE7-0272-45CA-A6AF-DBF1BF91DAE7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F830DCE7-0272-45CA-A6AF-DBF1BF91DAE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F830DCE7-0272-45CA-A6AF-DBF1BF91DAE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F830DCE7-0272-45CA-A6AF-DBF1BF91DAE7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55D47C0A-0B5C-4629-AAC0-330EE78D0C76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55D47C0A-0B5C-4629-AAC0-330EE78D0C76}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55D47C0A-0B5C-4629-AAC0-330EE78D0C76}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55D47C0A-0B5C-4629-AAC0-330EE78D0C76}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
