@@ -16,4 +16,8 @@
       <ProjectReference Include="..\MusicInteraction.Application\MusicInteraction.Application.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Controllers\" />
+    </ItemGroup>
+
 </Project>
