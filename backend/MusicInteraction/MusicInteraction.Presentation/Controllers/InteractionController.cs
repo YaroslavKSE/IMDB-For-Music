@@ -25,4 +25,12 @@ public class InteractionController: ControllerBase
         return Ok("Success");
     }
 
+    [HttpGet("getInteractions")]
+    public async Task<IActionResult> GetInteractions()
+    {
+        var result = await mediator.Send(new GetInteractionsCommand());
+        if (result.InteractionsEmpty) return NotFound("There are no interactions");
+        return Ok(result.Interactions);
+    }
+
 }

@@ -2,16 +2,16 @@ namespace MusicInteraction.Domain;
 
 public abstract class Interaction
 {
-    private Guid InteractionId;
-    private string ItemId;
-    private DateTime CreatedAt;
-    private string ItemType;
+    public Guid InteractionId { get; private set; }
+    public string ItemId { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public string ItemType { get; private set; }
 
-    public Interaction(Guid Id, string ItemId, DateTime CreatedAt, string ItemType)
+    public Interaction(Guid id, string itemId, DateTime createdAt, string itemType)
     {
-        InteractionId = Id;
-        this.ItemType = ItemId;
-        this.CreatedAt = CreatedAt;
-        this.ItemType = ItemType;
+        InteractionId = id;
+        ItemId = itemId;
+        CreatedAt = createdAt;
+        ItemType = itemType;
     }
 }

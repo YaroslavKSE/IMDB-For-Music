@@ -1,4 +1,5 @@
 using MusicInteraction.Application.Interfaces;
+using MusicInteraction.Domain;
 
 namespace MusicInteraction.Infrastructure.LocalStorages;
 
@@ -14,5 +15,15 @@ public class InteractionStorage: IInteractionStorage
     public async Task<bool> AddReview(string userId, string itemId, string text)
     {
         return await Database.AddReview(userId, itemId, text);
+    }
+
+    public async Task<bool> IsEmpty()
+    {
+        return Database.IsInteractionsEmpty();
+    }
+
+    public async Task<List<Interaction>> GetInteractions()
+    {
+        return Database.GetInteractions();
     }
 }
