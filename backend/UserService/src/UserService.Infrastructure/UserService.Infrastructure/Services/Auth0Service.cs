@@ -2,6 +2,7 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using UserService.Application.DTOs;
 using UserService.Application.Interfaces;
 using UserService.Infrastructure.Configuration;
 using UserService.Infrastructure.Models.Auth0.Exceptions;
@@ -66,6 +67,51 @@ public class Auth0Service : IAuth0Service
             throw new Auth0Exception("Failed to create Auth0 user", ex);
         }
     }
+    
+    public async Task<AuthTokenResponse> LoginAsync(string email, string password)
+    {
+        try
+        {
+            var tokenRequest = new Auth0PasswordTokenRequest
+            {
+                ClientId = _settings.ClientId,
+                ClientSecret = _settings.ClientSecret,
+                Audience = _settings.ManagementApiAudience,
+                Username = email,
+                Password = password,
+                Realm = "Username-Password-Authentication" 
+            };
+
+            var response = await _httpClient.PostAsJsonAsync(
+                $"https://{_settings.Domain}/oauth/token",
+                tokenRequest);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Login failed. Status: {Status}, Error: {Error}", 
+                    response.StatusCode, error);
+                throw new Auth0Exception(error);
+            }
+
+            var auth0Response = await response.Content.ReadFromJsonAsync<Auth0TokenResponse>();
+            
+            // Map to application layer DTO
+            return new AuthTokenResponse
+            {
+                AccessToken = auth0Response.AccessToken,
+                RefreshToken = auth0Response.RefreshToken,
+                IdToken = auth0Response.IdToken,
+                ExpiresIn = auth0Response.ExpiresIn,
+                TokenType = auth0Response.TokenType
+            };
+        }
+        catch (Exception ex) when (ex is not Auth0Exception)
+        {
+            _logger.LogError(ex, "Error during login for email {Email}", email);
+            throw new Auth0Exception("Login failed", ex);
+        }
+    }
 
     private async Task EnsureManagementApiToken()
     {
@@ -88,6 +134,9 @@ public class Auth0Service : IAuth0Service
 
         if (!response.IsSuccessStatusCode)
         {
+            var error = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Failed to obtain management API token. Status: {Status}, Error: {Error}",
+                response.StatusCode, error);
             throw new Auth0Exception("Failed to obtain management API token");
         }
 

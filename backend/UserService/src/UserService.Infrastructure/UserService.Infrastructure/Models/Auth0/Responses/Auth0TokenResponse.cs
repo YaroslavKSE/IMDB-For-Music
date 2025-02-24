@@ -9,4 +9,14 @@ public class Auth0TokenResponse
 
     [JsonPropertyName("expires_in")]
     public int ExpiresIn { get; set; }
+    
+    [JsonPropertyName("token_type")]
+    public string TokenType { get; set; }
+    
+    // Optional properties that may not be returned in all grant types
+    [JsonPropertyName("refresh_token")]
+    public string? RefreshToken { get; set; }
+    
+    [JsonPropertyName("id_token")]
+    public string? IdToken { get; set; }
 }
