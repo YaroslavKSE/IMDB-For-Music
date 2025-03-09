@@ -23,6 +23,10 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users.FindAsync(id);
     }
+    public async Task<User> GetByAuth0IdAsync(string auth0Id)
+    {
+        return await _context.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
+    }
 
     public async Task AddAsync(User user)
     {

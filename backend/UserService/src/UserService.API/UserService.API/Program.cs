@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
@@ -59,13 +60,53 @@ builder.Services.AddAuthentication(options => {
 }).AddJwtBearer(options => {
     options.Authority = $"https://{builder.Configuration["Auth0:Domain"]}/";
     options.Audience = builder.Configuration["Auth0:Audience"];
+    
     // Add token validation parameters if needed
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
-        ValidateIssuerSigningKey = true
+        ValidateIssuerSigningKey = true,
+        NameClaimType = ClaimTypes.NameIdentifier
+        
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = context =>
+        {
+            // Log all claims for debugging
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation("Token validated successfully");
+            
+            foreach (var claim in context.Principal.Claims)
+            {
+                logger.LogInformation("Claim: {Type} = {Value}", claim.Type, claim.Value);
+            }
+            
+            // Ensure the Auth0 user ID is added as a "sub" claim if it doesn't exist
+            var auth0UserId = context.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(auth0UserId) && context.Principal.FindFirst("sub") == null)
+            {
+                var identity = context.Principal.Identity as ClaimsIdentity;
+                identity?.AddClaim(new Claim("sub", auth0UserId));
+                logger.LogInformation("Added 'sub' claim with value: {Value}", auth0UserId);
+            }
+            
+            return Task.CompletedTask;
+        },
+        OnAuthenticationFailed = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogError(context.Exception, "Authentication failed");
+            return Task.CompletedTask;
+        },
+        OnChallenge = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning("Authentication challenge issued: {Error}", context.Error);
+            return Task.CompletedTask;
+        }
     };
 });
 

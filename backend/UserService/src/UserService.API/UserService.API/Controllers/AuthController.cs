@@ -105,5 +105,74 @@ public class AuthController : ControllerBase
                     TraceId = HttpContext.TraceIdentifier
                 });
         }
+    }    
+    
+    [HttpPost("login")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Login(LoginRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Login attempt for email: {Email}", request.Email);
+
+            var command = new LoginCommand(
+                request.Email,
+                request.Password);
+
+            var result = await _mediator.Send(command);
+            
+            _logger.LogInformation("User successfully logged in: {Email}", request.Email);
+            
+            var response = new LoginResponse
+            {
+                AccessToken = result.AccessToken,
+                RefreshToken = result.RefreshToken,
+                IdToken = result.IdToken,
+                ExpiresIn = result.ExpiresIn,
+                TokenType = result.TokenType
+            };
+            
+            return Ok(response);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning("Validation failed during login: {Errors}", 
+                string.Join(", ", ex.Errors.Select(e => e.ErrorMessage)));
+            
+            return BadRequest(new ErrorResponse
+            {
+                Code = "ValidationError",
+                Message = string.Join("; ", ex.Errors.Select(e => e.ErrorMessage)),
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Auth0Exception ex)
+        {
+            _logger.LogWarning("Auth0 error during login: {Error}", ex.Error.Message);
+            
+            return Unauthorized(new ErrorResponse
+            {
+                Code = "AuthenticationError",
+                Message = ex.Message,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during login");
+            
+            return StatusCode(
+                StatusCodes.Status500InternalServerError, 
+                new ErrorResponse
+                {
+                    Code = "InternalServerError",
+                    Message = "An unexpected error occurred during login",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+        }
     }
 }

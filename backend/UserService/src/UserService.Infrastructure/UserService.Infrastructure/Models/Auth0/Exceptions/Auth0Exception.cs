@@ -16,4 +16,6 @@ public class Auth0Exception : Exception
     {
         Error = Auth0Error.Parse(message);
     }
+    
+    public override string Message => Error.Message ?? base.Message;
 }
