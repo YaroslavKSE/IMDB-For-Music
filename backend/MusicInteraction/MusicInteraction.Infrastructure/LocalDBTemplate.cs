@@ -44,6 +44,38 @@ public class LocalDBTemplate
         return result;
     }
 
+    public List<Like> GetLikes()
+    {
+        List<Like> result = new List<Like>();
+        foreach (var i in Likes)
+        {
+            result.Add(i.Value);
+        }
+
+        return result;
+    }
+
+    public List<Review> GetReviews()
+    {
+        List<Review> result = new List<Review>();
+        foreach (var i in Reviews)
+        {
+            result.Add(i.Value);
+        }
+
+        return result;
+    }
+
+    public List<Rating> GetRatings()
+    {
+        List<Rating> result = new List<Rating>();
+        foreach (var i in Ratings)
+        {
+            result.Add(i.Value);
+        }
+        return result;
+    }
+
     public bool IsInteractionsEmpty()
     {
         if (InteractionsAggregates.Count == 0)

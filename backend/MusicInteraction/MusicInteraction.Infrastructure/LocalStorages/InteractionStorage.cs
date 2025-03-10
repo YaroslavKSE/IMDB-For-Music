@@ -27,5 +27,19 @@ public class InteractionStorage: IInteractionStorage
         return Database.GetInteractions();
     }
 
+    public async Task<List<Like>> GetLikes()
+    {
+        return Database.GetLikes();
+    }
+
+    public async Task<List<Review>> GetReviews()
+    {
+        return Database.GetReviews();
+    }
+
+    public async Task<List<Rating>> GetRatings()
+    {
+        return Database.GetRatings();
+    }
 
 }

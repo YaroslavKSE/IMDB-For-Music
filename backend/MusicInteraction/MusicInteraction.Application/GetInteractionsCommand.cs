@@ -5,9 +5,7 @@ using MusicInteraction.Domain;
 namespace MusicInteraction.Application;
 
 public class GetInteractionsCommand: IRequest<GetInteractionsResult>
-{
-
-}
+{ }
 
 public class GetInteractionsResult
 {
