@@ -14,21 +14,21 @@ public class PostInteractionCommand : IRequest<PostInteractionResult>
 
 public class PostInteractionResult
 {
-    public bool InteractionCreated;
-    public bool Liked;
-    public bool ReviewCreated;
-    public bool Graded;
-    public Guid InteractionId;
+    public bool InteractionCreated { get; set; }
+    public bool Liked { get; set; }
+    public bool ReviewCreated { get; set; }
+    public bool Graded { get; set; }
+    public Guid InteractionId { get; set; }
 }
 
 public class PostInteractionRequest
 {
-    public string UserId;
-    public string ItemId;
-    public string ItemType;
-    public bool IsLiked;
-    public string ReviewText;
-    public float? Grade;
+    public string UserId { get; set; }
+    public string ItemId { get; set; }
+    public string ItemType { get; set; }
+    public bool IsLiked { get; set; }
+    public string ReviewText { get; set; }
+    public float? Grade { get; set; }
 }
 
 public class PostInteractionUseCase : IRequestHandler<PostInteractionCommand, PostInteractionResult>
