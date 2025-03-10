@@ -15,16 +15,6 @@ public class InteractionController: ControllerBase
         this.mediator = _mediator;
     }
 
-    [HttpPost("writeReview")]
-    public async Task<IActionResult> WriteReview([FromBody]WriteReviewRequest request)
-    {
-        WriteReviewCommand command = new WriteReviewCommand()
-            {UserId = request.UserId, ItemId = request.ItemId, ReviewText = request.ReviewText};
-        var result = await mediator.Send(command);
-        if(!result.ReviewCreated) return BadRequest("Error review not created");
-        return Ok("Success");
-    }
-
     [HttpPost("postInteraction")]
     public async Task<IActionResult> PostInteraction([FromBody]PostInteractionRequest request)
     {

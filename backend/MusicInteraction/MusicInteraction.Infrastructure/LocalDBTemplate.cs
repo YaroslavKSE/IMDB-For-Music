@@ -5,7 +5,6 @@ namespace MusicInteraction.Infrastructure;
 
 public class LocalDBTemplate
 {
-    private static readonly ConcurrentDictionary<Guid, Interaction> Interactions = new();
     private static readonly ConcurrentDictionary<Guid, Review> Reviews = new();
     private static readonly ConcurrentDictionary<Guid, Rating> Ratings = new();
     private static readonly ConcurrentDictionary<Guid, InteractionsAggregate> InteractionsAggregates = new();
@@ -26,19 +25,11 @@ public class LocalDBTemplate
 
         return;
     }
-    
-    public Task<bool> AddReview(string userId, string itemId, string ReviewText)
-    {
-        Guid interactionId = Guid.NewGuid();
-        Review review = new Review(ReviewText, interactionId, itemId, DateTime.Now, "basic", userId);
-        Interactions[interactionId] = review;
-        return Task.FromResult(true);
-    }
 
-    public List<Interaction> GetInteractions()
+    public List<InteractionsAggregate> GetInteractions()
     {
-        List<Interaction> result = new List<Interaction>();
-        foreach (var i in Interactions)
+        List<InteractionsAggregate> result = new List<InteractionsAggregate>();
+        foreach (var i in InteractionsAggregates)
         {
             result.Add(i.Value);
         }
@@ -48,7 +39,7 @@ public class LocalDBTemplate
 
     public bool IsInteractionsEmpty()
     {
-        if (Interactions.Count == 0)
+        if (InteractionsAggregates.Count == 0)
         {
             return true;
         }

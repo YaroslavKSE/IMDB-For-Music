@@ -2,7 +2,7 @@ namespace MusicInteraction.Domain;
 
 public class Rating: Interaction
 {
-    private readonly Guid RatingId;
+    public Guid RatingId { get; set; }
     private IGradable Grade;
 
     public Rating(IGradable grade, Guid AggregateId, string ItemId, DateTime CreatedAt, string ItemType, string UserId)

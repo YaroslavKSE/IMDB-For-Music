@@ -12,7 +12,7 @@ public class GetInteractionsCommand: IRequest<GetInteractionsResult>
 public class GetInteractionsResult
 {
     public bool InteractionsEmpty { get; set; }
-    public List<Interaction> Interactions { get; set; }
+    public List<InteractionsAggregate> Interactions { get; set; }
 }
 
 public class GetInteractionsUseCase : IRequestHandler<GetInteractionsCommand, GetInteractionsResult>

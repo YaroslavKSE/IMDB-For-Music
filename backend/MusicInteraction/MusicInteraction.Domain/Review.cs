@@ -2,8 +2,8 @@ namespace MusicInteraction.Domain;
 
 public class Review: Interaction
 {
-    private readonly Guid ReviewId;
-    private string ReviewText;
+    public Guid ReviewId { get; set; }
+    public string ReviewText { get; set; }
 
     public Review(string text, Guid AggregateId, string ItemId, DateTime CreatedAt, string ItemType, string UserId)
         : base(AggregateId, ItemId, CreatedAt, ItemType, UserId)

@@ -13,7 +13,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<LocalDBTemplate>();
 builder.Services.AddInfrastructureServices();
 
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(WriteReviewCommand).Assembly));
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(PostInteractionCommand).Assembly));
 
 var app = builder.Build();
 
