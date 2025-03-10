@@ -12,6 +12,11 @@ public class InteractionStorage: IInteractionStorage
         Database = _db;
     }
 
+    public async Task AddInteractionAsync(InteractionsAggregate interaction)
+    {
+        await Database.AddInteraction(interaction);
+    }
+
     public async Task<bool> AddReview(string userId, string itemId, string text)
     {
         return await Database.AddReview(userId, itemId, text);
@@ -26,4 +31,6 @@ public class InteractionStorage: IInteractionStorage
     {
         return Database.GetInteractions();
     }
+
+
 }

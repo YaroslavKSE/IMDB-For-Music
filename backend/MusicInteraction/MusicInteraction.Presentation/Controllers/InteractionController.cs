@@ -25,6 +25,17 @@ public class InteractionController: ControllerBase
         return Ok("Success");
     }
 
+    [HttpPost("postInteraction")]
+    public async Task<IActionResult> PostInteraction([FromBody]PostInteractionRequest request)
+    {
+        PostInteractionCommand command = new PostInteractionCommand()
+        {UserId = request.UserId, ItemId = request.ItemId, ItemType = request.ItemType,
+            IsLiked = request.IsLiked, ReviewText = request.ReviewText, Grade = request.Grade};
+        var result = await mediator.Send(command);
+        if(!result.InteractionCreated) return BadRequest("Error interaction not created");
+        return Ok(result);
+    }
+
     [HttpGet("getInteractions")]
     public async Task<IActionResult> GetInteractions()
     {
