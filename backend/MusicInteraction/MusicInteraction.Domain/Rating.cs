@@ -2,23 +2,29 @@ namespace MusicInteraction.Domain;
 
 public class Rating: Interaction
 {
+    public Guid RatingId { get; set; }
     private IGradable Grade;
 
-    public Rating(float grade, Guid InteractionId, string ItemId, DateTime CreatedAt, string ItemType)
-        : base(InteractionId, ItemId, CreatedAt, ItemType)
+    public Rating(IGradable grade, Guid AggregateId, string ItemId, DateTime CreatedAt, string ItemType, string UserId)
+        : base(AggregateId, ItemId, CreatedAt, ItemType, UserId)
     {
-        Grade = new Grade();
-        Grade.updateGrade(grade);
+        RatingId = Guid.NewGuid();
+        Grade = grade;
     }
 
-    public void UpdateGrade(float grade)
+    public void UpdateGrade(IGradable grade)
     {
-        Grade.updateGrade(grade);
+        this.Grade = grade;
     }
 
     public float? GetGrade()
     {
         return Grade.getGrade();
+    }
+
+    public Guid GetId()
+    {
+        return RatingId;
     }
 
     public float? GetMax()

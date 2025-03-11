@@ -4,7 +4,10 @@ using MusicInteraction.Domain;
 
 public interface IInteractionStorage
 {
-    Task<bool> AddReview(string userId, string itemId, string reviewText);
     Task<bool> IsEmpty();
-    Task<List<Interaction>> GetInteractions();
+    Task AddInteractionAsync(InteractionsAggregate interaction);
+    Task<List<InteractionsAggregate>> GetInteractions();
+    Task<List<Like>> GetLikes();
+    Task<List<Review>> GetReviews();
+    Task<List<Rating>> GetRatings();
 }

@@ -12,9 +12,9 @@ public class InteractionStorage: IInteractionStorage
         Database = _db;
     }
 
-    public async Task<bool> AddReview(string userId, string itemId, string text)
+    public async Task AddInteractionAsync(InteractionsAggregate interaction)
     {
-        return await Database.AddReview(userId, itemId, text);
+        await Database.AddInteraction(interaction);
     }
 
     public async Task<bool> IsEmpty()
@@ -22,8 +22,24 @@ public class InteractionStorage: IInteractionStorage
         return Database.IsInteractionsEmpty();
     }
 
-    public async Task<List<Interaction>> GetInteractions()
+    public async Task<List<InteractionsAggregate>> GetInteractions()
     {
         return Database.GetInteractions();
     }
+
+    public async Task<List<Like>> GetLikes()
+    {
+        return Database.GetLikes();
+    }
+
+    public async Task<List<Review>> GetReviews()
+    {
+        return Database.GetReviews();
+    }
+
+    public async Task<List<Rating>> GetRatings()
+    {
+        return Database.GetRatings();
+    }
+
 }

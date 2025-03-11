@@ -15,14 +15,15 @@ public class InteractionController: ControllerBase
         this.mediator = _mediator;
     }
 
-    [HttpPost("writeReview")]
-    public async Task<IActionResult> WriteReview([FromBody]WriteReviewRequest request)
+    [HttpPost("postInteraction")]
+    public async Task<IActionResult> PostInteraction([FromBody]PostInteractionRequest request)
     {
-        WriteReviewCommand command = new WriteReviewCommand()
-            {UserId = request.UserId, ItemId = request.ItemId, ReviewText = request.ReviewText};
+        PostInteractionCommand command = new PostInteractionCommand()
+        {UserId = request.UserId, ItemId = request.ItemId, ItemType = request.ItemType,
+            IsLiked = request.IsLiked, ReviewText = request.ReviewText, Grade = request.Grade};
         var result = await mediator.Send(command);
-        if(!result.ReviewCreated) return BadRequest("Error review not created");
-        return Ok("Success");
+        if(!result.InteractionCreated) return BadRequest("Error interaction not created");
+        return Ok(result);
     }
 
     [HttpGet("getInteractions")]
@@ -31,6 +32,30 @@ public class InteractionController: ControllerBase
         var result = await mediator.Send(new GetInteractionsCommand());
         if (result.InteractionsEmpty) return NotFound("There are no interactions");
         return Ok(result.Interactions);
+    }
+
+    [HttpGet("getLikes")]
+    public async Task<IActionResult> GetLikes()
+    {
+        var result = await mediator.Send(new GetLikesCommand());
+        if (result.LikesEmpty) return NotFound("There are no likes");
+        return Ok(result.Likes);
+    }
+
+    [HttpGet("getReviews")]
+    public async Task<IActionResult> GetReviews()
+    {
+        var result = await mediator.Send(new GetReviewsCommand());
+        if (result.ReviewsEmpty) return NotFound("There are no reviews");
+        return Ok(result.Reviews);
+    }
+
+    [HttpGet("getRatings")]
+    public async Task<IActionResult> GetRatings()
+    {
+        var result = await mediator.Send(new GetRatingsCommand());
+        if (result.RatingsEmpty) return NotFound("There are no ratings");
+        return Ok(result.Ratings);
     }
 
 }

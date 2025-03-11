@@ -2,11 +2,11 @@ namespace MusicInteraction.Domain;
 
 public class Review: Interaction
 {
-    private Guid ReviewId;
-    private string ReviewText;
+    public Guid ReviewId { get; set; }
+    public string ReviewText { get; set; }
 
-    public Review(string text, Guid InteractionId, string ItemId, DateTime CreatedAt, string ItemType)
-        : base(InteractionId, ItemId, CreatedAt, ItemType)
+    public Review(string text, Guid AggregateId, string ItemId, DateTime CreatedAt, string ItemType, string UserId)
+        : base(AggregateId, ItemId, CreatedAt, ItemType, UserId)
     {
         ReviewId = Guid.NewGuid();
         ReviewText = text;
