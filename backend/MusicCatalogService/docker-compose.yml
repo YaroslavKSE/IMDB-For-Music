@@ -1,0 +1,53 @@
+services:
+  music-catalog-db:
+    image: mongo:latest
+    ports:
+      - "${MONGO_PORT}:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_DATABASE}
+    volumes:
+      - music_catalog_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet mongodb://${MONGO_USER}:${MONGO_PASSWORD}@localhost:27017/admin
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  music-catalog-redis:
+    image: redis:alpine
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
+  music-catalog-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Redis=${REDIS_CONNECTION}
+      - MongoDb__ConnectionString=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@music-catalog-db:27017
+      - MongoDb__DatabaseName=${MONGO_DATABASE}
+      - Spotify__ClientId=${SPOTIFY_CLIENT_ID}
+      - Spotify__ClientSecret=${SPOTIFY_CLIENT_SECRET}
+    ports:
+      - "5010:80"
+    depends_on:
+      music-catalog-db:
+        condition: service_healthy
+      music-catalog-redis:
+        condition: service_healthy
+
+volumes:
+  music_catalog_data:
+  redis_data:

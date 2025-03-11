@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MusicCatalogService.Core.DTOs;
-using MusicCatalogService.Core.Services;
+using MusicCatalogService.Core.Interfaces;
 
 namespace MusicCatalogService.API.Controllers;
 
@@ -8,124 +8,123 @@ namespace MusicCatalogService.API.Controllers;
 [Route("api/v1/catalog")]
 public class CatalogController : ControllerBase
 {
-    private readonly IMusicCatalogService _musicCatalogService;
+    private readonly ITrackService _trackService;
     private readonly ILogger<CatalogController> _logger;
+    private readonly IAlbumService _albumService;
+    private readonly ISearchService _searchService;
 
     public CatalogController(
-        IMusicCatalogService musicCatalogService,
+        ITrackService trackService,
+        IAlbumService albumService,
+        ISearchService searchService,
         ILogger<CatalogController> logger)
     {
-        _musicCatalogService = musicCatalogService;
+        _trackService = trackService;
+        _albumService = albumService;
+        _searchService = searchService;
         _logger = logger;
     }
-
-    [HttpGet("albums/{spotifyId}")]
-    [ProducesResponseType(typeof(CatalogItemDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetAlbum(string spotifyId)
-    {
-        try
-        {
-            _logger.LogInformation("Getting album with Spotify ID: {SpotifyId}", spotifyId);
-            var album = await _musicCatalogService.GetAlbumAsync(spotifyId);
-            return Ok(album);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving album {SpotifyId}", spotifyId);
-            return StatusCode(StatusCodes.Status500InternalServerError, 
-                new { error = "An error occurred while retrieving the album." });
-        }
-    }
-
+    
     [HttpGet("tracks/{spotifyId}")]
-    [ProducesResponseType(typeof(CatalogItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(TrackDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetTrack(string spotifyId)
     {
         try
         {
-            _logger.LogInformation("Getting track with Spotify ID: {SpotifyId}", spotifyId);
-            var track = await _musicCatalogService.GetTrackAsync(spotifyId);
+            _logger.LogInformation("Retrieving track with Spotify ID: {SpotifyId}", spotifyId);
+            
+            var track = await _trackService.GetTrackAsync(spotifyId);
+            
+            if (track == null)
+            {
+                return NotFound(new { Message = $"Track with Spotify ID {spotifyId} not found" });
+            }
+            
             return Ok(track);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving track {SpotifyId}", spotifyId);
-            return StatusCode(StatusCodes.Status500InternalServerError, 
-                new { error = "An error occurred while retrieving the track." });
+            _logger.LogError(ex, "Error retrieving track with Spotify ID: {SpotifyId}", spotifyId);
+            return StatusCode(500, new { Message = "An error occurred while retrieving the track" });
         }
     }
-
-    [HttpGet("artists/{spotifyId}")]
-    [ProducesResponseType(typeof(CatalogItemDto), StatusCodes.Status200OK)]
+    [HttpGet("albums/{spotifyId}")]
+    [ProducesResponseType(typeof(AlbumDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetArtist(string spotifyId)
+    public async Task<IActionResult> GetAlbum(string spotifyId)
     {
         try
         {
-            _logger.LogInformation("Getting artist with Spotify ID: {SpotifyId}", spotifyId);
-            var artist = await _musicCatalogService.GetArtistAsync(spotifyId);
-            return Ok(artist);
+            _logger.LogInformation("Retrieving album with Spotify ID: {SpotifyId}", spotifyId);
+        
+            var album = await _albumService.GetAlbumAsync(spotifyId);
+        
+            if (album == null)
+            {
+                return NotFound(new { Message = $"Album with Spotify ID {spotifyId} not found" });
+            }
+        
+            return Ok(album);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving artist {SpotifyId}", spotifyId);
-            return StatusCode(StatusCodes.Status500InternalServerError, 
-                new { error = "An error occurred while retrieving the artist." });
+            _logger.LogError(ex, "Error retrieving album with Spotify ID: {SpotifyId}", spotifyId);
+            return StatusCode(500, new { Message = "An error occurred while retrieving the album" });
         }
     }
+    // MusicCatalogService.API/Controllers/CatalogController.cs
+// Add this endpoint to your existing controller
 
-    [HttpGet("search")]
-    [ProducesResponseType(typeof(SearchResultDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Search(
-        [FromQuery] string query, 
-        [FromQuery] string type = "album,track,artist",
-        [FromQuery] int limit = 20,
-        [FromQuery] int offset = 0)
+[HttpGet("search")]
+[ProducesResponseType(typeof(SearchResultDto), StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
+[ProducesResponseType(StatusCodes.Status500InternalServerError)]
+public async Task<IActionResult> Search([FromQuery] string q, [FromQuery] string type, 
+    [FromQuery] int limit = 20, [FromQuery] int offset = 0, [FromQuery] string market = null)
+{
+    try
     {
-        if (string.IsNullOrWhiteSpace(query))
+        if (string.IsNullOrWhiteSpace(q))
         {
-            return BadRequest(new { error = "Query parameter cannot be empty." });
+            return BadRequest(new { Message = "Search query (q) is required" });
         }
-
-        try
+        
+        if (string.IsNullOrWhiteSpace(type))
         {
-            _logger.LogInformation("Searching for {Query} with type {Type}", query, type);
-            var searchResults = await _musicCatalogService.SearchAsync(query, type, limit, offset);
-            return Ok(searchResults);
+            return BadRequest(new { Message = "Search type is required. Valid types: album, artist, track" });
         }
-        catch (Exception ex)
+        
+        // Validate type parameter
+        var validTypes = new[] { "album", "artist", "track" };
+        var requestedTypes = type.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        
+        foreach (var requestedType in requestedTypes)
         {
-            _logger.LogError(ex, "Error searching for {Query}", query);
-            return StatusCode(StatusCodes.Status500InternalServerError, 
-                new { error = "An error occurred while searching." });
+            if (!validTypes.Contains(requestedType.Trim().ToLower()))
+            {
+                return BadRequest(new { Message = $"Invalid search type: {requestedType}. Valid types: album, artist, track" });
+            }
         }
+        
+        _logger.LogInformation("Search request: q='{Query}', type='{Type}', limit={Limit}, offset={Offset}", 
+            q, type, limit, offset);
+        
+        var searchResults = await _searchService.SearchAsync(q, type, limit, offset, market);
+        
+        return Ok(searchResults);
     }
-
-    [HttpGet("new-releases")]
-    [ProducesResponseType(typeof(NewReleasesDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetNewReleases(
-        [FromQuery] int limit = 20,
-        [FromQuery] int offset = 0)
+    catch (ArgumentException ex)
     {
-        try
-        {
-            _logger.LogInformation("Getting new releases, limit: {Limit}, offset: {Offset}", limit, offset);
-            var newReleases = await _musicCatalogService.GetNewReleasesAsync(limit, offset);
-            return Ok(newReleases);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving new releases");
-            return StatusCode(StatusCodes.Status500InternalServerError, 
-                new { error = "An error occurred while retrieving new releases." });
-        }
+        _logger.LogWarning(ex, "Invalid search parameters");
+        return BadRequest(new { Message = ex.Message });
     }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error performing search: q='{Query}', type='{Type}'", q, type);
+        return StatusCode(500, new { Message = "An error occurred while performing the search" });
+    }
+}
 }
