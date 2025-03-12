@@ -13,9 +13,13 @@ public class GradingBlock : IGradable
         Actions = new List<Action>();
     }
 
-    public void AddGradeWithAction(IGradable grade, Action action)
+    public void AddGrade(IGradable grade)
     {
         Grades.Add(grade);
+    }
+
+    public void AddAction(Action action)
+    {
         Actions.Add(action);
     }
 
@@ -57,8 +61,72 @@ public class GradingBlock : IGradable
 
     public float getMax()
     {
-        //TODO
-        // For simplicity, I return the max of the first grade
-        return Grades.Count > 0 ? Grades[0].getMax() : 10f;
+        if (Grades.Count == 0)
+            throw new Exception("no grading parametrs were added");
+
+        if (Grades.Count == 1)
+            return Grades[0].getMax();
+
+        float max = Grades[0].getMax();
+
+        for (int i = 1; i < Grades.Count; i++)
+        {
+            switch (Actions[i-1])
+            {
+                case Action.Add:
+                    max += Grades[i].getMax();
+                    break;
+                case Action.Subtract:
+                    max -= Grades[i].getMin();
+                    break;
+                case Action.Multiply:
+                    max *= Grades[i].getMax();
+                    break;
+                case Action.Divide:
+                    float minValue = Grades[i].getMin();
+                    if (minValue > 0)
+                        max /= minValue;
+                    break;
+            }
+        }
+
+        return max;
+    }
+
+    public float getMin()
+    {
+        if (Grades.Count == 0)
+        {
+            throw new Exception("no grading parametrs were added");
+        }
+        else if (Grades.Count == 1)
+        {
+            return Grades[0].getMin();
+        }
+
+        float min = Grades[0].getMin();
+
+        for (int i = 1; i < Grades.Count; i++)
+        {
+            switch (Actions[i-1])
+            {
+                case Action.Add:
+                    min += Grades[i].getMin();
+                    break;
+                case Action.Subtract:
+                    min -= Grades[i].getMax();
+                    break;
+                case Action.Multiply:
+                    min *= Grades[i].getMin();
+                    break;
+                case Action.Divide:
+                    float maxValue = Grades[i].getMax();
+                    if (maxValue != 0)
+                        min /= maxValue;
+                    break;
+            }
+        }
+
+        return min;
     }
 }

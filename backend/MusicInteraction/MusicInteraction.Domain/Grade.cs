@@ -36,4 +36,14 @@ public class Grade: IGradable
     {
         return maxGrade;
     }
+
+    public float getMin()
+    {
+        return minGrade;
+    }
+
+    public string getName()
+    {
+        return parametrName;
+    }
 }
