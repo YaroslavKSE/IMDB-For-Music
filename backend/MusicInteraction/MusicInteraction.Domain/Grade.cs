@@ -2,11 +2,11 @@ namespace MusicInteraction.Domain;
 
 public class Grade: IGradable
 {
-    private string parametrName;
-    private float minGrade;
-    private float maxGrade;
-    private float stepAmount;
-    private float? grade;
+    public string parametrName { get; private set; }
+    public float minGrade { get; private set; }
+    public float maxGrade { get; private set; }
+    public float stepAmount { get; private set; }
+    public float? grade { get; private set; }
 
     public Grade(float minGrade = 1, float maxGrade = 10, float stepAmount = 1, string parametrName = "basicRating")
     {

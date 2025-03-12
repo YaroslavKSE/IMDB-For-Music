@@ -25,4 +25,32 @@ public class GradingMethodController : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpGet("public")]
+    public async Task<IActionResult> GetPublicGradingMethods()
+    {
+        var command = new GetPublicGradingMethodsCommand();
+        var result = await mediator.Send(command);
+
+        if (!result.Success)
+            return BadRequest(result.ErrorMessage);
+
+        return Ok(result.GradingMethods);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetGradingMethodById(Guid id)
+    {
+        var command = new GetGradingMethodByIdCommand
+        {
+            GradingMethodId = id
+        };
+
+        var result = await mediator.Send(command);
+
+        if (!result.Success)
+            return NotFound(result.ErrorMessage);
+
+        return Ok(result.GradingMethod);
+    }
 }
