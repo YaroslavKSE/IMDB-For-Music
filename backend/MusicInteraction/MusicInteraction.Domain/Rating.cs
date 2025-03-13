@@ -3,7 +3,7 @@ namespace MusicInteraction.Domain;
 public class Rating: Interaction
 {
     public Guid RatingId { get; set; }
-    private IGradable Grade;
+    public IGradable Grade { get; set; }
 
     public Rating(IGradable grade, Guid AggregateId, string ItemId, DateTime CreatedAt, string ItemType, string UserId)
         : base(AggregateId, ItemId, CreatedAt, ItemType, UserId)

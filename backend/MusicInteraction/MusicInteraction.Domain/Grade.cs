@@ -22,7 +22,10 @@ public class Grade: IGradable
         for (float i = minGrade; i <= maxGrade; i += stepAmount)
         {
             if (grade == i)
-               return;
+            {
+                this.grade = grade;
+                return;
+            }
         }
         throw new Exception("unvalid grade");
     }
