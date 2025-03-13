@@ -20,12 +20,12 @@ public class InteractionAggregateDto
     public string ItemId { get; set; }
     public string ItemType { get; set; }
     public DateTime CreatedAt { get; set; }
-    public virtual RatingDTO? Rating { get; set; }
+    public virtual RatingNormalizedDTO? Rating { get; set; }
     public virtual ReviewDTO? Review { get; set; }
     public bool IsLiked { get; set; }
 }
 
-public class RatingDTO
+public class RatingNormalizedDTO
 {
     public Guid RatingId { get; set; }
     public float? NormalizedGrade { get; set; }
@@ -64,7 +64,7 @@ public class GetInteractionsUseCase : IRequestHandler<GetInteractionsCommand, Ge
             interactionDTO.ItemType = interaction.ItemType;
             interactionDTO.CreatedAt = interaction.CreatedAt;
             interactionDTO.IsLiked = interaction.IsLiked;
-            interactionDTO.Rating = new RatingDTO()
+            interactionDTO.Rating = new RatingNormalizedDTO()
                 {RatingId = interaction.Rating.RatingId, NormalizedGrade = interaction.Rating.Grade.getNormalizedGrade()};
             interactionDTO.Review = new ReviewDTO()
                 {ReviewId = interaction.Review.ReviewId, ReviewText = interaction.Review.ReviewText};

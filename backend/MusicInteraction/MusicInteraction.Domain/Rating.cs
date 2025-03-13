@@ -31,4 +31,9 @@ public class Rating: Interaction
     {
         return Grade.getMax();
     }
+
+    public float? GetMin()
+    {
+        return Grade.getMin();
+    }
 }
