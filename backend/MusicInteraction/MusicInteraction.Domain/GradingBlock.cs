@@ -129,4 +129,21 @@ public class GradingBlock : IGradable
 
         return min;
     }
+
+    public float? getNormalizedGrade()
+    {
+        float? currentGrade = getGrade();
+        if (currentGrade == null)
+            return null;
+
+        float min = getMin();
+        float max = getMax();
+        float range = max - min;
+
+        float normalizedPercentage = (currentGrade.Value - min) / range;
+
+        float normalizedValue = 1 + normalizedPercentage * 9;
+
+        return (float)Math.Round(normalizedValue);
+    }
 }
