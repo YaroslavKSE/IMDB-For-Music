@@ -19,10 +19,34 @@ public class InteractionController: ControllerBase
     public async Task<IActionResult> PostInteraction([FromBody]PostInteractionRequest request)
     {
         PostInteractionCommand command = new PostInteractionCommand()
-        {UserId = request.UserId, ItemId = request.ItemId, ItemType = request.ItemType,
-            IsLiked = request.IsLiked, ReviewText = request.ReviewText, Grade = request.Grade};
+        {
+            UserId = request.UserId,
+            ItemId = request.ItemId,
+            ItemType = request.ItemType,
+            IsLiked = request.IsLiked,
+            ReviewText = request.ReviewText,
+
+            // Handle grading options
+            UseComplexGrading = request.UseComplexGrading,
+            BasicGrade = request.BasicGrade,
+            GradingMethodId = request.GradingMethodId,
+            GradeInputs = request.GradeInputs
+        };
+
         var result = await mediator.Send(command);
-        if(!result.InteractionCreated) return BadRequest("Error interaction not created");
+
+        if (!result.InteractionCreated)
+        {
+            return BadRequest("Error interaction not created");
+        }
+
+        if (!string.IsNullOrEmpty(result.ErrorMessage))
+        {
+            // Return the result with a 200 status code, but include the error message
+            // This way the client can see what went wrong while still getting the interaction ID
+            return Ok(result);
+        }
+
         return Ok(result);
     }
 
