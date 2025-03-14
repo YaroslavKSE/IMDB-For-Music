@@ -82,4 +82,17 @@ public class InteractionController: ControllerBase
         return Ok(result.Ratings);
     }
 
+    [HttpGet("getRating/{id}")]
+    public async Task<IActionResult> GetRatingById(Guid id)
+    {
+        var command = new GetRatingByIdCommand { RatingId = id };
+        var result = await mediator.Send(command);
+
+        if (!result.Success)
+        {
+            return NotFound(result.ErrorMessage);
+        }
+
+        return Ok(result.Rating);
+    }
 }
