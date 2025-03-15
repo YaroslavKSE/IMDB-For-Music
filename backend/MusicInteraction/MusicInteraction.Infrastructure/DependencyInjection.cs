@@ -10,6 +10,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
         services.AddSingleton<IInteractionStorage, InteractionStorage>();
+        services.AddSingleton<IGradingMethodStorage, GradingMethodStorage>();
         return services;
     }
 }
