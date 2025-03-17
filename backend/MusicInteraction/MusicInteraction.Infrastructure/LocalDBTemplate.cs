@@ -9,7 +9,6 @@ public class LocalDBTemplate
     private static readonly ConcurrentDictionary<Guid, Rating> Ratings = new();
     private static readonly ConcurrentDictionary<Guid, Like> Likes = new();
     private static readonly ConcurrentDictionary<Guid, InteractionsAggregate> InteractionsAggregates = new();
-    private static readonly ConcurrentDictionary<Guid, GradingMethod> GradingMethods = new();
 
     public async Task AddInteraction(InteractionsAggregate interaction)
     {
@@ -32,31 +31,6 @@ public class LocalDBTemplate
         }
 
         return;
-    }
-
-    public async Task AddGradingMethod(GradingMethod gradingMethod)
-    {
-        GradingMethods[gradingMethod.SystemId] = gradingMethod;
-    }
-
-    public async Task<GradingMethod> GetGradingMethodById(Guid methodId)
-    {
-        if (GradingMethods.TryGetValue(methodId, out var gradingMethod))
-        {
-            return gradingMethod;
-        }
-
-        throw new KeyNotFoundException($"Grading method with ID {methodId} not found.");
-    }
-
-    public async Task<List<GradingMethod>> GetPublicGradingMethods()
-    {
-        return GradingMethods.Values.Where(gm => gm.IsPublic).ToList();
-    }
-
-    public async Task<List<GradingMethod>> GetUserGradingMethods(string userId)
-    {
-        return GradingMethods.Values.Where(gm => gm.CreatorId == userId).ToList();
     }
 
     public List<InteractionsAggregate> GetInteractions()
@@ -105,10 +79,5 @@ public class LocalDBTemplate
     public bool IsInteractionsEmpty()
     {
         return InteractionsAggregates.Count == 0;
-    }
-
-    public bool IsGradingMethodsEmpty()
-    {
-        return GradingMethods.Count == 0;
     }
 }
