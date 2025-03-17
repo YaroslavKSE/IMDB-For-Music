@@ -22,11 +22,11 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
                 });
             });
 
+            services.BuildServiceProvider().GetRequiredService<MusicInteractionDbContext>().Database.Migrate();
+
             // Register the PostgreSQL implementation of IInteractionStorage
             services.AddScoped<IInteractionStorage, PostgreSQLInteractionStorage>();
 
-            // Add PostgreSQL database initializer (simpler than full migrations)
-            services.AddPostgreSQLDatabaseInitializer();
 
             return services;
         }

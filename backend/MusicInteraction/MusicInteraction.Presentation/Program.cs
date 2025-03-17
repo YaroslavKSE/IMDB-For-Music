@@ -1,6 +1,3 @@
-using MediatR;
-using MusicInteraction.Infrastructure;
-using MusicInteraction.Application;
 using MusicInteraction.Infrastructure.Migration;
 using MusicInteraction.Infrastructure.MongoDB;
 using MusicInteraction.Infrastructure.PostgreSQL;
@@ -21,8 +18,7 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string>
     {"ConnectionStrings:PostgreSQL", "Host=localhost;Database=MusicInteraction;Username=qualiaaa;Password=password"}
 });
 
-// Keep LocalDBTemplate available during migration
-builder.Services.AddSingleton<LocalDBTemplate>();
+// Local storage is no longer used
 
 // Register MongoDB services for grading methods
 builder.Services.AddMongoDbServices();
@@ -44,30 +40,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Always map controllers, even if initialization fails
 app.UseHttpsRedirection();
 app.UseRouting();
 app.MapControllers();
 
-try
-{
-    // Try to initialize the databases, but don't fail the app if it doesn't work
-    using (var scope = app.Services.CreateScope())
-    {
-        var dbContext = scope.ServiceProvider.GetService<MusicInteractionDbContext>();
-        if (dbContext != null)
-        {
-            // Just check if we can connect, don't do migrations here
-            await dbContext.Database.CanConnectAsync();
-        }
-    }
-}
-catch (Exception ex)
-{
-    // Log the error but continue - we'll still have the in-memory DB as fallback
-    var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "An error occurred while initializing the database.");
-}
-
-// Run the app regardless of database initialization success
+// Run the app
 app.Run();
