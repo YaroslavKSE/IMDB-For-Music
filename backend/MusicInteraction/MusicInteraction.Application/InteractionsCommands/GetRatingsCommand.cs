@@ -66,6 +66,7 @@ public class BlockDetailDTO : GradableComponentDTO
 public class RatingDetailDTO
 {
     public Guid RatingId { get; set; }
+    public Guid? GradingMethodId { get; set; }
     public string ItemId { get; set; }
     public string ItemType { get; set; }
     public string UserId { get; set; }
@@ -158,6 +159,10 @@ public class GetRatingByIdUseCase : IRequestHandler<GetRatingByIdCommand, GetRat
                 MaxPossibleGrade = rating.Grade.getMax(),
                 GradingComponent = ConvertComponentToDto(rating.Grade)
             };
+            if (rating.Grade is GradingMethod method)
+            {
+                ratingDetail.GradingMethodId = method.SystemId;
+            }
 
             return new GetRatingDetailResult
             {
