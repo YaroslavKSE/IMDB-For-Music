@@ -1,0 +1,28 @@
+/* Reset some default padding/margin that might be causing issues */
+#root {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+/* Remove any other styles that might affect the layout */
+.card {
+  padding: 0;
+}
+
+/* Keep animations if needed */
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
