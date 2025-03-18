@@ -13,8 +13,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             services.AddDbContext<MusicInteractionDbContext>((serviceProvider, options) =>
             {
                 var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-                var connectionString = configuration.GetConnectionString("PostgreSQL") ??
-                                       "Host=localhost;Database=MusicInteraction;Username=qualiaaa;Password=password";
+                var connectionString = configuration.GetConnectionString("PostgreSQL");
 
                 options.UseNpgsql(connectionString, npgsqlOptions =>
                 {
@@ -26,7 +25,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
             // Register the PostgreSQL implementation of IInteractionStorage
             services.AddScoped<IInteractionStorage, PostgreSQLInteractionStorage>();
-
 
             return services;
         }

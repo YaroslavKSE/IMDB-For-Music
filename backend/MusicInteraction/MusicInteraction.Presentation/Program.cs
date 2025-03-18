@@ -10,12 +10,6 @@ builder.Services.AddSwaggerGen();
 
 // Configure connection strings
 // MongoDB connection configuration
-builder.Configuration.AddInMemoryCollection(new Dictionary<string, string>
-{
-    {"MongoDB:ConnectionString", "mongodb+srv://mpozdniakov:kElQkUOLQzhRHtzl@gradingmethods.dm47r.mongodb.net/?retryWrites=true&w=majority&appName=GradingMethods"},
-    {"MongoDB:DatabaseName", "MusicEvaluationPlatform"},
-    {"ConnectionStrings:PostgreSQL", "Host=localhost;Database=MusicInteraction;Username=qualiaaa;Password=password"}
-});
 
 // Register MongoDB services for grading methods
 builder.Services.AddMongoDbServices();

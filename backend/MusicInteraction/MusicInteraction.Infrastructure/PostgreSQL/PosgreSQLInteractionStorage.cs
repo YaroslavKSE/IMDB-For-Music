@@ -31,14 +31,12 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
                 // Add the interaction entity
                 await _dbContext.Interactions.AddAsync(interactionEntity);
 
-                // If there's a review, add it
                 if (interaction.Review != null)
                 {
                     var reviewEntity = ReviewMapper.ToEntity(interaction.Review);
                     await _dbContext.Reviews.AddAsync(reviewEntity);
                 }
 
-                // If there's a rating, add it and its gradable component
                 if (interaction.Rating != null)
                 {
                     var ratingResult = await RatingMapper.ToEntityWithGradables(interaction.Rating, _dbContext);
@@ -47,8 +45,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
                 // Save all changes
                 await _dbContext.SaveChangesAsync();
-
-                // Commit transaction
                 await transaction.CommitAsync();
             }
             catch (Exception)

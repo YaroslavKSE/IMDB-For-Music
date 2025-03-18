@@ -16,8 +16,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
                 .Build();
 
             // Get connection string
-            var connectionString = configuration.GetConnectionString("PostgreSQL") ??
-                                   "Host=localhost;Database=MusicInteraction;Username=qualiaaa;Password=password";
+            var connectionString = configuration.GetConnectionString("PostgreSQL");
 
             // Create options builder
             var optionsBuilder = new DbContextOptionsBuilder<MusicInteractionDbContext>();

@@ -15,13 +15,9 @@ public class MongoDbContext
 
         // Get connection string from configuration
         var connectionString = configuration["MongoDB:ConnectionString"];
-        if (string.IsNullOrEmpty(connectionString))
-        {
-            connectionString = "mongodb+srv://mpozdniakov:kElQkUOLQzhRHtzl@gradingmethods.dm47r.mongodb.net/?retryWrites=true&w=majority&appName=GradingMethods";
-        }
 
         // Get database name from configuration or use default
-        var databaseName = configuration["MongoDB:DatabaseName"] ?? "MusicEvaluationPlatform";
+        var databaseName = configuration["MongoDB:DatabaseName"];
 
         // Create the MongoDB client
         var client = new MongoClient(connectionString);
