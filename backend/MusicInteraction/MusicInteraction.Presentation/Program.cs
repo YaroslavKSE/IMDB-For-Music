@@ -1,4 +1,3 @@
-using MusicInteraction.Infrastructure.Migration;
 using MusicInteraction.Infrastructure.MongoDB;
 using MusicInteraction.Infrastructure.PostgreSQL;
 
@@ -18,16 +17,11 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string>
     {"ConnectionStrings:PostgreSQL", "Host=localhost;Database=MusicInteraction;Username=qualiaaa;Password=password"}
 });
 
-// Local storage is no longer used
-
 // Register MongoDB services for grading methods
 builder.Services.AddMongoDbServices();
 
 // Register PostgreSQL services for interactions
 builder.Services.AddPostgreSQLServices();
-
-// Register migration service for MongoDB grading methods
-builder.Services.AddGradingMethodMigration();
 
 // Register MediatR services
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(PostInteractionCommand).Assembly));
