@@ -144,4 +144,40 @@ public class Auth0Service : IAuth0Service
         _managementApiToken = result.AccessToken;
         _tokenExpirationTime = DateTime.UtcNow.AddSeconds(result.ExpiresIn - 60); // Buffer of 60 seconds
     }
+    public async Task<bool> LogoutAsync(string refreshToken)
+    {
+        try
+        {
+            // Auth0 requires revoking the refresh token
+            var revokeRequest = new Auth0RevokeTokenRequest
+            {
+                ClientId = _settings.ClientId,
+                ClientSecret = _settings.ClientSecret,
+                Token = refreshToken
+            };
+
+            var response = await _httpClient.PostAsJsonAsync(
+                $"https://{_settings.Domain}/oauth/revoke",
+                revokeRequest);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to revoke refresh token. Status: {Status}, Error: {Error}", 
+                    response.StatusCode, error);
+            
+                // Even if token revocation fails, we'll still consider this a successful logout
+                // The token might be invalid or already expired
+                _logger.LogWarning("Continuing with logout despite token revocation failure");
+            }
+        
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during logout");
+            // Return true even if there's an error, as we want the frontend to clear tokens regardless
+            return true;
+        }
+    }
 }

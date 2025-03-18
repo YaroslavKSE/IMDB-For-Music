@@ -150,6 +150,26 @@ builder.Services.AddSwaggerGen(c => {
 // builder.Services.AddHealthChecks()
 //     .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection"));
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy", policy =>
+    {
+        // Get allowed origins from configuration based on environment
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        
+        var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Environment: {Environment}", builder.Environment.EnvironmentName);
+        logger.LogInformation("CORS configured with allowed origins: {Origins}", 
+            allowedOrigins.Length > 0 ? string.Join(", ", allowedOrigins) : "none");
+        
+        policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
 
 // Apply database migrations at startup
@@ -233,6 +253,7 @@ else
 // Middleware pipeline
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseCors("CorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 

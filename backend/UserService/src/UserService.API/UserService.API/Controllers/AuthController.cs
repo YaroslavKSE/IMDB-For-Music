@@ -175,4 +175,51 @@ public class AuthController : ControllerBase
                 });
         }
     }
+    [HttpPost("logout")]
+    [ProducesResponseType(typeof(LogoutResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Logout(LogoutRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Processing logout request");
+
+            var command = new LogoutCommand(request.RefreshToken);
+            var result = await _mediator.Send(command);
+        
+            var response = new LogoutResponse
+            {
+                Success = result,
+                Message = "Logout successful"
+            };
+        
+            return Ok(response);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning("Validation failed during logout: {Errors}", 
+                string.Join(", ", ex.Errors.Select(e => e.ErrorMessage)));
+        
+            return BadRequest(new ErrorResponse
+            {
+                Code = "ValidationError",
+                Message = string.Join("; ", ex.Errors.Select(e => e.ErrorMessage)),
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during logout");
+        
+            return StatusCode(
+                StatusCodes.Status500InternalServerError, 
+                new ErrorResponse
+                {
+                    Code = "InternalServerError",
+                    Message = "An unexpected error occurred during logout",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+        }
+    }
 }
