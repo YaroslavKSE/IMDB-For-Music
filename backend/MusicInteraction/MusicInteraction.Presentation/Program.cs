@@ -9,7 +9,33 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Configure connection strings
-// MongoDB connection configuration
+var configuration = builder.Configuration;
+
+// Configure specific settings for Docker environment
+if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
+{
+    Console.WriteLine("Running in Docker container");
+
+    // Override connection strings if provided as environment variables
+    var postgresConnection = Environment.GetEnvironmentVariable("ConnectionStrings__PostgreSQL");
+    var mongoConnection = Environment.GetEnvironmentVariable("MongoDB__ConnectionString");
+    var mongoDbName = Environment.GetEnvironmentVariable("MongoDB__DatabaseName");
+
+    if (!string.IsNullOrEmpty(postgresConnection))
+    {
+        configuration["ConnectionStrings:PostgreSQL"] = postgresConnection;
+    }
+
+    if (!string.IsNullOrEmpty(mongoConnection))
+    {
+        configuration["MongoDB:ConnectionString"] = mongoConnection;
+    }
+
+    if (!string.IsNullOrEmpty(mongoDbName))
+    {
+        configuration["MongoDB:DatabaseName"] = mongoDbName;
+    }
+}
 
 // Register MongoDB services for grading methods
 builder.Services.AddMongoDbServices();
@@ -22,6 +48,7 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(PostI
 
 var app = builder.Build();
 
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -32,5 +59,4 @@ app.UseHttpsRedirection();
 app.UseRouting();
 app.MapControllers();
 
-// Run the app
 app.Run();
