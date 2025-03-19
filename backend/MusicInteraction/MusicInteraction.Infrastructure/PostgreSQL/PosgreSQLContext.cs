@@ -63,6 +63,20 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
                 .WithOne(r => r.Interaction)
                 .HasForeignKey<ReviewEntity>(r => r.AggregateId);
 
+            // One-to-one between Rating and Grade (for simple ratings)
+            modelBuilder.Entity<RatingEntity>()
+                .HasOne(r => r.SimpleGrade)
+                .WithOne(g => g.Rating)
+                .HasForeignKey<GradeEntity>(g => g.RatingId)
+                .IsRequired(false); // Mark as optional to allow null
+
+            // One-to-one between Rating and GradingMethodInstance (for complex ratings)
+            modelBuilder.Entity<RatingEntity>()
+                .HasOne(r => r.ComplexGrade)
+                .WithOne(g => g.Rating)
+                .HasForeignKey<GradingMethodInstanceEntity>(g => g.RatingId)
+                .IsRequired(false); // Mark as optional to allow null
+
             // Configure JSON columns for PostgreSQL
             modelBuilder.Entity<GradingMethodInstanceEntity>()
                 .Property(g => g.ComponentsJson)

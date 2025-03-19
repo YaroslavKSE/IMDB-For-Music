@@ -44,9 +44,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
                 if (interaction.Rating != null)
                 {
-                    var ratingResult = await RatingMapper.ToEntityWithGradables(interaction.Rating, _dbContext);
-                    ratingResult.RatingEntity.AggregateId = interactionEntity.AggregateId;
-                    await _dbContext.Ratings.AddAsync(ratingResult.RatingEntity);
+                    await RatingMapper.ToEntityWithGradables(interaction.Rating, _dbContext);
                 }
 
                 // Save all changes

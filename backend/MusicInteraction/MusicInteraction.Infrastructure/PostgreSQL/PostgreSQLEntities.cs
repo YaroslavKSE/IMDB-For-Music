@@ -53,12 +53,14 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
         public string ItemType { get; set; }
         public string UserId { get; set; }
 
-        // Foreign key that points to either a GradeEntity or a GradingMethodInstanceEntity
-        public Guid? GradableId { get; set; }
-        public string GradableType { get; set; } // "grade" or "method"
-
         // Navigation properties
         public virtual InteractionAggregateEntity Interaction { get; set; }
+
+        // One-to-one relationship with GradeEntity
+        public virtual GradeEntity SimpleGrade { get; set; }
+
+        // One-to-one relationship with GradingMethodInstanceEntity
+        public virtual GradingMethodInstanceEntity ComplexGrade { get; set; }
     }
 
     public class GradeEntity
@@ -71,6 +73,10 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
         public float? Grade { get; set; }
         public float StepAmount { get; set; }
         public float? NormalizedGrade { get; set; }
+        public Guid? RatingId { get; set; }
+
+        [ForeignKey("RatingId")]
+        public virtual RatingEntity Rating { get; set; }
     }
 
     public class GradingMethodInstanceEntity
@@ -111,6 +117,12 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
                 : JsonSerializer.Deserialize<List<string>>(ActionsJson);
             set => ActionsJson = JsonSerializer.Serialize(value);
         }
+
+        // Add the nullable foreign key to Rating
+        public Guid? RatingId { get; set; }
+
+        [ForeignKey("RatingId")]
+        public virtual RatingEntity Rating { get; set; }
     }
 
     public class GradingBlockEntity
