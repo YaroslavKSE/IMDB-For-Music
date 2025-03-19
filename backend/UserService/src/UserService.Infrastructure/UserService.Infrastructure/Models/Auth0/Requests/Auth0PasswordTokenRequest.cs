@@ -23,7 +23,7 @@ public class Auth0PasswordTokenRequest
     public string Password { get; set; }
     
     [JsonPropertyName("scope")]
-    public string Scope { get; set; } = "openid profile email offline_access";
+    public string Scope { get; set; }
     
     [JsonPropertyName("realm")]
     public string Realm { get; set; }
