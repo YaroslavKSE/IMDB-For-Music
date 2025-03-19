@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json;
 
 namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
 {
@@ -73,10 +72,17 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
         public float? Grade { get; set; }
         public float StepAmount { get; set; }
         public float? NormalizedGrade { get; set; }
+
+        // This field can be null when the grade is part of a grading block
         public Guid? RatingId { get; set; }
 
+        // Navigation property (optional)
         [ForeignKey("RatingId")]
         public virtual RatingEntity Rating { get; set; }
+
+        // Navigation for reverse relationships
+        public virtual ICollection<GradingMethodComponentEntity> MethodComponents { get; set; }
+        public virtual ICollection<GradingBlockComponentEntity> BlockComponents { get; set; }
     }
 
     public class GradingMethodInstanceEntity
@@ -92,37 +98,22 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
         public float? Grade { get; set; }
         public float? NormalizedGrade { get; set; }
 
-        // Store components and actions as JSON
-        [Column(TypeName = "jsonb")]
-        public string ComponentsJson { get; set; }
-
-        [Column(TypeName = "jsonb")]
-        public string ActionsJson { get; set; }
-
-        // Helper methods for components and actions
-        [NotMapped]
-        public Dictionary<string, Guid> Components
-        {
-            get => string.IsNullOrEmpty(ComponentsJson)
-                ? new Dictionary<string, Guid>()
-                : JsonSerializer.Deserialize<Dictionary<string, Guid>>(ComponentsJson);
-            set => ComponentsJson = JsonSerializer.Serialize(value);
-        }
-
-        [NotMapped]
-        public List<string> Actions
-        {
-            get => string.IsNullOrEmpty(ActionsJson)
-                ? new List<string>()
-                : JsonSerializer.Deserialize<List<string>>(ActionsJson);
-            set => ActionsJson = JsonSerializer.Serialize(value);
-        }
-
-        // Add the nullable foreign key to Rating
+        // This can be null for standalone grading method instances
         public Guid? RatingId { get; set; }
 
+        // Navigation property (optional)
         [ForeignKey("RatingId")]
         public virtual RatingEntity Rating { get; set; }
+
+        // Navigation properties for components and actions
+        public virtual ICollection<GradingMethodComponentEntity> Components { get; set; }
+        public virtual ICollection<GradingMethodActionEntity> Actions { get; set; }
+
+        public GradingMethodInstanceEntity()
+        {
+            Components = new List<GradingMethodComponentEntity>();
+            Actions = new List<GradingMethodActionEntity>();
+        }
     }
 
     public class GradingBlockEntity
@@ -135,30 +126,120 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
         public float? Grade { get; set; }
         public float? NormalizedGrade { get; set; }
 
-        // Store components and actions as JSON
-        [Column(TypeName = "jsonb")]
-        public string ComponentsJson { get; set; }
+        // Navigation properties for components and actions
+        public virtual ICollection<GradingBlockComponentEntity> Components { get; set; }
+        public virtual ICollection<GradingBlockActionEntity> Actions { get; set; }
 
-        [Column(TypeName = "jsonb")]
-        public string ActionsJson { get; set; }
+        // Navigation for reverse relationships
+        public virtual ICollection<GradingMethodComponentEntity> MethodComponents { get; set; }
+        public virtual ICollection<GradingBlockComponentEntity> ParentBlockComponents { get; set; }
 
-        // Helper methods for components and actions
-        [NotMapped]
-        public Dictionary<string, Guid> Components
+        public GradingBlockEntity()
         {
-            get => string.IsNullOrEmpty(ComponentsJson)
-                ? new Dictionary<string, Guid>()
-                : JsonSerializer.Deserialize<Dictionary<string, Guid>>(ComponentsJson);
-            set => ComponentsJson = JsonSerializer.Serialize(value);
+            Components = new List<GradingBlockComponentEntity>();
+            Actions = new List<GradingBlockActionEntity>();
+            MethodComponents = new List<GradingMethodComponentEntity>();
+            ParentBlockComponents = new List<GradingBlockComponentEntity>();
         }
+    }
 
-        [NotMapped]
-        public List<string> Actions
-        {
-            get => string.IsNullOrEmpty(ActionsJson)
-                ? new List<string>()
-                : JsonSerializer.Deserialize<List<string>>(ActionsJson);
-            set => ActionsJson = JsonSerializer.Serialize(value);
-        }
+    // New entity for linking grading methods to their components
+    public class GradingMethodComponentEntity
+    {
+        [Key]
+        public Guid Id { get; set; }
+
+        // Foreign key to the parent grading method
+        public Guid GradingMethodId { get; set; }
+
+        // Component type (block or grade)
+        public string ComponentType { get; set; }
+
+        // Order of the component in the method
+        public int ComponentNumber { get; set; }
+
+        // Foreign keys to the actual components (one will be null)
+        public Guid? BlockComponentId { get; set; }
+        public Guid? GradeComponentId { get; set; }
+
+        // Navigation properties
+        [ForeignKey("GradingMethodId")]
+        public virtual GradingMethodInstanceEntity GradingMethod { get; set; }
+
+        [ForeignKey("BlockComponentId")]
+        public virtual GradingBlockEntity BlockComponent { get; set; }
+
+        [ForeignKey("GradeComponentId")]
+        public virtual GradeEntity GradeComponent { get; set; }
+    }
+
+    // New entity for linking grading blocks to their components
+    public class GradingBlockComponentEntity
+    {
+        [Key]
+        public Guid Id { get; set; }
+
+        // Foreign key to the parent grading block
+        public Guid GradingBlockId { get; set; }
+
+        // Component type (block or grade)
+        public string ComponentType { get; set; }
+
+        // Order of the component in the block
+        public int ComponentNumber { get; set; }
+
+        // Foreign keys to the actual components (one will be null)
+        public Guid? BlockComponentId { get; set; }
+        public Guid? GradeComponentId { get; set; }
+
+        // Navigation properties
+        [ForeignKey("GradingBlockId")]
+        public virtual GradingBlockEntity GradingBlock { get; set; }
+
+        [ForeignKey("BlockComponentId")]
+        public virtual GradingBlockEntity BlockComponent { get; set; }
+
+        [ForeignKey("GradeComponentId")]
+        public virtual GradeEntity GradeComponent { get; set; }
+    }
+
+    // New entity for storing grading method actions
+    public class GradingMethodActionEntity
+    {
+        [Key]
+        public Guid Id { get; set; }
+
+        // Foreign key to the parent grading method
+        public Guid GradingMethodId { get; set; }
+
+        // Order of the action in the method
+        public int ActionNumber { get; set; }
+
+        // The action type (+, -, *, /)
+        public string ActionType { get; set; }
+
+        // Navigation property
+        [ForeignKey("GradingMethodId")]
+        public virtual GradingMethodInstanceEntity GradingMethod { get; set; }
+    }
+
+    // New entity for storing grading block actions
+    public class GradingBlockActionEntity
+    {
+        [Key]
+        public Guid Id { get; set; }
+
+        // Foreign key to the parent grading block
+        public Guid GradingBlockId { get; set; }
+
+        // Order of the action in the block
+        public int ActionNumber { get; set; }
+
+        // The action type (+, -, *, /)
+        public string ActionType { get; set; }
+
+        // Navigation property
+        [ForeignKey("GradingBlockId")]
+        public virtual GradingBlockEntity GradingBlock { get; set; }
     }
 }

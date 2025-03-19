@@ -1,10 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MusicInteraction.Domain;
 using MusicInteraction.Infrastructure.PostgreSQL.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
 {
@@ -190,11 +186,9 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
                     .FirstOrDefaultAsync(m => m.RatingId == entity.RatingId);
                 if (methodEntity != null)
                 {
-                    // Load and reconstruct the grading method
                     gradable = await LoadGradingMethodInstance(methodEntity.EntityId, dbContext);
                 }
                 else {
-                    // Fallback to a basic grade if no complex entity is found
                     gradable = new Grade();
                 }
             }
@@ -209,7 +203,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
                 entity.UserId
             );
 
-            // Set the ID to match the original
             rating.RatingId = entity.RatingId;
             return rating;
         }
@@ -218,55 +211,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
         private static async Task<Guid> StoreGradingMethodInstance(GradingMethod method,
             MusicInteractionDbContext dbContext, Guid? ratingId = null)
         {
-            var componentMap = new Dictionary<string, Guid>();
-            var actionsList = new List<string>();
-
-            // Process components (recursively)
-            for (int i = 0; i < method.Grades.Count; i++)
-            {
-                var component = method.Grades[i];
-                Guid componentId;
-
-                if (component is Grade grade)
-                {
-                    // Store the grade
-                    var gradeEntity = new GradeEntity
-                    {
-                        EntityId = Guid.NewGuid(),
-                        Name = grade.parametrName,
-                        MinGrade = grade.getMin(),
-                        MaxGrade = grade.getMax(),
-                        Grade = grade.getGrade(),
-                        StepAmount = grade.stepAmount,
-                        NormalizedGrade = grade.getNormalizedGrade()
-                        // Note: RatingId is deliberately not set here, as these grades
-                        // are part of a complex grading structure and not directly
-                        // associated with a rating
-                    };
-
-                    await dbContext.Grades.AddAsync(gradeEntity);
-
-                    componentId = gradeEntity.EntityId;
-                    componentMap["grade:" + i] = componentId;
-                }
-                else if (component is GradingBlock block)
-                {
-                    // Store the block
-                    componentId = await StoreGradingBlock(block, dbContext);
-                    componentMap["block:" + i] = componentId;
-                }
-                else
-                {
-                    continue;
-                }
-
-                // Add action if it's not the last component
-                if (i < method.Actions.Count)
-                {
-                    actionsList.Add(ConvertActionToString(method.Actions[i]));
-                }
-            }
-
             // Create and save the method entity
             var methodEntity = new GradingMethodInstanceEntity
             {
@@ -280,10 +224,75 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
                 RatingId = ratingId
             };
 
-            methodEntity.Components = componentMap;
-            methodEntity.Actions = actionsList;
-
             await dbContext.GradingMethodInstances.AddAsync(methodEntity);
+
+            // Process components (recursively)
+            for (int i = 0; i < method.Grades.Count; i++)
+            {
+                var component = method.Grades[i];
+
+                if (component is Grade grade)
+                {
+                    // Store the grade
+                    var gradeEntity = new GradeEntity
+                    {
+                        EntityId = Guid.NewGuid(),
+                        Name = grade.parametrName,
+                        MinGrade = grade.getMin(),
+                        MaxGrade = grade.getMax(),
+                        Grade = grade.getGrade(),
+                        StepAmount = grade.stepAmount,
+                        NormalizedGrade = grade.getNormalizedGrade()
+                    };
+
+                    await dbContext.Grades.AddAsync(gradeEntity);
+
+                    // Create component link
+                    var componentLink = new GradingMethodComponentEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        GradingMethodId = methodEntity.EntityId,
+                        ComponentType = "grade",
+                        ComponentNumber = i,
+                        GradeComponentId = gradeEntity.EntityId,
+                        BlockComponentId = null
+                    };
+
+                    await dbContext.GradingMethodComponents.AddAsync(componentLink);
+                }
+                else if (component is GradingBlock block)
+                {
+                    // Store the block
+                    var blockEntityId = await StoreGradingBlock(block, dbContext);
+
+                    // Create component link
+                    var componentLink = new GradingMethodComponentEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        GradingMethodId = methodEntity.EntityId,
+                        ComponentType = "block",
+                        ComponentNumber = i,
+                        GradeComponentId = null,
+                        BlockComponentId = blockEntityId
+                    };
+
+                    await dbContext.GradingMethodComponents.AddAsync(componentLink);
+                }
+
+                // Add action if it's not the last component
+                if (i < method.Actions.Count)
+                {
+                    var actionEntity = new GradingMethodActionEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        GradingMethodId = methodEntity.EntityId,
+                        ActionNumber = i,
+                        ActionType = ConvertActionToString(method.Actions[i])
+                    };
+
+                    await dbContext.GradingMethodActions.AddAsync(actionEntity);
+                }
+            }
 
             return methodEntity.EntityId;
         }
@@ -292,7 +301,11 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
         private static async Task<GradingMethod> LoadGradingMethodInstance(Guid entityId,
             MusicInteractionDbContext dbContext)
         {
-            var methodEntity = await dbContext.GradingMethodInstances.FindAsync(entityId);
+            var methodEntity = await dbContext.GradingMethodInstances
+                .Include(m => m.Components)
+                .Include(m => m.Actions)
+                .FirstOrDefaultAsync(m => m.EntityId == entityId);
+
             if (methodEntity == null)
             {
                 throw new Exception($"GradingMethodInstance with ID {entityId} not found");
@@ -308,167 +321,21 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
             method.Grades.Clear();
             method.Actions.Clear();
 
-            // Process all components
-            foreach (var componentKey in methodEntity.Components.Keys.OrderBy(k => k))
-            {
-                var componentId = methodEntity.Components[componentKey];
-                var componentType = componentKey.Split(':')[0];
+            // Process all components in order
+            var componentsOrderedByNumber = methodEntity.Components.OrderBy(c => c.ComponentNumber).ToList();
 
+            foreach (var componentLink in componentsOrderedByNumber)
+            {
                 IGradable component;
 
-                if (componentType == "grade")
-                {
-                    // Handle potentially null grades gracefully
-                    var gradeEntity = await dbContext.Grades.FindAsync(componentId);
-                    if (gradeEntity == null)
-                    {
-                        Console.WriteLine($"Warning: Grade with ID {componentId} not found");
-                        continue;
-                    }
-
-                    var grade = new Grade(
-                        gradeEntity.MinGrade,
-                        gradeEntity.MaxGrade,
-                        gradeEntity.StepAmount,
-                        gradeEntity.Name
-                    );
-
-                    if (gradeEntity.Grade.HasValue)
-                    {
-                        grade.updateGrade(gradeEntity.Grade.Value);
-                    }
-
-                    component = grade;
-                }
-                else if (componentType == "block")
+                if (componentLink.ComponentType == "grade" && componentLink.GradeComponentId.HasValue)
                 {
                     try {
-                        component = await LoadGradingBlock(componentId, dbContext);
-                    }
-                    catch (Exception ex) {
-                        Console.WriteLine($"Error loading block {componentId}: {ex.Message}");
-                        // Skip this component if it can't be loaded
-                        continue;
-                    }
-                }
-                else
-                {
-                    continue;
-                }
-
-                method.AddGrade(component);
-            }
-
-            // Add actions
-            foreach (var action in methodEntity.Actions)
-            {
-                method.AddAction(ConvertStringToAction(action));
-            }
-
-            return method;
-        }
-
-        // Helper method to store a grading block
-        private static async Task<Guid> StoreGradingBlock(GradingBlock block, MusicInteractionDbContext dbContext)
-        {
-            var componentMap = new Dictionary<string, Guid>();
-            var actionsList = new List<string>();
-
-            // Process components (recursively)
-            for (int i = 0; i < block.Grades.Count; i++)
-            {
-                var component = block.Grades[i];
-                Guid componentId;
-
-                if (component is Grade grade)
-                {
-                    // Store the grade
-                    var gradeEntity = new GradeEntity
-                    {
-                        EntityId = Guid.NewGuid(),
-                        Name = grade.parametrName,
-                        MinGrade = grade.getMin(),
-                        MaxGrade = grade.getMax(),
-                        Grade = grade.getGrade(),
-                        StepAmount = grade.stepAmount,
-                        NormalizedGrade = grade.getNormalizedGrade()
-                        // Note: RatingId is deliberately not set here
-                    };
-
-                    await dbContext.Grades.AddAsync(gradeEntity);
-
-                    componentId = gradeEntity.EntityId;
-                    componentMap["grade:" + i] = componentId;
-                }
-                else if (component is GradingBlock nestedBlock)
-                {
-                    // Store the nested block
-                    componentId = await StoreGradingBlock(nestedBlock, dbContext);
-                    componentMap["block:" + i] = componentId;
-                }
-                else
-                {
-                    continue;
-                }
-
-                // Add action if it's not the last component
-                if (i < block.Actions.Count)
-                {
-                    actionsList.Add(ConvertActionToString(block.Actions[i]));
-                }
-            }
-
-            // Create and save the block entity
-            var blockEntity = new GradingBlockEntity
-            {
-                EntityId = Guid.NewGuid(),
-                Name = block.BlockName,
-                MinGrade = block.getMin(),
-                MaxGrade = block.getMax(),
-                Grade = block.getGrade(),
-                NormalizedGrade = block.getNormalizedGrade()
-            };
-
-            blockEntity.Components = componentMap;
-            blockEntity.Actions = actionsList;
-
-            await dbContext.GradingBlocks.AddAsync(blockEntity);
-
-            return blockEntity.EntityId;
-        }
-
-        // Helper method to load a grading block
-        private static async Task<GradingBlock> LoadGradingBlock(Guid entityId, MusicInteractionDbContext dbContext)
-        {
-            var blockEntity = await dbContext.GradingBlocks.FindAsync(entityId);
-            if (blockEntity == null)
-            {
-                throw new Exception($"GradingBlock with ID {entityId} not found");
-            }
-
-            // Create a new instance of GradingBlock
-            var block = new GradingBlock(blockEntity.Name);
-
-            // Clear default components and actions
-            block.Grades.Clear();
-            block.Actions.Clear();
-
-            // Process all components
-            foreach (var componentKey in blockEntity.Components.Keys.OrderBy(k => k))
-            {
-                var componentId = blockEntity.Components[componentKey];
-                var componentType = componentKey.Split(':')[0];
-
-                IGradable component;
-
-                if (componentType == "grade")
-                {
-                    try {
-                        // Handle potentially null grades gracefully
-                        var gradeEntity = await dbContext.Grades.FindAsync(componentId);
+                        // Load the grade
+                        var gradeEntity = await dbContext.Grades.FindAsync(componentLink.GradeComponentId.Value);
                         if (gradeEntity == null)
                         {
-                            Console.WriteLine($"Warning: Grade with ID {componentId} not found");
+                            Console.WriteLine($"Warning: Grade with ID {componentLink.GradeComponentId.Value} not found");
                             continue;
                         }
 
@@ -487,32 +354,210 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
                         component = grade;
                     }
                     catch (Exception ex) {
-                        Console.WriteLine($"Error loading grade {componentId}: {ex.Message}");
+                        Console.WriteLine($"Error loading grade {componentLink.GradeComponentId}: {ex.Message}");
                         continue;
                     }
                 }
-                else if (componentType == "block")
+                else if (componentLink.ComponentType == "block" && componentLink.BlockComponentId.HasValue)
                 {
                     try {
-                        component = await LoadGradingBlock(componentId, dbContext);
+                        component = await LoadGradingBlock(componentLink.BlockComponentId.Value, dbContext);
                     }
                     catch (Exception ex) {
-                        Console.WriteLine($"Error loading nested block {componentId}: {ex.Message}");
+                        Console.WriteLine($"Error loading block {componentLink.BlockComponentId}: {ex.Message}");
                         continue;
                     }
                 }
                 else
                 {
+                    Console.WriteLine($"Invalid component link: Type={componentLink.ComponentType}, GradeId={componentLink.GradeComponentId}, BlockId={componentLink.BlockComponentId}");
+                    continue;
+                }
+
+                method.AddGrade(component);
+            }
+
+            // Add actions in order
+            var actionsOrderedByNumber = methodEntity.Actions.OrderBy(a => a.ActionNumber).ToList();
+
+            foreach (var action in actionsOrderedByNumber)
+            {
+                method.AddAction(ConvertStringToAction(action.ActionType));
+            }
+
+            return method;
+        }
+
+        // Helper method to store a grading block
+        private static async Task<Guid> StoreGradingBlock(GradingBlock block, MusicInteractionDbContext dbContext)
+        {
+            // Create and save the block entity
+            var blockEntity = new GradingBlockEntity
+            {
+                EntityId = Guid.NewGuid(),
+                Name = block.BlockName,
+                MinGrade = block.getMin(),
+                MaxGrade = block.getMax(),
+                Grade = block.getGrade(),
+                NormalizedGrade = block.getNormalizedGrade()
+            };
+
+            await dbContext.GradingBlocks.AddAsync(blockEntity);
+
+            // Process components (recursively)
+            for (int i = 0; i < block.Grades.Count; i++)
+            {
+                var component = block.Grades[i];
+
+                if (component is Grade grade)
+                {
+                    // Store the grade
+                    var gradeEntity = new GradeEntity
+                    {
+                        EntityId = Guid.NewGuid(),
+                        Name = grade.parametrName,
+                        MinGrade = grade.getMin(),
+                        MaxGrade = grade.getMax(),
+                        Grade = grade.getGrade(),
+                        StepAmount = grade.stepAmount,
+                        NormalizedGrade = grade.getNormalizedGrade()
+                        // No RatingId as this is part of a block
+                    };
+
+                    await dbContext.Grades.AddAsync(gradeEntity);
+
+                    // Create component link
+                    var componentLink = new GradingBlockComponentEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        GradingBlockId = blockEntity.EntityId,
+                        ComponentType = "grade",
+                        ComponentNumber = i,
+                        GradeComponentId = gradeEntity.EntityId,
+                        BlockComponentId = null
+                    };
+
+                    await dbContext.GradingBlockComponents.AddAsync(componentLink);
+                }
+                else if (component is GradingBlock nestedBlock)
+                {
+                    // Store the nested block
+                    var nestedBlockId = await StoreGradingBlock(nestedBlock, dbContext);
+
+                    // Create component link
+                    var componentLink = new GradingBlockComponentEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        GradingBlockId = blockEntity.EntityId,
+                        ComponentType = "block",
+                        ComponentNumber = i,
+                        GradeComponentId = null,
+                        BlockComponentId = nestedBlockId
+                    };
+
+                    await dbContext.GradingBlockComponents.AddAsync(componentLink);
+                }
+
+                // Add action if it's not the last component
+                if (i < block.Actions.Count)
+                {
+                    var actionEntity = new GradingBlockActionEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        GradingBlockId = blockEntity.EntityId,
+                        ActionNumber = i,
+                        ActionType = ConvertActionToString(block.Actions[i])
+                    };
+
+                    await dbContext.GradingBlockActions.AddAsync(actionEntity);
+                }
+            }
+
+            return blockEntity.EntityId;
+        }
+
+        // Helper method to load a grading block
+        private static async Task<GradingBlock> LoadGradingBlock(Guid entityId, MusicInteractionDbContext dbContext)
+        {
+            var blockEntity = await dbContext.GradingBlocks
+                .Include(b => b.Components)
+                .Include(b => b.Actions)
+                .FirstOrDefaultAsync(b => b.EntityId == entityId);
+
+            if (blockEntity == null)
+            {
+                throw new Exception($"GradingBlock with ID {entityId} not found");
+            }
+
+            // Create a new instance of GradingBlock
+            var block = new GradingBlock(blockEntity.Name);
+
+            // Clear default components and actions
+            block.Grades.Clear();
+            block.Actions.Clear();
+
+            // Process all components in order
+            var componentsOrderedByNumber = blockEntity.Components.OrderBy(c => c.ComponentNumber).ToList();
+
+            foreach (var componentLink in componentsOrderedByNumber)
+            {
+                IGradable component;
+
+                if (componentLink.ComponentType == "grade" && componentLink.GradeComponentId.HasValue)
+                {
+                    try {
+                        // Load the grade
+                        var gradeEntity = await dbContext.Grades.FindAsync(componentLink.GradeComponentId.Value);
+                        if (gradeEntity == null)
+                        {
+                            Console.WriteLine($"Warning: Grade with ID {componentLink.GradeComponentId.Value} not found");
+                            continue;
+                        }
+
+                        var grade = new Grade(
+                            gradeEntity.MinGrade,
+                            gradeEntity.MaxGrade,
+                            gradeEntity.StepAmount,
+                            gradeEntity.Name
+                        );
+
+                        if (gradeEntity.Grade.HasValue)
+                        {
+                            grade.updateGrade(gradeEntity.Grade.Value);
+                        }
+
+                        component = grade;
+                    }
+                    catch (Exception ex) {
+                        Console.WriteLine($"Error loading grade {componentLink.GradeComponentId}: {ex.Message}");
+                        continue;
+                    }
+                }
+                else if (componentLink.ComponentType == "block" && componentLink.BlockComponentId.HasValue)
+                {
+                    try {
+                        component = await LoadGradingBlock(componentLink.BlockComponentId.Value, dbContext);
+                    }
+                    catch (Exception ex) {
+                        Console.WriteLine($"Error loading nested block {componentLink.BlockComponentId}: {ex.Message}");
+                        continue;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Invalid component link: Type={componentLink.ComponentType}, GradeId={componentLink.GradeComponentId}, BlockId={componentLink.BlockComponentId}");
                     continue;
                 }
 
                 block.AddGrade(component);
             }
 
-            // Add actions
-            foreach (var action in blockEntity.Actions)
+            // Add actions in order
+            var actionsOrderedByNumber = blockEntity.Actions.OrderBy(a => a.ActionNumber).ToList();
+
+            foreach (var action in actionsOrderedByNumber)
             {
-                block.AddAction(ConvertStringToAction(action));
+                block.AddAction(ConvertStringToAction(action.ActionType));
             }
 
             return block;
