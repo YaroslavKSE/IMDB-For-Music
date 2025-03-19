@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "auth0-js": "^9.28.0",
     "axios": "^1.8.3",
     "classnames": "^2.5.1",
     "lucide-react": "^0.482.0",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
+    "@types/auth0-js": "^9.21.6",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",

@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, Mail, Lock, LogIn } from 'lucide-react';
 import useAuthStore from '../store/authStore';
+import { handleAuth0Login } from '../utils/auth0-config';
 
 interface LocationState {
   from: {
@@ -22,6 +23,7 @@ const Login = () => {
   const { login, isLoading, error: authError, clearError } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [socialLoading, setSocialLoading] = useState(false);
 
   const {
     register,
@@ -53,9 +55,24 @@ const Login = () => {
       // Navigate to the page the user tried to visit before being redirected to login
       navigate(from, { replace: true });
     } catch (err) {
-      // Error handling is done by the auth store
-      // We can access it via authError if needed
       console.error('Login failed:', err);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    try {
+      setSocialLoading(true);
+      clearError();
+      setError(null);
+
+      // This will redirect to Auth0, no need to await
+      handleAuth0Login('google-oauth2');
+
+      // The function redirects, so we don't need to do anything else here
+    } catch (err) {
+      console.error('Google login failed:', err);
+      setError('An error occurred during Google authentication.');
+      setSocialLoading(false);
     }
   };
 
@@ -230,19 +247,49 @@ const Login = () => {
             <div className="mt-6">
               <button
                 type="button"
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                onClick={handleGoogleLogin}
+                disabled={socialLoading}
+                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
               >
-                <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
-                  <path
-                    d="M12.545,10.239v3.818h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M2.543,12c0-5.523,4.478-10,10.002-10c2.594,0,4.958,0.988,6.735,2.604l-2.814,2.814c-1.055-0.904-2.423-1.453-3.921-1.453c-3.332,0-6.033,2.701-6.033,6.032s2.701,6.032,6.033,6.032c2.798,0,4.733-1.657,5.445-3.972h-5.445V10.239l9.426,0.013c0.823,3.898-1.03,11.748-9.426,11.748C7.021,22,2.543,17.523,2.543,12z"
-                    fill="#34A853"
-                  />
-                </svg>
-                Sign in with Google
+                {socialLoading ? (
+                  <span className="flex items-center">
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-700"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Connecting...
+                  </span>
+                ) : (
+                  <>
+                    <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
+                      <path
+                        d="M12.545,10.239v3.818h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
+                        fill="#4285F4"
+                      />
+                      <path
+                        d="M2.543,12c0-5.523,4.478-10,10.002-10c2.594,0,4.958,0.988,6.735,2.604l-2.814,2.814c-1.055-0.904-2.423-1.453-3.921-1.453c-3.332,0-6.033,2.701-6.033,6.032s2.701,6.032,6.033,6.032c2.798,0,4.733-1.657,5.445-3.972h-5.445V10.239l9.426,0.013c0.823,3.898-1.03,11.748-9.426,11.748C7.021,22,2.543,17.523,2.543,12z"
+                        fill="#34A853"
+                      />
+                    </svg>
+                    Sign in with Google
+                  </>
+                )}
               </button>
             </div>
           </div>

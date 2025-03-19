@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import useAuthStore from './store/authStore';
+import { handleAuthCallback } from './utils/auth0-config';
 import './App.css';
 
 // Layout Components
@@ -12,6 +13,31 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import NotFound from "./pages/NotFound.tsx";
+
+// Auth callback handler component
+const AuthCallback = () => {
+  const navigate = useNavigate();
+  const { socialLogin } = useAuthStore();
+
+  useEffect(() => {
+    handleAuthCallback()
+      .then(({ accessToken, provider }) => {
+        // Use the store's socialLogin function with the tokens
+        return socialLogin(accessToken, provider);
+      })
+      .then(() => {
+        // Redirect to home page after successful login
+        navigate('/', { replace: true });
+      })
+      .catch(error => {
+        console.error('Auth callback error:', error);
+        navigate('/login', { replace: true });
+      });
+  }, [navigate, socialLogin]);
+
+  // Show a loading indicator while processing the callback
+  return <div>Processing authentication, please wait...</div>;
+};
 
 // Protected route wrapper component
 interface ProtectedRouteProps {
@@ -40,6 +66,9 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Auth0 callback route */}
+        <Route path="/callback" element={<AuthCallback />} />
+
         {/* Public routes */}
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Home />} />

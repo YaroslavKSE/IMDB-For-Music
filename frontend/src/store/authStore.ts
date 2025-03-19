@@ -1,94 +1,120 @@
+// authStore.ts
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import AuthService, { UserProfile } from '../api/auth';
-import axios from "axios";
+import { handleAuth0Logout } from '../utils/auth0-config';
 
 interface AuthState {
   user: UserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+
+  // Actions
   login: (email: string, password: string) => Promise<void>;
+  socialLogin: (accessToken: string, provider: string) => Promise<void>;
   register: (email: string, password: string, name: string, surname: string) => Promise<void>;
-  logout: () => void;
-  fetchUserProfile: () => Promise<void>;
+  logout: () => Promise<void>;
   clearError: () => void;
+  setUser: (user: UserProfile | null) => void;
+  fetchUserProfile: () => Promise<void>;
 }
 
-const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      user: null,
-      isAuthenticated: !!localStorage.getItem('token'),
-      isLoading: false,
-      error: null,
+const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  isAuthenticated: AuthService.isAuthenticated(),
+  isLoading: false,
+  error: null,
 
-      login: async (email, password) => {
-        set({ isLoading: true, error: null });
-        try {
-          await AuthService.login({ email, password });
-          await get().fetchUserProfile();
-          set({ isAuthenticated: true, isLoading: false });
-        } catch (error) {
-          console.error('Login failed:', error);
-          let errorMessage = 'Login failed. Please check your credentials.';
-
-          if (axios.isAxiosError(error) && error.response?.data?.message) {
-            errorMessage = error.response.data.message;
-          }
-
-          set({ error: errorMessage, isLoading: false, isAuthenticated: false });
-          throw new Error(errorMessage);
-        }
-      },
-
-      register: async (email, password, name, surname) => {
-        set({ isLoading: true, error: null });
-        try {
-          await AuthService.register({ email, password, name, surname });
-          set({ isLoading: false });
-        } catch (error) {
-          console.error('Registration failed:', error);
-          let errorMessage = 'Registration failed. Please try again.';
-
-          if (axios.isAxiosError(error) && error.response?.data?.message) {
-            errorMessage = error.response.data.message;
-          }
-
-          set({ error: errorMessage, isLoading: false });
-          throw new Error(errorMessage);
-        }
-      },
-
-      logout: () => {
-        AuthService.logout();
-        set({ user: null, isAuthenticated: false });
-      },
-
-      fetchUserProfile: async () => {
-        set({ isLoading: true });
-        try {
-          const user = await AuthService.getCurrentUser();
-          set({ user, isLoading: false });
-        } catch (error) {
-          console.error('Failed to fetch user profile:', error);
-          set({ user: null, isLoading: false });
-
-          // If we can't fetch the user profile, it means the token is invalid
-          if (axios.isAxiosError(error) && error.response?.status === 401) {
-            set({ isAuthenticated: false });
-            AuthService.logout();
-          }
-        }
-      },
-
-      clearError: () => set({ error: null }),
-    }),
-    {
-      name: 'auth-storage',
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+  login: async (email: string, password: string) => {
+    try {
+      set({ isLoading: true, error: null });
+      await AuthService.login({ email, password });
+      await get().fetchUserProfile();
+      set({ isAuthenticated: true, isLoading: false });
+    } catch (error) {
+      console.error('Login error:', error);
+      set({
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to login. Please try again.'
+      });
+      throw error;
     }
-  )
-);
+  },
+
+  socialLogin: async (accessToken: string, provider: string) => {
+    try {
+      set({ isLoading: true, error: null });
+      await AuthService.socialLogin({ accessToken, provider });
+      await get().fetchUserProfile();
+      set({ isAuthenticated: true, isLoading: false });
+    } catch (error) {
+      console.error('Social login error:', error);
+      set({
+        isLoading: false,
+        error: error instanceof Error ? error.message : `Failed to login with ${provider}. Please try again.`
+      });
+      throw error;
+    }
+  },
+
+  register: async (email: string, password: string, name: string, surname: string) => {
+    try {
+      set({ isLoading: true, error: null });
+      await AuthService.register({ email, password, name, surname });
+      set({ isLoading: false });
+    } catch (error) {
+      console.error('Registration error:', error);
+      set({
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to register. Please try again.'
+      });
+      throw error;
+    }
+  },
+
+  logout: async () => {
+    try {
+      set({ isLoading: true });
+      // First, log out from Auth0
+      await handleAuth0Logout();
+      // Clear local state
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if there's an error, we should reset the auth state
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false
+      });
+    }
+  },
+
+  clearError: () => set({ error: null }),
+
+  setUser: (user) => set({ user }),
+
+  fetchUserProfile: async () => {
+    if (!AuthService.isAuthenticated()) {
+      return;
+    }
+
+    try {
+      set({ isLoading: true });
+      const userProfile = await AuthService.getCurrentUser();
+      set({ user: userProfile, isLoading: false });
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      set({
+        isLoading: false,
+        // Don't set an error message here to avoid interrupting the user experience
+      });
+    }
+  }
+}));
 
 export default useAuthStore;
