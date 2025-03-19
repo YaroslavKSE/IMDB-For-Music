@@ -31,15 +31,21 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
                 // Add the interaction entity
                 await _dbContext.Interactions.AddAsync(interactionEntity);
 
+                // Save changes to ensure the interaction is created with its ID
+                await _dbContext.SaveChangesAsync();
+
                 if (interaction.Review != null)
                 {
                     var reviewEntity = ReviewMapper.ToEntity(interaction.Review);
+                    // Ensure the AggregateId is set correctly
+                    reviewEntity.AggregateId = interactionEntity.AggregateId;
                     await _dbContext.Reviews.AddAsync(reviewEntity);
                 }
 
                 if (interaction.Rating != null)
                 {
                     var ratingResult = await RatingMapper.ToEntityWithGradables(interaction.Rating, _dbContext);
+                    ratingResult.RatingEntity.AggregateId = interactionEntity.AggregateId;
                     await _dbContext.Ratings.AddAsync(ratingResult.RatingEntity);
                 }
 

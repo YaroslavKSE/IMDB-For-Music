@@ -78,9 +78,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                     ItemId = table.Column<string>(nullable: false),
                     ItemType = table.Column<string>(nullable: false),
                     CreatedAt = table.Column<DateTime>(nullable: false),
-                    IsLiked = table.Column<bool>(nullable: false),
-                    RatingId = table.Column<Guid>(nullable: true),
-                    ReviewId = table.Column<Guid>(nullable: true)
+                    IsLiked = table.Column<bool>(nullable: false)
                 },
                 constraints: table =>
                 {

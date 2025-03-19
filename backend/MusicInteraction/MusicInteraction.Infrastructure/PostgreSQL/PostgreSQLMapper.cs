@@ -20,10 +20,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
                 ItemType = domain.ItemType,
                 CreatedAt = domain.CreatedAt,
                 IsLiked = domain.IsLiked,
-
-                // These will be set when the related entities are created
-                RatingId = domain.Rating?.GetId(),
-                ReviewId = domain.Review?.getReviewId()
             };
 
             return entity;
@@ -40,30 +36,24 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
             typeof(InteractionsAggregate).GetProperty("CreatedAt")?.SetValue(domain, entity.CreatedAt);
             typeof(InteractionsAggregate).GetProperty("IsLiked")?.SetValue(domain, entity.IsLiked);
 
-            // Load review if exists
-            if (entity.ReviewId.HasValue)
+            // Load review if exists - use the navigation property or query by AggregateId
+            var reviewEntity = await dbContext.Reviews.FirstOrDefaultAsync(r => r.AggregateId == entity.AggregateId);
+            if (reviewEntity != null)
             {
-                var reviewEntity = await dbContext.Reviews.FindAsync(entity.ReviewId.Value);
-                if (reviewEntity != null)
-                {
-                    typeof(InteractionsAggregate).GetProperty("Review")?.SetValue(
-                        domain,
-                        ReviewMapper.ToDomain(reviewEntity)
-                    );
-                }
+                typeof(InteractionsAggregate).GetProperty("Review")?.SetValue(
+                    domain,
+                    ReviewMapper.ToDomain(reviewEntity)
+                );
             }
 
-            // Load rating if exists
-            if (entity.RatingId.HasValue)
+            // Load rating if exists - use the navigation property or query by AggregateId
+            var ratingEntity = await dbContext.Ratings.FirstOrDefaultAsync(r => r.AggregateId == entity.AggregateId);
+            if (ratingEntity != null)
             {
-                var ratingEntity = await dbContext.Ratings.FindAsync(entity.RatingId.Value);
-                if (ratingEntity != null)
-                {
-                    typeof(InteractionsAggregate).GetProperty("Rating")?.SetValue(
-                        domain,
-                        await RatingMapper.ToDomain(ratingEntity, dbContext)
-                    );
-                }
+                typeof(InteractionsAggregate).GetProperty("Rating")?.SetValue(
+                    domain,
+                    await RatingMapper.ToDomain(ratingEntity, dbContext)
+                );
             }
 
             return domain;

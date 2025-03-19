@@ -1,6 +1,5 @@
 using MediatR;
 using MusicInteraction.Application.Interfaces;
-using MusicInteraction.Domain;
 
 namespace MusicInteraction.Application;
 
@@ -55,6 +54,7 @@ public class GetInteractionsUseCase : IRequestHandler<GetInteractionsCommand, Ge
 
         var interactions = interactionStorage.GetInteractions().Result;
         List<InteractionAggregateDto> interactionAggregateDtos = new List<InteractionAggregateDto>();
+
         foreach (var interaction in interactions)
         {
             InteractionAggregateDto interactionDTO = new InteractionAggregateDto();
@@ -64,10 +64,19 @@ public class GetInteractionsUseCase : IRequestHandler<GetInteractionsCommand, Ge
             interactionDTO.ItemType = interaction.ItemType;
             interactionDTO.CreatedAt = interaction.CreatedAt;
             interactionDTO.IsLiked = interaction.IsLiked;
-            interactionDTO.Rating = new RatingNormalizedDTO()
-                {RatingId = interaction.Rating.RatingId, NormalizedGrade = interaction.Rating.Grade.getNormalizedGrade()};
-            interactionDTO.Review = new ReviewDTO()
-                {ReviewId = interaction.Review.ReviewId, ReviewText = interaction.Review.ReviewText};
+
+            if (interaction.Rating != null)
+            {
+                interactionDTO.Rating = new RatingNormalizedDTO()
+                    {RatingId = interaction.Rating.RatingId, NormalizedGrade = interaction.Rating.Grade.getNormalizedGrade()};
+            }
+
+            if (interaction.Review != null)
+            {
+                interactionDTO.Review = new ReviewDTO()
+                    {ReviewId = interaction.Review.ReviewId, ReviewText = interaction.Review.ReviewText};
+            }
+
             interactionAggregateDtos.Add(interactionDTO);
         }
         return new GetInteractionsResult() {InteractionsEmpty = false, Interactions = interactionAggregateDtos};

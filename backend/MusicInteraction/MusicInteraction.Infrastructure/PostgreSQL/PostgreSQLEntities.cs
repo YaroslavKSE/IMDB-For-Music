@@ -14,10 +14,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
         public DateTime CreatedAt { get; set; }
         public bool IsLiked { get; set; }
 
-        // Foreign keys
-        public Guid? RatingId { get; set; }
-        public Guid? ReviewId { get; set; }
-
         // Navigation properties
         public virtual RatingEntity Rating { get; set; }
         public virtual ReviewEntity Review { get; set; }
