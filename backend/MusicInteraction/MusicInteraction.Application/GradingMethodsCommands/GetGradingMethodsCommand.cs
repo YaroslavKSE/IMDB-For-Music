@@ -58,7 +58,6 @@ public class GradingMethodDetailDto
 public abstract class GradableComponentDto
 {
     public string Name { get; set; }
-    public float? CurrentGrade { get; set; }
     public float MinPossibleGrade { get; set; }
     public float MaxPossibleGrade { get; set; }
 }
@@ -187,7 +186,6 @@ public class GetGradingMethodByIdUseCase : IRequestHandler<GetGradingMethodByIdC
             return new GradeDetailDto()
             {
                 Name = grade.parametrName,
-                CurrentGrade = grade.getGrade(),
                 MinPossibleGrade = grade.getMin(),
                 MaxPossibleGrade = grade.getMax(),
                 StepAmount = grade.stepAmount
@@ -198,7 +196,6 @@ public class GetGradingMethodByIdUseCase : IRequestHandler<GetGradingMethodByIdC
             var blockDto = new BlockDetailDto()
             {
                 Name = block.BlockName,
-                CurrentGrade = block.getGrade(),
                 MinPossibleGrade = block.getMin(),
                 MaxPossibleGrade = block.getMax(),
                 Components = new List<GradableComponentDto>(),

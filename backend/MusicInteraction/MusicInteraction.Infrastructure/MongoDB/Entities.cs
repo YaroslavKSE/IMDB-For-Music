@@ -31,7 +31,6 @@ public class GradingMethodEntity : MongoEntity
 public abstract class GradableComponentEntity
 {
     public string Name { get; set; }
-    public float? CurrentGrade { get; set; }
     public float MinPossibleGrade { get; set; }
     public float MaxPossibleGrade { get; set; }
 

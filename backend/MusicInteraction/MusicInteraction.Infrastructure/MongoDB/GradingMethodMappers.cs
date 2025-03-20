@@ -67,7 +67,6 @@ public static class GradingMethodMapper
             return new GradeEntity
             {
                 Name = grade.parametrName,
-                CurrentGrade = grade.getGrade(),
                 MinPossibleGrade = grade.getMin(),
                 MaxPossibleGrade = grade.getMax(),
                 StepAmount = grade.stepAmount
@@ -78,7 +77,6 @@ public static class GradingMethodMapper
             var blockEntity = new BlockEntity
             {
                 Name = block.BlockName,
-                CurrentGrade = block.getGrade(),
                 MinPossibleGrade = block.getMin(),
                 MaxPossibleGrade = block.getMax(),
                 // Store actions as integer values as strings to avoid deserialization issues
@@ -109,12 +107,6 @@ public static class GradingMethodMapper
                 gradeEntity.StepAmount,
                 gradeEntity.Name
             );
-
-            // Set the grade if it exists
-            if (gradeEntity.CurrentGrade.HasValue)
-            {
-                grade.updateGrade(gradeEntity.CurrentGrade.Value);
-            }
 
             return grade;
         }
