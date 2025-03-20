@@ -16,23 +16,8 @@ public class InteractionController: ControllerBase
     }
 
     [HttpPost("postInteraction")]
-    public async Task<IActionResult> PostInteraction([FromBody]PostInteractionRequest request)
+    public async Task<IActionResult> PostInteraction([FromBody]PostInteractionCommand command)
     {
-        PostInteractionCommand command = new PostInteractionCommand()
-        {
-            UserId = request.UserId,
-            ItemId = request.ItemId,
-            ItemType = request.ItemType,
-            IsLiked = request.IsLiked,
-            ReviewText = request.ReviewText,
-
-            // Handle grading options
-            UseComplexGrading = request.UseComplexGrading,
-            BasicGrade = request.BasicGrade,
-            GradingMethodId = request.GradingMethodId,
-            GradeInputs = request.GradeInputs
-        };
-
         var result = await mediator.Send(command);
 
         if (!result.InteractionCreated)

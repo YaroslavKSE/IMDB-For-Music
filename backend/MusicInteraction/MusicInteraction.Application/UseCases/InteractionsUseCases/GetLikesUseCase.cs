@@ -1,15 +1,7 @@
 using MediatR;
 using MusicInteraction.Application.Interfaces;
-using MusicInteraction.Domain;
+
 namespace MusicInteraction.Application;
-
-public class GetLikesCommand: IRequest<GetLikesResult> { }
-
-public class GetLikesResult
-{
-    public bool LikesEmpty { get; set; }
-    public List<Like> Likes { get; set; }
-}
 
 public class GetLikesUseCase : IRequestHandler<GetLikesCommand, GetLikesResult>
 {

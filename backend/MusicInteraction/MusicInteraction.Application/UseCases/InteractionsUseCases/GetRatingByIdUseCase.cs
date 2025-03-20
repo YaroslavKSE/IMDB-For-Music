@@ -1,113 +1,8 @@
 using MediatR;
 using MusicInteraction.Application.Interfaces;
 using MusicInteraction.Domain;
-using System.Text.Json.Serialization;
 
 namespace MusicInteraction.Application;
-
-// Command for getting all ratings
-public class GetRatingsCommand: IRequest<GetRatingsResult> { }
-
-// Command for getting a rating by ID
-public class GetRatingByIdCommand : IRequest<GetRatingDetailResult>
-{
-    public Guid RatingId { get; set; }
-}
-
-public class GetRatingsResult
-{
-    public bool RatingsEmpty { get; set; }
-    public List<RatingOverviewDTO> Ratings { get; set; }
-}
-
-public class GetRatingDetailResult
-{
-    public bool Success { get; set; }
-    public string ErrorMessage { get; set; }
-    public RatingDetailDTO Rating { get; set; }
-}
-
-// Brief overview DTO
-public class RatingOverviewDTO
-{
-    public Guid RatingId { get; set; }
-    public float? NormalizedGrade { get; set; }
-    public float? Grade { get; set; }
-    public float? MinGrade { get; set; }
-    public float? MaxGrade { get; set; }
-}
-
-// Base component DTO
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "componentType")]
-[JsonDerivedType(typeof(GradeDetailDTO), typeDiscriminator: "grade")]
-[JsonDerivedType(typeof(BlockDetailDTO), typeDiscriminator: "block")]
-public abstract class GradableComponentDTO
-{
-    public string Name { get; set; }
-    public float? CurrentGrade { get; set; }
-    public float MinPossibleGrade { get; set; }
-    public float MaxPossibleGrade { get; set; }
-}
-
-// Grade component details
-public class GradeDetailDTO : GradableComponentDTO
-{
-    public float StepAmount { get; set; }
-}
-
-// Block component details with nested components
-public class BlockDetailDTO : GradableComponentDTO
-{
-    public List<GradableComponentDTO> Components { get; set; }
-    public List<string> Actions { get; set; }
-}
-
-// Detailed DTO for showing the full rating structure
-public class RatingDetailDTO
-{
-    public Guid RatingId { get; set; }
-    public Guid? GradingMethodId { get; set; }
-    public string ItemId { get; set; }
-    public string ItemType { get; set; }
-    public string UserId { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public float? NormalizedGrade { get; set; }
-    public float? OverallGrade { get; set; }
-    public float MinPossibleGrade { get; set; }
-    public float MaxPossibleGrade { get; set; }
-    public GradableComponentDTO GradingComponent { get; set; }
-}
-
-public class GetRatingsUseCase : IRequestHandler<GetRatingsCommand, GetRatingsResult>
-{
-    private readonly IInteractionStorage interactionStorage;
-
-    public GetRatingsUseCase(IInteractionStorage interactionStorage)
-    {
-        this.interactionStorage = interactionStorage;
-    }
-
-    public async Task<GetRatingsResult> Handle(GetRatingsCommand request, CancellationToken cancellationToken)
-    {
-        if (await interactionStorage.IsEmpty())
-        {
-            return new GetRatingsResult() {RatingsEmpty = true};
-        }
-
-        List<Rating> ratings = interactionStorage.GetRatings().Result;
-        List<RatingOverviewDTO> ratingsDTOs = new List<RatingOverviewDTO>();
-        foreach (var rating in ratings)
-        {
-            RatingOverviewDTO ratingDTO = new RatingOverviewDTO()
-            {
-                Grade = rating.GetGrade(), MaxGrade = rating.GetMax(), MinGrade = rating.GetMin(),
-                NormalizedGrade = rating.Grade.getNormalizedGrade(), RatingId = rating.RatingId
-            };
-            ratingsDTOs.Add(ratingDTO);
-        }
-        return new GetRatingsResult() {RatingsEmpty = false, Ratings = ratingsDTOs};
-    }
-}
 
 public class GetRatingByIdUseCase : IRequestHandler<GetRatingByIdCommand, GetRatingDetailResult>
 {
@@ -181,7 +76,7 @@ public class GetRatingByIdUseCase : IRequestHandler<GetRatingByIdCommand, GetRat
     }
 
     // Recursive method to convert components to DTOs
-    private GradableComponentDTO ConvertComponentToDto(IGradable component)
+    private GradedComponentDTO ConvertComponentToDto(IGradable component)
     {
         if (component is Grade grade)
         {
@@ -196,13 +91,13 @@ public class GetRatingByIdUseCase : IRequestHandler<GetRatingByIdCommand, GetRat
         }
         else if (component is GradingBlock block)
         {
-            var blockDto = new BlockDetailDTO
+            var blockDto = new GradedBlockDetailDTO
             {
                 Name = block.BlockName,
                 CurrentGrade = block.getGrade(),
                 MinPossibleGrade = block.getMin(),
                 MaxPossibleGrade = block.getMax(),
-                Components = new List<GradableComponentDTO>(),
+                Components = new List<GradedComponentDTO>(),
                 Actions = ConvertActionsToStrings(block.Actions)
             };
 

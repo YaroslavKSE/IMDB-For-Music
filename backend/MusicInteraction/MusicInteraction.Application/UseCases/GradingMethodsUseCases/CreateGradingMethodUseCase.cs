@@ -1,46 +1,8 @@
 using MediatR;
 using MusicInteraction.Application.Interfaces;
 using MusicInteraction.Domain;
-using System.Text.Json.Serialization;
 
 namespace MusicInteraction.Application;
-
-public class CreateGradingMethodCommand : IRequest<CreateGradingMethodResult>
-{
-    public string Name { get; set; }
-    public string UserId { get; set; }
-    public bool IsPublic { get; set; }
-    public List<ComponentDto> Components { get; set; }
-    public List<Domain.Action> Actions { get; set; }
-}
-
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "componentType")]
-[JsonDerivedType(typeof(GradeComponentDto), typeDiscriminator: "grade")]
-[JsonDerivedType(typeof(BlockComponentDto), typeDiscriminator: "block")]
-public abstract class ComponentDto
-{
-    public string Name { get; set; }
-}
-
-public class GradeComponentDto : ComponentDto
-{
-    public float MinGrade { get; set; }
-    public float MaxGrade { get; set; }
-    public float StepAmount { get; set; }
-}
-
-public class BlockComponentDto : ComponentDto
-{
-    public List<ComponentDto> SubComponents { get; set; }
-    public List<Domain.Action> Actions { get; set; }
-}
-
-public class CreateGradingMethodResult
-{
-    public bool Success { get; set; }
-    public Guid? GradingMethodId { get; set; }
-    public string ErrorMessage { get; set; }
-}
 
 public class CreateGradingMethodUseCase : IRequestHandler<CreateGradingMethodCommand, CreateGradingMethodResult>
 {

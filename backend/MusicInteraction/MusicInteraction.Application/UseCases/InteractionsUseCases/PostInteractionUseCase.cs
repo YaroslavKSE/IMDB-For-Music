@@ -1,67 +1,7 @@
+using System.Diagnostics;
 using MediatR;
 using MusicInteraction.Application.Interfaces;
 using MusicInteraction.Domain;
-using System.Diagnostics;
-
-public class PostInteractionCommand : IRequest<PostInteractionResult>
-{
-    public string UserId { get; set; }
-    public string ItemId { get; set; }
-    public string ItemType { get; set; }
-    public bool IsLiked { get; set; }
-    public string ReviewText { get; set; }
-    public bool UseComplexGrading { get; set; } = false;
-
-    // For basic grading
-    public float? BasicGrade { get; set; }
-
-    // For complex grading
-    public Guid? GradingMethodId { get; set; }
-    public List<GradeInput> GradeInputs { get; set; }
-}
-
-public class GradeInput
-{
-    public string ComponentName { get; set; }
-    public float Value { get; set; }
-
-    /// <summary>
-    /// For nested components, use dot notation to specify the path:
-    /// e.g. "ProductionBlock.Vocals" for the Vocals component inside the ProductionBlock
-    /// </summary>
-    public GradeInput(string componentName, float value)
-    {
-        ComponentName = componentName;
-        Value = value;
-    }
-}
-
-public class PostInteractionResult
-{
-    public bool InteractionCreated { get; set; }
-    public bool Liked { get; set; }
-    public bool ReviewCreated { get; set; }
-    public bool Graded { get; set; }
-    public Guid InteractionId { get; set; }
-    public string ErrorMessage { get; set; }
-}
-
-public class PostInteractionRequest
-{
-    public string UserId { get; set; }
-    public string ItemId { get; set; }
-    public string ItemType { get; set; }
-    public bool IsLiked { get; set; }
-    public string ReviewText { get; set; }
-    public bool UseComplexGrading { get; set; } = false;
-
-    // For basic grading
-    public float? BasicGrade { get; set; }
-
-    // For complex grading
-    public Guid? GradingMethodId { get; set; }
-    public List<GradeInput> GradeInputs { get; set; }
-}
 
 public class PostInteractionUseCase : IRequestHandler<PostInteractionCommand, PostInteractionResult>
 {
@@ -147,7 +87,7 @@ public class PostInteractionUseCase : IRequestHandler<PostInteractionCommand, Po
         return result;
     }
 
-    private async Task<bool> ProcessComplexGrading(InteractionsAggregate interaction, Guid gradingMethodId, List<GradeInput> gradeInputs)
+    private async Task<bool> ProcessComplexGrading(InteractionsAggregate interaction, Guid gradingMethodId, List<GradeInputDTO> gradeInputs)
     {
         try
         {
@@ -170,7 +110,7 @@ public class PostInteractionUseCase : IRequestHandler<PostInteractionCommand, Po
         }
     }
 
-    private bool ApplyGradesToGradingMethod(GradingMethod gradingMethod, List<GradeInput> inputs)
+    private bool ApplyGradesToGradingMethod(GradingMethod gradingMethod, List<GradeInputDTO> inputs)
     {
         bool allGradesApplied = true;
         Dictionary<string, bool> appliedGrades = new Dictionary<string, bool>();
@@ -201,7 +141,7 @@ public class PostInteractionUseCase : IRequestHandler<PostInteractionCommand, Po
         return allGradesApplied;
     }
 
-    private bool TryApplyGrade(IGradable gradable, List<GradeInput> inputs, string parentPath, Dictionary<string, bool> appliedGrades)
+    private bool TryApplyGrade(IGradable gradable, List<GradeInputDTO> inputs, string parentPath, Dictionary<string, bool> appliedGrades)
     {
         bool allApplied = true;
 
@@ -251,5 +191,3 @@ public class PostInteractionUseCase : IRequestHandler<PostInteractionCommand, Po
         return allApplied;
     }
 }
-
-

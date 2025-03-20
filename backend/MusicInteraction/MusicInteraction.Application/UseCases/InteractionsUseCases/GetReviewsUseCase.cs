@@ -1,15 +1,7 @@
 using MediatR;
 using MusicInteraction.Application.Interfaces;
-using MusicInteraction.Domain;
+
 namespace MusicInteraction.Application;
-
-public class GetReviewsCommand: IRequest<GetReviewsResult> { }
-
-public class GetReviewsResult
-{
-    public bool ReviewsEmpty { get; set; }
-    public List<Review> Reviews { get; set; }
-}
 
 public class GetReviewsUseCase : IRequestHandler<GetReviewsCommand, GetReviewsResult>
 {
