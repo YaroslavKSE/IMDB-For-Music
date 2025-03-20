@@ -108,7 +108,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
             foreach (var entity in reviewEntities)
             {
-                var review = ReviewMapper.ToDomain(entity);
+                var review = ReviewMapper.ToDomain(entity, _dbContext).Result;
                 reviews.Add(review);
             }
 

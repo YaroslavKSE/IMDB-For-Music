@@ -62,12 +62,14 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             modelBuilder.Entity<InteractionAggregateEntity>()
                 .HasOne(i => i.Rating)
                 .WithOne(r => r.Interaction)
-                .HasForeignKey<RatingEntity>(r => r.AggregateId);
+                .HasForeignKey<RatingEntity>(r => r.AggregateId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<InteractionAggregateEntity>()
                 .HasOne(i => i.Review)
                 .WithOne(r => r.Interaction)
-                .HasForeignKey<ReviewEntity>(r => r.AggregateId);
+                .HasForeignKey<ReviewEntity>(r => r.AggregateId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // One-to-one between Rating and Grade (for simple ratings)
             modelBuilder.Entity<RatingEntity>()

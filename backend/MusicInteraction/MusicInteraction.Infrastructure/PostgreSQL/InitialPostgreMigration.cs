@@ -28,7 +28,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                     table.PrimaryKey("PK_Interactions", x => x.AggregateId);
                 });
 
-            // 2. Create Ratings table (depends on Interactions)
             migrationBuilder.CreateTable(
                 name: "Ratings",
                 columns: table => new
@@ -39,11 +38,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                     MaxGrade = table.Column<float>(nullable: false),
                     NormalizedGrade = table.Column<float>(nullable: true),
                     IsComplexGrading = table.Column<bool>(nullable: false),
-                    AggregateId = table.Column<Guid>(nullable: false),
-                    ItemId = table.Column<string>(nullable: false),
-                    CreatedAt = table.Column<DateTime>(nullable: false),
-                    ItemType = table.Column<string>(nullable: false),
-                    UserId = table.Column<string>(nullable: false)
+                    AggregateId = table.Column<Guid>(nullable: false)
                 },
                 constraints: table =>
                 {
@@ -56,18 +51,13 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            // 3. Create Reviews table (depends on Interactions)
             migrationBuilder.CreateTable(
                 name: "Reviews",
                 columns: table => new
                 {
                     ReviewId = table.Column<Guid>(nullable: false),
                     ReviewText = table.Column<string>(nullable: false),
-                    AggregateId = table.Column<Guid>(nullable: false),
-                    ItemId = table.Column<string>(nullable: false),
-                    CreatedAt = table.Column<DateTime>(nullable: false),
-                    ItemType = table.Column<string>(nullable: false),
-                    UserId = table.Column<string>(nullable: false)
+                    AggregateId = table.Column<Guid>(nullable: false)
                 },
                 constraints: table =>
                 {

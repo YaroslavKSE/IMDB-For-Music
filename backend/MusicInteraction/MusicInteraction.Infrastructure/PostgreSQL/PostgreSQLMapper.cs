@@ -38,7 +38,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
             {
                 typeof(InteractionsAggregate).GetProperty("Review")?.SetValue(
                     domain,
-                    ReviewMapper.ToDomain(reviewEntity)
+                    ReviewMapper.ToDomain(reviewEntity, dbContext).Result
                 );
             }
 
@@ -72,22 +72,24 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
                 ReviewId = domain.ReviewId,
                 ReviewText = domain.ReviewText,
                 AggregateId = domain.AggregateId,
-                ItemId = domain.ItemId,
-                CreatedAt = domain.CreatedAt,
-                ItemType = domain.ItemType,
-                UserId = domain.UserId
             };
         }
 
-        public static Review ToDomain(ReviewEntity entity)
+        public static async Task<Review> ToDomain(ReviewEntity entity, MusicInteractionDbContext dbContext)
         {
+            if (entity.Interaction == null)
+            {
+                entity.Interaction = await dbContext.Interactions
+                    .FirstOrDefaultAsync(i => i.AggregateId == entity.AggregateId);
+            }
+
             var review = new Review(
                 entity.ReviewText,
                 entity.AggregateId,
-                entity.ItemId,
-                entity.CreatedAt,
-                entity.ItemType,
-                entity.UserId
+                entity.Interaction.ItemId,
+                entity.Interaction.CreatedAt,
+                entity.Interaction.ItemType,
+                entity.Interaction.UserId
             );
             review.ReviewId = entity.ReviewId;
             return review;
@@ -112,10 +114,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
                 MaxGrade = domain.Grade.getMax(),
                 NormalizedGrade = domain.Grade.getNormalizedGrade(),
                 AggregateId = domain.AggregateId,
-                ItemId = domain.ItemId,
-                CreatedAt = domain.CreatedAt,
-                ItemType = domain.ItemType,
-                UserId = domain.UserId,
                 IsComplexGrading = domain.Grade is not Grade
             };
 
@@ -193,14 +191,20 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
                 }
             }
 
+            if (entity.Interaction == null)
+            {
+                entity.Interaction = await dbContext.Interactions
+                    .FirstOrDefaultAsync(i => i.AggregateId == entity.AggregateId);
+            }
+
             // Create the rating with the reconstructed gradable
             var rating = new Rating(
                 gradable,
                 entity.AggregateId,
-                entity.ItemId,
-                entity.CreatedAt,
-                entity.ItemType,
-                entity.UserId
+                entity.Interaction.ItemId,
+                entity.Interaction.CreatedAt,
+                entity.Interaction.ItemType,
+                entity.Interaction.UserId
             );
 
             rating.RatingId = entity.RatingId;

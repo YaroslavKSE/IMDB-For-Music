@@ -23,15 +23,10 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
         [Key]
         public Guid ReviewId { get; set; }
         public string ReviewText { get; set; }
-
-        // Base interaction properties
         public Guid AggregateId { get; set; }
-        public string ItemId { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public string ItemType { get; set; }
-        public string UserId { get; set; }
 
         // Navigation property
+        [ForeignKey("AggregateId")]
         public virtual InteractionAggregateEntity Interaction { get; set; }
     }
 
@@ -44,15 +39,10 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
         public float MaxGrade { get; set; }
         public float? NormalizedGrade { get; set; }
         public bool IsComplexGrading { get; set; }
-
-        // Base interaction properties
         public Guid AggregateId { get; set; }
-        public string ItemId { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public string ItemType { get; set; }
-        public string UserId { get; set; }
 
         // Navigation properties
+        [ForeignKey("AggregateId")]
         public virtual InteractionAggregateEntity Interaction { get; set; }
 
         // One-to-one relationship with GradeEntity
@@ -97,8 +87,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
         public float MaxGrade { get; set; }
         public float? Grade { get; set; }
         public float? NormalizedGrade { get; set; }
-
-        // This can be null for standalone grading method instances
         public Guid? RatingId { get; set; }
 
         // Navigation property (optional)
@@ -148,17 +136,9 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
     {
         [Key]
         public Guid Id { get; set; }
-
-        // Foreign key to the parent grading method
         public Guid GradingMethodId { get; set; }
-
-        // Component type (block or grade)
         public string ComponentType { get; set; }
-
-        // Order of the component in the method
         public int ComponentNumber { get; set; }
-
-        // Foreign keys to the actual components (one will be null)
         public Guid? BlockComponentId { get; set; }
         public Guid? GradeComponentId { get; set; }
 
@@ -178,17 +158,9 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
     {
         [Key]
         public Guid Id { get; set; }
-
-        // Foreign key to the parent grading block
         public Guid GradingBlockId { get; set; }
-
-        // Component type (block or grade)
         public string ComponentType { get; set; }
-
-        // Order of the component in the block
         public int ComponentNumber { get; set; }
-
-        // Foreign keys to the actual components (one will be null)
         public Guid? BlockComponentId { get; set; }
         public Guid? GradeComponentId { get; set; }
 
@@ -208,14 +180,8 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
     {
         [Key]
         public Guid Id { get; set; }
-
-        // Foreign key to the parent grading method
         public Guid GradingMethodId { get; set; }
-
-        // Order of the action in the method
         public int ActionNumber { get; set; }
-
-        // The action type (+, -, *, /)
         public string ActionType { get; set; }
 
         // Navigation property
@@ -228,14 +194,8 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
     {
         [Key]
         public Guid Id { get; set; }
-
-        // Foreign key to the parent grading block
         public Guid GradingBlockId { get; set; }
-
-        // Order of the action in the block
         public int ActionNumber { get; set; }
-
-        // The action type (+, -, *, /)
         public string ActionType { get; set; }
 
         // Navigation property
