@@ -14,8 +14,10 @@ services:
       - MongoDB__ConnectionString=${MONGODB_CONNECTION_STRING}
       - MongoDB__DatabaseName=${MONGODB_DATABASE_NAME}
     depends_on:
-      - postgres
-      - mongodb
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
     networks:
       - music-network
 
@@ -27,8 +29,16 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - music-network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
 
   mongodb:
     image: mongo:latest
@@ -36,6 +46,8 @@ services:
       - "27017:27017"
     networks:
       - music-network
+    volumes:
+      - mongodb-data:/data/db
 
 networks:
   music-network:
