@@ -109,10 +109,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
             var ratingEntity = new RatingEntity
             {
                 RatingId = domain.RatingId,
-                Grade = domain.GetGrade(),
-                MinGrade = domain.Grade.getMin(),
-                MaxGrade = domain.Grade.getMax(),
-                NormalizedGrade = domain.Grade.getNormalizedGrade(),
                 AggregateId = domain.AggregateId,
                 IsComplexGrading = domain.Grade is not Grade
             };

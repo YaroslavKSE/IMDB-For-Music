@@ -34,10 +34,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
     {
         [Key]
         public Guid RatingId { get; set; }
-        public float? Grade { get; set; }
-        public float MinGrade { get; set; }
-        public float MaxGrade { get; set; }
-        public float? NormalizedGrade { get; set; }
         public bool IsComplexGrading { get; set; }
         public Guid AggregateId { get; set; }
 

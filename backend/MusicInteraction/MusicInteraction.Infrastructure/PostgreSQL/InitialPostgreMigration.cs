@@ -33,10 +33,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                 columns: table => new
                 {
                     RatingId = table.Column<Guid>(nullable: false),
-                    Grade = table.Column<float>(nullable: true),
-                    MinGrade = table.Column<float>(nullable: false),
-                    MaxGrade = table.Column<float>(nullable: false),
-                    NormalizedGrade = table.Column<float>(nullable: true),
                     IsComplexGrading = table.Column<bool>(nullable: false),
                     AggregateId = table.Column<Guid>(nullable: false)
                 },
