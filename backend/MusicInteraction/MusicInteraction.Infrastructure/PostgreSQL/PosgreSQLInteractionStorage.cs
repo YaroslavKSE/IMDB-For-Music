@@ -51,7 +51,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
                 if (interaction.Rating != null)
                 {
-                    await RatingMapper.ToEntityWithGradables(interaction.Rating, _dbContext);
+                    await RatingMapper.ToEntityAsync(interaction.Rating, _dbContext);
                 }
 
                 // Save all changes
@@ -130,7 +130,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
             foreach (var entity in ratingEntities)
             {
-                var rating = await RatingMapper.ToDomain(entity, _dbContext);
+                var rating = await RatingMapper.ToDomainAsync(entity, _dbContext);
                 ratings.Add(rating);
             }
 
