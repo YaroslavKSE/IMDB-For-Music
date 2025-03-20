@@ -11,11 +11,22 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Entities
         public string ItemId { get; set; }
         public string ItemType { get; set; }
         public DateTime CreatedAt { get; set; }
-        public bool IsLiked { get; set; }
 
         // Navigation properties
         public virtual RatingEntity Rating { get; set; }
         public virtual ReviewEntity Review { get; set; }
+        public virtual LikeEntity Like { get; set; }
+    }
+
+    public class LikeEntity
+    {
+        [Key]
+        public Guid LikeId { get; set; }
+        public Guid AggregateId { get; set; }
+
+        // Navigation property
+        [ForeignKey("AggregateId")]
+        public virtual InteractionAggregateEntity Interaction { get; set; }
     }
 
     public class ReviewEntity

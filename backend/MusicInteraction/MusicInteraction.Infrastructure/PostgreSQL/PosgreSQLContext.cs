@@ -34,6 +34,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
         public DbSet<InteractionAggregateEntity> Interactions { get; set; }
         public DbSet<ReviewEntity> Reviews { get; set; }
         public DbSet<RatingEntity> Ratings { get; set; }
+        public DbSet<LikeEntity> Likes { get; set; } // New Likes table
         public DbSet<GradeEntity> Grades { get; set; }
         public DbSet<GradingMethodInstanceEntity> GradingMethodInstances { get; set; }
         public DbSet<GradingBlockEntity> GradingBlocks { get; set; }
@@ -69,6 +70,13 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
                 .HasOne(i => i.Review)
                 .WithOne(r => r.Interaction)
                 .HasForeignKey<ReviewEntity>(r => r.AggregateId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure new one-to-one relationship between Interaction and Like
+            modelBuilder.Entity<InteractionAggregateEntity>()
+                .HasOne(i => i.Like)
+                .WithOne(l => l.Interaction)
+                .HasForeignKey<LikeEntity>(l => l.AggregateId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // One-to-one between Rating and Grade (for simple ratings)

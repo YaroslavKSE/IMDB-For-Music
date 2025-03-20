@@ -20,14 +20,40 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                     UserId = table.Column<string>(nullable: false),
                     ItemId = table.Column<string>(nullable: false),
                     ItemType = table.Column<string>(nullable: false),
-                    CreatedAt = table.Column<DateTime>(nullable: false),
-                    IsLiked = table.Column<bool>(nullable: false)
+                    CreatedAt = table.Column<DateTime>(nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Interactions", x => x.AggregateId);
                 });
 
+            // 2. Create Likes table with one-to-one relationship to Interactions
+            migrationBuilder.CreateTable(
+                name: "Likes",
+                columns: table => new
+                {
+                    LikeId = table.Column<Guid>(nullable: false),
+                    AggregateId = table.Column<Guid>(nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Likes", x => x.LikeId);
+                    table.ForeignKey(
+                        name: "FK_Likes_Interactions_AggregateId",
+                        column: x => x.AggregateId,
+                        principalTable: "Interactions",
+                        principalColumn: "AggregateId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            // Create unique index for the one-to-one relationship
+            migrationBuilder.CreateIndex(
+                name: "IX_Likes_AggregateId",
+                table: "Likes",
+                column: "AggregateId",
+                unique: true);
+
+            // 3. Create Ratings table
             migrationBuilder.CreateTable(
                 name: "Ratings",
                 columns: table => new
@@ -47,6 +73,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            // 4. Create Reviews table
             migrationBuilder.CreateTable(
                 name: "Reviews",
                 columns: table => new
@@ -66,7 +93,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            // 4. Create GradingBlocks table that doesn't depend on anything else
+            // 5. Create GradingBlocks table that doesn't depend on anything else
             migrationBuilder.CreateTable(
                 name: "GradingBlocks",
                 columns: table => new
@@ -83,7 +110,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                     table.PrimaryKey("PK_GradingBlocks", x => x.EntityId);
                 });
 
-            // 5. Create GradingMethodInstances table (dependent on Ratings)
+            // 6. Create GradingMethodInstances table (dependent on Ratings)
             migrationBuilder.CreateTable(
                 name: "GradingMethodInstances",
                 columns: table => new
@@ -108,7 +135,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
-            // 6. Create Grades table (dependent on both Ratings and potentially part of a block or method)
+            // 7. Create Grades table (dependent on both Ratings and potentially part of a block or method)
             migrationBuilder.CreateTable(
                 name: "Grades",
                 columns: table => new
@@ -133,7 +160,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
-            // 7. Create GradingMethodComponents table
+            // 8. Create GradingMethodComponents table
             migrationBuilder.CreateTable(
                 name: "GradingMethodComponents",
                 columns: table => new
@@ -168,7 +195,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
-            // 8. Create GradingBlockComponents table
+            // 9. Create GradingBlockComponents table
             migrationBuilder.CreateTable(
                 name: "GradingBlockComponents",
                 columns: table => new
@@ -203,7 +230,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
-            // 9. Create GradingMethodActions table
+            // 10. Create GradingMethodActions table
             migrationBuilder.CreateTable(
                 name: "GradingMethodActions",
                 columns: table => new
@@ -224,7 +251,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            // 10. Create GradingBlockActions table
+            // 11. Create GradingBlockActions table
             migrationBuilder.CreateTable(
                 name: "GradingBlockActions",
                 columns: table => new
@@ -245,7 +272,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            // 11. Create all necessary indexes
+            // 12. Create all necessary indexes
             migrationBuilder.CreateIndex(
                 name: "IX_Ratings_AggregateId",
                 table: "Ratings",
@@ -342,6 +369,9 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
 
             migrationBuilder.DropTable(
                 name: "Reviews");
+
+            migrationBuilder.DropTable(
+                name: "Likes");
 
             migrationBuilder.DropTable(
                 name: "Ratings");

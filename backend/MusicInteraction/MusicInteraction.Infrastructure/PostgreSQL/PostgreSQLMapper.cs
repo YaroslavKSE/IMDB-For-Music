@@ -15,7 +15,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
                 ItemId = domain.ItemId,
                 ItemType = domain.ItemType,
                 CreatedAt = domain.CreatedAt,
-                IsLiked = domain.IsLiked,
             };
 
             return entity;
@@ -30,7 +29,17 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Mapping
             // Use reflection to set the private fields that can't be set through constructor
             typeof(InteractionsAggregate).GetProperty("AggregateId")?.SetValue(domain, entity.AggregateId);
             typeof(InteractionsAggregate).GetProperty("CreatedAt")?.SetValue(domain, entity.CreatedAt);
-            typeof(InteractionsAggregate).GetProperty("IsLiked")?.SetValue(domain, entity.IsLiked);
+
+            // Check if there's a like and set the IsLiked property accordingly
+            var likeEntity = await dbContext.Likes.FirstOrDefaultAsync(l => l.AggregateId == entity.AggregateId);
+            if (likeEntity != null)
+            {
+                typeof(InteractionsAggregate).GetProperty("IsLiked")?.SetValue(domain, true);
+            }
+            else
+            {
+                typeof(InteractionsAggregate).GetProperty("IsLiked")?.SetValue(domain, false);
+            }
 
             // Load review if exists - use the navigation property or query by AggregateId
             var reviewEntity = await dbContext.Reviews.FirstOrDefaultAsync(r => r.AggregateId == entity.AggregateId);

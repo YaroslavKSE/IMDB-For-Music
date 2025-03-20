@@ -3,10 +3,6 @@ using MusicInteraction.Application.Interfaces;
 using MusicInteraction.Domain;
 using MusicInteraction.Infrastructure.PostgreSQL.Entities;
 using MusicInteraction.Infrastructure.PostgreSQL.Mapping;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace MusicInteraction.Infrastructure.PostgreSQL
 {
@@ -33,6 +29,17 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
                 // Save changes to ensure the interaction is created with its ID
                 await _dbContext.SaveChangesAsync();
+
+                if (interaction.IsLiked)
+                {
+                    // Create a new Like entity
+                    var likeEntity = new LikeEntity
+                    {
+                        LikeId = Guid.NewGuid(),
+                        AggregateId = interactionEntity.AggregateId
+                    };
+                    await _dbContext.Likes.AddAsync(likeEntity);
+                }
 
                 if (interaction.Review != null)
                 {
@@ -64,6 +71,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             var interactionEntities = await _dbContext.Interactions
                 .Include(i => i.Rating)
                 .Include(i => i.Review)
+                .Include(i => i.Like)
                 .ToListAsync();
 
             List<InteractionsAggregate> result = new List<InteractionsAggregate>();
@@ -79,20 +87,20 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
         public async Task<List<Like>> GetLikes()
         {
-            var likedInteractions = await _dbContext.Interactions
-                .Where(i => i.IsLiked)
+            var likeEntities = await _dbContext.Likes
+                .Include(l => l.Interaction)
                 .ToListAsync();
 
             List<Like> likes = new List<Like>();
 
-            foreach (var entity in likedInteractions)
+            foreach (var entity in likeEntities)
             {
                 var like = new Like(
-                    entity.AggregateId,
-                    entity.ItemId,
-                    entity.CreatedAt,
-                    entity.ItemType,
-                    entity.UserId
+                    entity.Interaction.AggregateId,
+                    entity.Interaction.ItemId,
+                    entity.Interaction.CreatedAt,
+                    entity.Interaction.ItemType,
+                    entity.Interaction.UserId
                 );
 
                 likes.Add(like);
@@ -108,7 +116,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
             foreach (var entity in reviewEntities)
             {
-                var review = ReviewMapper.ToDomain(entity, _dbContext).Result;
+                var review = await ReviewMapper.ToDomain(entity, _dbContext);
                 reviews.Add(review);
             }
 
