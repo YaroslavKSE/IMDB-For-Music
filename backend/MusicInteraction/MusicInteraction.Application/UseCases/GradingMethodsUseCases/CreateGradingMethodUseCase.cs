@@ -63,7 +63,8 @@ public class CreateGradingMethodUseCase : IRequestHandler<CreateGradingMethodCom
                 gradeDto.MinGrade,
                 gradeDto.MaxGrade,
                 gradeDto.StepAmount,
-                gradeDto.Name
+                gradeDto.Name,
+                gradeDto.Description
             );
         }
         else if (component is BlockComponentDto blockDto)

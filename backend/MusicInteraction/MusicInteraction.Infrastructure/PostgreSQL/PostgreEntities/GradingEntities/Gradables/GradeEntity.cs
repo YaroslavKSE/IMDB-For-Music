@@ -13,6 +13,7 @@ public class GradeEntity
     public float? Grade { get; set; }
     public float StepAmount { get; set; }
     public float? NormalizedGrade { get; set; }
+    public string? Description { get; set; }
 
     // This field can be null when the grade is part of a grading block
     public Guid? RatingId { get; set; }

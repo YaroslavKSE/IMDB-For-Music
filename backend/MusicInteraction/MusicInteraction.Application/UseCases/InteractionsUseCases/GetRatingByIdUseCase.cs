@@ -86,7 +86,8 @@ public class GetRatingByIdUseCase : IRequestHandler<GetRatingByIdCommand, GetRat
                 CurrentGrade = grade.getGrade(),
                 MinPossibleGrade = grade.getMin(),
                 MaxPossibleGrade = grade.getMax(),
-                StepAmount = grade.stepAmount
+                StepAmount = grade.stepAmount,
+                Description = grade.Description
             };
         }
         else if (component is GradingBlock block)

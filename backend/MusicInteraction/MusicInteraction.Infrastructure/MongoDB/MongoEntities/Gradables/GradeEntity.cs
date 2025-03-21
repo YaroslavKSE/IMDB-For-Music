@@ -12,4 +12,5 @@ public class GradeEntity : GradableComponentEntity
     }
 
     public float StepAmount { get; set; }
+    public string? Description { get; set; }
 }

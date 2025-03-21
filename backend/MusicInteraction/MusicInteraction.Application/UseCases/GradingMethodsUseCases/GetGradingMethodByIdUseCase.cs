@@ -67,7 +67,8 @@ public class GetGradingMethodByIdUseCase : IRequestHandler<GetGradingMethodByIdC
                 Name = grade.parametrName,
                 MinPossibleGrade = grade.getMin(),
                 MaxPossibleGrade = grade.getMax(),
-                StepAmount = grade.stepAmount
+                StepAmount = grade.stepAmount,
+                Description = grade.Description
             };
         }
         else if (component is GradingBlock block)

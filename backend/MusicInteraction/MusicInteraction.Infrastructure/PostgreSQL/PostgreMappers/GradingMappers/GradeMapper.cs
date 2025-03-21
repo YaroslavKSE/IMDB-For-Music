@@ -17,6 +17,7 @@ public static class GradeMapper
             Grade = grade.getGrade(),
             StepAmount = grade.stepAmount,
             NormalizedGrade = grade.getNormalizedGrade(),
+            Description = grade.Description,
             RatingId = ratingId
         };
 
@@ -56,7 +57,8 @@ public static class GradeMapper
             gradeEntity.MinGrade,
             gradeEntity.MaxGrade,
             gradeEntity.StepAmount,
-            gradeEntity.Name
+            gradeEntity.Name,
+            gradeEntity.Description
         );
 
         if (gradeEntity.Grade.HasValue)

@@ -136,6 +136,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                 });
 
             // 7. Create Grades table (dependent on both Ratings and potentially part of a block or method)
+            // Added Description column as nullable
             migrationBuilder.CreateTable(
                 name: "Grades",
                 columns: table => new
@@ -147,6 +148,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                     Grade = table.Column<float>(nullable: true),
                     StepAmount = table.Column<float>(nullable: false),
                     NormalizedGrade = table.Column<float>(nullable: true),
+                    Description = table.Column<string>(nullable: true),
                     RatingId = table.Column<Guid>(nullable: true)
                 },
                 constraints: table =>

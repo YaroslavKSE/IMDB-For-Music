@@ -69,7 +69,8 @@ public static class GradingMethodMapper
                 Name = grade.parametrName,
                 MinPossibleGrade = grade.getMin(),
                 MaxPossibleGrade = grade.getMax(),
-                StepAmount = grade.stepAmount
+                StepAmount = grade.stepAmount,
+                Description = grade.Description
             };
         }
         else if (gradable is GradingBlock block)
@@ -105,7 +106,8 @@ public static class GradingMethodMapper
                 gradeEntity.MinPossibleGrade,
                 gradeEntity.MaxPossibleGrade,
                 gradeEntity.StepAmount,
-                gradeEntity.Name
+                gradeEntity.Name,
+                gradeEntity.Description
             );
 
             return grade;
