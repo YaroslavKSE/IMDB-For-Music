@@ -7,27 +7,31 @@ public class Grade: IGradable
     public float maxGrade { get; private set; }
     public float stepAmount { get; private set; }
     public float? grade { get; private set; }
+    public string? Description { get; private set; }
 
-    public Grade(float minGrade = 1, float maxGrade = 10, float stepAmount = 1, string parametrName = "basicRating")
+    public Grade(float minGrade = 1, float maxGrade = 10, float stepAmount = 1, string parametrName = "basicRating", string? description = null)
     {
         this.minGrade = minGrade;
         this.maxGrade = maxGrade;
         this.stepAmount = stepAmount;
         this.parametrName = parametrName;
+        this.Description = description;
         this.grade = null;
     }
 
     public void updateGrade(float grade)
     {
-        for (float i = minGrade; i <= maxGrade; i += stepAmount)
+        // Round to nearest valid step to avoid floating-point precision issues
+        float roundedGrade = (float)Math.Round(grade / stepAmount) * stepAmount;
+
+        // Ensure the rounded grade is within range
+        if (roundedGrade >= minGrade && roundedGrade <= maxGrade)
         {
-            if (grade == i)
-            {
-                this.grade = grade;
-                return;
-            }
+            this.grade = roundedGrade;
+            return;
         }
-        throw new Exception("unvalid grade");
+
+        throw new Exception($"Invalid grade: {grade}. Must be between {minGrade} and {maxGrade} with steps of {stepAmount}");
     }
 
     public float? getGrade()

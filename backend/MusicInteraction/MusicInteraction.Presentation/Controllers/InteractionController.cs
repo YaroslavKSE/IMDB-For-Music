@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices.JavaScript;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MusicInteraction.Application;
@@ -6,7 +5,8 @@ using MusicInteraction.Application;
 namespace MusicInteraction.Presentation.Controllers;
 
 [ApiController]
-public class InteractionController: ControllerBase
+[Route("api/[controller]")]
+public class InteractionController : ControllerBase
 {
     private readonly IMediator mediator;
 
@@ -16,22 +16,21 @@ public class InteractionController: ControllerBase
     }
 
     [HttpPost("postInteraction")]
-    public async Task<IActionResult> PostInteraction([FromBody]PostInteractionRequest request)
+    public async Task<IActionResult> PostInteraction([FromBody] PostInteractionCommand command)
     {
-        PostInteractionCommand command = new PostInteractionCommand()
+        // Validate required fields
+        if (string.IsNullOrEmpty(command.UserId) ||
+            string.IsNullOrEmpty(command.ItemId) ||
+            string.IsNullOrEmpty(command.ItemType))
         {
-            UserId = request.UserId,
-            ItemId = request.ItemId,
-            ItemType = request.ItemType,
-            IsLiked = request.IsLiked,
-            ReviewText = request.ReviewText,
+            return BadRequest("UserId, ItemId, and ItemType are required fields");
+        }
 
-            // Handle grading options
-            UseComplexGrading = request.UseComplexGrading,
-            BasicGrade = request.BasicGrade,
-            GradingMethodId = request.GradingMethodId,
-            GradeInputs = request.GradeInputs
-        };
+        // Validate that if UseComplexGrading is true, GradingMethodId is provided
+        if (command.UseComplexGrading && (!command.GradingMethodId.HasValue || command.GradingMethodId == Guid.Empty))
+        {
+            return BadRequest("GradingMethodId is required when UseComplexGrading is true");
+        }
 
         var result = await mediator.Send(command);
 

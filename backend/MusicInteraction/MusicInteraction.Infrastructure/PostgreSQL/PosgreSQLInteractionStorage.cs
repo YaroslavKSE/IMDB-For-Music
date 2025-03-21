@@ -3,10 +3,6 @@ using MusicInteraction.Application.Interfaces;
 using MusicInteraction.Domain;
 using MusicInteraction.Infrastructure.PostgreSQL.Entities;
 using MusicInteraction.Infrastructure.PostgreSQL.Mapping;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace MusicInteraction.Infrastructure.PostgreSQL
 {
@@ -25,22 +21,34 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
             {
-                // Convert the domain model to entity
                 var interactionEntity = InteractionMapper.ToEntity(interaction);
 
-                // Add the interaction entity
                 await _dbContext.Interactions.AddAsync(interactionEntity);
+
+                // Save changes to ensure the interaction is created with its ID
+                await _dbContext.SaveChangesAsync();
+
+                if (interaction.IsLiked)
+                {
+                    // Create a new Like entity
+                    var likeEntity = new LikeEntity
+                    {
+                        LikeId = Guid.NewGuid(),
+                        AggregateId = interactionEntity.AggregateId
+                    };
+                    await _dbContext.Likes.AddAsync(likeEntity);
+                }
 
                 if (interaction.Review != null)
                 {
                     var reviewEntity = ReviewMapper.ToEntity(interaction.Review);
+                    reviewEntity.AggregateId = interactionEntity.AggregateId;
                     await _dbContext.Reviews.AddAsync(reviewEntity);
                 }
 
                 if (interaction.Rating != null)
                 {
-                    var ratingResult = await RatingMapper.ToEntityWithGradables(interaction.Rating, _dbContext);
-                    await _dbContext.Ratings.AddAsync(ratingResult.RatingEntity);
+                    await RatingMapper.ToEntityAsync(interaction.Rating, _dbContext);
                 }
 
                 // Save all changes
@@ -60,6 +68,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             var interactionEntities = await _dbContext.Interactions
                 .Include(i => i.Rating)
                 .Include(i => i.Review)
+                .Include(i => i.Like)
                 .ToListAsync();
 
             List<InteractionsAggregate> result = new List<InteractionsAggregate>();
@@ -75,20 +84,20 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
         public async Task<List<Like>> GetLikes()
         {
-            var likedInteractions = await _dbContext.Interactions
-                .Where(i => i.IsLiked)
+            var likeEntities = await _dbContext.Likes
+                .Include(l => l.Interaction)
                 .ToListAsync();
 
             List<Like> likes = new List<Like>();
 
-            foreach (var entity in likedInteractions)
+            foreach (var entity in likeEntities)
             {
                 var like = new Like(
-                    entity.AggregateId,
-                    entity.ItemId,
-                    entity.CreatedAt,
-                    entity.ItemType,
-                    entity.UserId
+                    entity.Interaction.AggregateId,
+                    entity.Interaction.ItemId,
+                    entity.Interaction.CreatedAt,
+                    entity.Interaction.ItemType,
+                    entity.Interaction.UserId
                 );
 
                 likes.Add(like);
@@ -104,7 +113,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
             foreach (var entity in reviewEntities)
             {
-                var review = ReviewMapper.ToDomain(entity);
+                var review = await ReviewMapper.ToDomain(entity, _dbContext);
                 reviews.Add(review);
             }
 
@@ -118,11 +127,33 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
             foreach (var entity in ratingEntities)
             {
-                var rating = await RatingMapper.ToDomain(entity, _dbContext);
+                var rating = await RatingMapper.ToDomainAsync(entity, _dbContext);
                 ratings.Add(rating);
             }
 
             return ratings;
+        }
+
+        public async Task<Rating> GetRatingById(Guid ratingId)
+        {
+            try
+            {
+                var ratingEntity = await _dbContext.Ratings
+                    .Include(r => r.Interaction)
+                    .FirstOrDefaultAsync(r => r.RatingId == ratingId);
+
+                if (ratingEntity == null)
+                {
+                    return null;
+                }
+
+                return await RatingMapper.ToDomainAsync(ratingEntity, _dbContext);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving rating with ID {ratingId}: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<bool> IsEmpty()
