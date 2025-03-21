@@ -42,7 +42,6 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponseDt
         {
             AccessToken = authTokenResponse.AccessToken,
             RefreshToken = authTokenResponse.RefreshToken,
-            IdToken = authTokenResponse.IdToken,
             ExpiresIn = authTokenResponse.ExpiresIn,
             TokenType = authTokenResponse.TokenType
         };
