@@ -21,10 +21,8 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
             {
-                // Convert the domain model to entity
                 var interactionEntity = InteractionMapper.ToEntity(interaction);
 
-                // Add the interaction entity
                 await _dbContext.Interactions.AddAsync(interactionEntity);
 
                 // Save changes to ensure the interaction is created with its ID
@@ -44,7 +42,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
                 if (interaction.Review != null)
                 {
                     var reviewEntity = ReviewMapper.ToEntity(interaction.Review);
-                    // Ensure the AggregateId is set correctly
                     reviewEntity.AggregateId = interactionEntity.AggregateId;
                     await _dbContext.Reviews.AddAsync(reviewEntity);
                 }
@@ -135,6 +132,28 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             }
 
             return ratings;
+        }
+
+        public async Task<Rating> GetRatingById(Guid ratingId)
+        {
+            try
+            {
+                var ratingEntity = await _dbContext.Ratings
+                    .Include(r => r.Interaction)
+                    .FirstOrDefaultAsync(r => r.RatingId == ratingId);
+
+                if (ratingEntity == null)
+                {
+                    return null;
+                }
+
+                return await RatingMapper.ToDomainAsync(ratingEntity, _dbContext);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving rating with ID {ratingId}: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<bool> IsEmpty()

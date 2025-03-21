@@ -10,4 +10,5 @@ public interface IInteractionStorage
     Task<List<Like>> GetLikes();
     Task<List<Review>> GetReviews();
     Task<List<Rating>> GetRatings();
+    Task<Rating> GetRatingById(Guid ratingId);
 }

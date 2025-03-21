@@ -47,11 +47,11 @@ public class PostInteractionUseCase : IRequestHandler<PostInteractionCommand, Po
                     result.ErrorMessage = "Failed to apply some or all grades";
                 }
             }
-            else if (request.BasicGrade.HasValue)
+            else if (!request.UseComplexGrading && request.BasicGrade.HasValue)
             {
                 try
                 {
-                    // Process basic grading (original implementation)
+                    // Process basic grading
                     var grade = new Grade();
                     grade.updateGrade(request.BasicGrade.Value);
                     interaction.AddRating(grade);
@@ -62,6 +62,7 @@ public class PostInteractionUseCase : IRequestHandler<PostInteractionCommand, Po
                     result.ErrorMessage = $"Invalid basic grade: {ex.Message}";
                 }
             }
+            // If UseComplexGrading is false and BasicGrade is null, no rating is created
 
             if (request.IsLiked)
             {

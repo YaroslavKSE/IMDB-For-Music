@@ -26,10 +26,7 @@ public class GetRatingByIdUseCase : IRequestHandler<GetRatingByIdCommand, GetRat
                 };
             }
 
-            List<Rating> ratings = await interactionStorage.GetRatings();
-
-            // Find the requested rating
-            Rating rating = ratings.FirstOrDefault(r => r.RatingId == request.RatingId);
+            Rating rating = await interactionStorage.GetRatingById(request.RatingId);
 
             if (rating == null)
             {

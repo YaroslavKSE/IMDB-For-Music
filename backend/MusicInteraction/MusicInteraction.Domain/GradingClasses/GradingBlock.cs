@@ -56,6 +56,9 @@ public class GradingBlock : IGradable
             }
         }
 
+        if (result.HasValue)
+            result = (float)Math.Round(result.Value, 2);
+
         return result;
     }
 
