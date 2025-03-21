@@ -1,5 +1,4 @@
-﻿// MusicCatalogService.Core/Services/TrackService.cs
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MusicCatalogService.Core.DTOs;
@@ -35,7 +34,7 @@ public class TrackService : ITrackService
     {
         // Generate cache key for this track
         var cacheKey = $"track:{spotifyId}";
-        
+
         // Try to get from cache first
         var cachedTrack = await _cacheService.GetAsync<TrackDetailDto>(cacheKey);
         if (cachedTrack != null)
@@ -43,100 +42,135 @@ public class TrackService : ITrackService
             _logger.LogInformation("Track {SpotifyId} retrieved from cache", spotifyId);
             return cachedTrack;
         }
-        
+
         // Try to get from database
-        var catalogItem = await _catalogRepository.GetBySpotifyIdAsync(spotifyId, "track");
-        if (catalogItem != null && DateTime.UtcNow < catalogItem.CacheExpiresAt)
+        var track = await _catalogRepository.GetTrackBySpotifyIdAsync(spotifyId);
+        if (track != null && DateTime.UtcNow < track.CacheExpiresAt)
         {
             _logger.LogInformation("Track {SpotifyId} retrieved from database", spotifyId);
-            
+
             // Deserialize the raw data to Spotify response
             var trackResponse = JsonSerializer.Deserialize<SpotifyTrackResponse>(
-                catalogItem.RawData, 
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            
-            var trackDto = MapToTrackDetailDto(trackResponse, catalogItem.Id);
-            
+                track.RawData,
+                new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+
+            var trackDto = MapToTrackDetailDto(trackResponse, track.Id);
+
             // Store in cache
             await _cacheService.SetAsync(
-                cacheKey, 
-                trackDto, 
+                cacheKey,
+                trackDto,
                 TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
-            
+
             return trackDto;
         }
-        
+
         // Fetch from Spotify API
         _logger.LogInformation("Fetching track {SpotifyId} from Spotify API", spotifyId);
-        var track = await _spotifyApiClient.GetTrackAsync(spotifyId);
-        if (track == null)
+        var spotifyTrack = await _spotifyApiClient.GetTrackAsync(spotifyId);
+        if (spotifyTrack == null)
         {
             _logger.LogWarning("Track {SpotifyId} not found in Spotify", spotifyId);
             return null;
         }
-        
-        // Create or update catalog item
-        var itemId = catalogItem?.Id ?? Guid.NewGuid();
-        var newCatalogItem = new CatalogItem
+
+        // Create or update track entity
+        var trackEntity = new Track
         {
-            Id = itemId,
-            SpotifyId = track.Id,
-            Type = "track",
-            Name = track.Name,
-            ArtistName = track.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
-            ThumbnailUrl = track.Album.Images.FirstOrDefault()?.Url,
-            Popularity = track.Popularity,
+            Id = track?.Id ?? Guid.NewGuid(),
+            SpotifyId = spotifyTrack.Id,
+            Name = spotifyTrack.Name,
+            ArtistName = spotifyTrack.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
+
+            // Get optimal image (640x640 or closest available)
+            ThumbnailUrl = GetOptimalImage(spotifyTrack.Album.Images),
+
+            Popularity = spotifyTrack.Popularity,
             LastAccessed = DateTime.UtcNow,
             CacheExpiresAt = DateTime.UtcNow.AddMinutes(_spotifySettings.CacheExpirationMinutes),
-            DurationMs = track.DurationMs,
-            IsExplicit = track.Explicit,
-            TrackNumber = track.TrackNumber,
-            DiscNumber = track.DiscNumber,
-            Isrc = track.ExternalIds?.Isrc,
-            PreviewUrl = track.PreviewUrl,
-            AlbumId = track.Album.Id,
-            AlbumName = track.Album.Name,
-            RawData = JsonSerializer.Serialize(track)
+
+            // Track-specific fields
+            DurationMs = spotifyTrack.DurationMs,
+            IsExplicit = spotifyTrack.Explicit,
+            Isrc = spotifyTrack.ExternalIds?.Isrc,
+
+            // Album information
+            AlbumId = spotifyTrack.Album.Id,
+            AlbumName = spotifyTrack.Album.Name,
+            AlbumType = spotifyTrack.Album.AlbumType,
+            ReleaseDate = spotifyTrack.Album.ReleaseDate,
+
+            // External URLs
+            SpotifyUrl = spotifyTrack.ExternalUrls?.Spotify,
+
+            // Artists
+            Artists = spotifyTrack.Artists.Select(a => new SimplifiedArtist
+            {
+                Id = a.Id,
+                Name = a.Name,
+                SpotifyUrl = a.ExternalUrls?.Spotify
+            }).ToList(),
+
+            // Raw data for future flexibility
+            RawData = JsonSerializer.Serialize(spotifyTrack)
         };
-        
+
         // Save to database
-        await _catalogRepository.AddOrUpdateAsync(newCatalogItem);
-        
+        await _catalogRepository.AddOrUpdateTrackAsync(trackEntity);
+
         // Map to DTO
-        var result = MapToTrackDetailDto(track, itemId);
-        
+        var result = MapToTrackDetailDto(spotifyTrack, trackEntity.Id);
+
         // Cache the result
         await _cacheService.SetAsync(
-            cacheKey, 
-            result, 
+            cacheKey,
+            result,
             TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
-        
+
         return result;
     }
-    
+
+    // Helper method to get the optimal image (640x640 or closest)
+    private string GetOptimalImage(List<SpotifyImage> images)
+    {
+        if (images == null || !images.Any())
+            return null;
+
+        // Try to find a 640x640 image
+        var optimalImage = images.FirstOrDefault(img => img.Width == 640 && img.Height == 640);
+
+        // If no 640x640 image exists, take the largest available
+        if (optimalImage == null) optimalImage = images.OrderByDescending(img => img.Width * img.Height).First();
+
+        return optimalImage.Url;
+    }
+
+    // Map Spotify response to DTO
     private TrackDetailDto MapToTrackDetailDto(SpotifyTrackResponse track, Guid catalogItemId)
     {
         var artistSummaries = track.Artists.Select(artist => new ArtistSummaryDto
         {
             SpotifyId = artist.Id,
             Name = artist.Name,
-            ExternalUrls = artist.ExternalUrls != null ? new List<string> { artist.ExternalUrls.Spotify } : null
+            ExternalUrls = artist.ExternalUrls?.Spotify != null
+                ? new List<string> {artist.ExternalUrls.Spotify}
+                : null
         }).ToList();
-        
+
         // Get primary artist
         var primaryArtist = track.Artists.FirstOrDefault()?.Name ?? "Unknown Artist";
-        
-        // Get album images
+
+        // Get thumbnail URL (optimized for 640x640)
+        var thumbnailUrl = GetOptimalImage(track.Album.Images);
+
+        // Get all images
         var images = track.Album.Images.Select(img => new ImageDto
         {
             Url = img.Url,
             Height = img.Height,
             Width = img.Width
         }).ToList();
-        
-        // Get thumbnail (first image)
-        var thumbnailUrl = images.FirstOrDefault()?.Url;
-        
+
         var albumDto = new AlbumSummaryDto
         {
             SpotifyId = track.Album.Id,
@@ -147,9 +181,11 @@ public class TrackService : ITrackService
             TotalTracks = track.Album.TotalTracks,
             ImageUrl = thumbnailUrl,
             Images = images,
-            ExternalUrls = track.Album.ExternalUrls != null ? new List<string> { track.Album.ExternalUrls.Spotify } : null
+            ExternalUrls = track.Album.ExternalUrls?.Spotify != null
+                ? new List<string> {track.Album.ExternalUrls.Spotify}
+                : null
         };
-        
+
         return new TrackDetailDto
         {
             CatalogItemId = catalogItemId,
@@ -167,7 +203,9 @@ public class TrackService : ITrackService
             PreviewUrl = track.PreviewUrl,
             Artists = artistSummaries,
             Album = albumDto,
-            ExternalUrls = track.ExternalUrls != null ? new List<string> { track.ExternalUrls.Spotify } : null
+            ExternalUrls = track.ExternalUrls?.Spotify != null
+                ? new List<string> {track.ExternalUrls.Spotify}
+                : null
         };
     }
 }

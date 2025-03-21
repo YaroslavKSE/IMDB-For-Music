@@ -85,25 +85,25 @@ public class SpotifyApiClient : ISpotifyApiClient
         try
         {
             await EnsureValidTokenAsync();
-        
+
             // Encode the query and build the request URL
             var encodedQuery = Uri.EscapeDataString(query);
             var requestUrl = $"search?q={encodedQuery}&type={type}&limit={limit}&offset={offset}";
-        
+
             var response = await _httpClient.GetAsync(requestUrl);
-        
+
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogError("Spotify API error: {StatusCode} when searching. Query: {Query}. Response: {Response}",
                     response.StatusCode, query, errorContent);
-            
+
                 throw new Exception($"Spotify API returned {response.StatusCode}. Details: {errorContent}");
             }
-        
+
             var content = await response.Content.ReadAsStringAsync();
             _logger.LogDebug("Spotify search API returned {StatusCode}: {Content}", response.StatusCode, content);
-        
+
             return JsonSerializer.Deserialize<SpotifySearchResponse>(content, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -115,6 +115,7 @@ public class SpotifyApiClient : ISpotifyApiClient
             throw;
         }
     }
+
     public async Task<SpotifyNewReleasesResponse?> GetNewReleasesAsync(int limit = 20, int offset = 0)
     {
         await EnsureValidTokenAsync();

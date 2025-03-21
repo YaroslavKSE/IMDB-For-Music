@@ -9,9 +9,9 @@ namespace MusicCatalogService.API.Controllers;
 public class CatalogController : ControllerBase
 {
     private readonly ITrackService _trackService;
-    private readonly ILogger<CatalogController> _logger;
     private readonly IAlbumService _albumService;
     private readonly ISearchService _searchService;
+    private readonly ILogger<CatalogController> _logger;
 
     public CatalogController(
         ITrackService trackService,
@@ -50,6 +50,7 @@ public class CatalogController : ControllerBase
             return StatusCode(500, new { Message = "An error occurred while retrieving the track" });
         }
     }
+    
     [HttpGet("albums/{spotifyId}")]
     [ProducesResponseType(typeof(AlbumDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -75,56 +76,54 @@ public class CatalogController : ControllerBase
             return StatusCode(500, new { Message = "An error occurred while retrieving the album" });
         }
     }
-    // MusicCatalogService.API/Controllers/CatalogController.cs
-// Add this endpoint to your existing controller
-
-[HttpGet("search")]
-[ProducesResponseType(typeof(SearchResultDto), StatusCodes.Status200OK)]
-[ProducesResponseType(StatusCodes.Status400BadRequest)]
-[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-public async Task<IActionResult> Search([FromQuery] string q, [FromQuery] string type, 
-    [FromQuery] int limit = 20, [FromQuery] int offset = 0, [FromQuery] string market = null)
-{
-    try
+    
+    [HttpGet("search")]
+    [ProducesResponseType(typeof(SearchResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Search([FromQuery] string q, [FromQuery] string type, 
+        [FromQuery] int limit = 20, [FromQuery] int offset = 0, [FromQuery] string market = null)
     {
-        if (string.IsNullOrWhiteSpace(q))
+        try
         {
-            return BadRequest(new { Message = "Search query (q) is required" });
-        }
-        
-        if (string.IsNullOrWhiteSpace(type))
-        {
-            return BadRequest(new { Message = "Search type is required. Valid types: album, artist, track" });
-        }
-        
-        // Validate type parameter
-        var validTypes = new[] { "album", "artist", "track" };
-        var requestedTypes = type.Split(',', StringSplitOptions.RemoveEmptyEntries);
-        
-        foreach (var requestedType in requestedTypes)
-        {
-            if (!validTypes.Contains(requestedType.Trim().ToLower()))
+            if (string.IsNullOrWhiteSpace(q))
             {
-                return BadRequest(new { Message = $"Invalid search type: {requestedType}. Valid types: album, artist, track" });
+                return BadRequest(new { Message = "Search query (q) is required" });
             }
+            
+            if (string.IsNullOrWhiteSpace(type))
+            {
+                return BadRequest(new { Message = "Search type is required. Valid types: album, artist, track" });
+            }
+            
+            // Validate type parameter
+            var validTypes = new[] { "album", "artist", "track" };
+            var requestedTypes = type.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (var requestedType in requestedTypes)
+            {
+                if (!validTypes.Contains(requestedType.Trim().ToLower()))
+                {
+                    return BadRequest(new { Message = $"Invalid search type: {requestedType}. Valid types: album, artist, track" });
+                }
+            }
+            
+            _logger.LogInformation("Search request: q='{Query}', type='{Type}', limit={Limit}, offset={Offset}", 
+                q, type, limit, offset);
+            
+            var searchResults = await _searchService.SearchAsync(q, type, limit, offset, market);
+            
+            return Ok(searchResults);
         }
-        
-        _logger.LogInformation("Search request: q='{Query}', type='{Type}', limit={Limit}, offset={Offset}", 
-            q, type, limit, offset);
-        
-        var searchResults = await _searchService.SearchAsync(q, type, limit, offset, market);
-        
-        return Ok(searchResults);
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid search parameters");
+            return BadRequest(new { Message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing search: q='{Query}', type='{Type}'", q, type);
+            return StatusCode(500, new { Message = "An error occurred while performing the search" });
+        }
     }
-    catch (ArgumentException ex)
-    {
-        _logger.LogWarning(ex, "Invalid search parameters");
-        return BadRequest(new { Message = ex.Message });
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error performing search: q='{Query}', type='{Type}'", q, type);
-        return StatusCode(500, new { Message = "An error occurred while performing the search" });
-    }
-}
 }

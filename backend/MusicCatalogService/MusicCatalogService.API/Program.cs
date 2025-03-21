@@ -3,6 +3,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MusicCatalogService.Core.Interfaces;
+using MusicCatalogService.Core.Models;
 using MusicCatalogService.Core.Models.Spotify;
 using MusicCatalogService.Core.Services;
 using MusicCatalogService.Infrastructure.Clients;
@@ -18,6 +19,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Register serializers for special types
+BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+
 // MongoDB configuration
 builder.Services.Configure<MongoDbSettings>(
     builder.Configuration.GetSection("MongoDb"));
@@ -30,7 +34,15 @@ builder.Services.Configure<SpotifySettings>(
     builder.Configuration.GetSection("Spotify"));
 
 // Configure MongoDB serialization before registering services
-BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+BsonClassMap.RegisterClassMap<CatalogItemBase>(cm =>
+{
+    cm.AutoMap();
+    cm.SetIsRootClass(true);
+});
+
+BsonClassMap.RegisterClassMap<Album>();
+BsonClassMap.RegisterClassMap<Track>();
+BsonClassMap.RegisterClassMap<SimplifiedArtist>();
 
 // Register services
 builder.Services.AddScoped<ITrackService, TrackService>();
@@ -63,14 +75,14 @@ builder.Services.AddRateLimiter(options =>
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst
             });
     });
-    
+
     options.OnRejected = async (context, token) =>
     {
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         context.HttpContext.Response.ContentType = "application/json";
         await context.HttpContext.Response.WriteAsync(
-            """{"error": "Too many requests. Please try again later."}""", 
-            cancellationToken: token);
+            """{"error": "Too many requests. Please try again later."}""",
+            token);
     };
 });
 

@@ -1,14 +1,26 @@
 ﻿namespace MusicCatalogService.Core.Models;
 
-public class Track : CatalogItem
+public class Track : CatalogItemBase
 {
-    public string ArtistName { get; set; }
+    // Track-specific fields
     public int DurationMs { get; set; }
+
     public bool IsExplicit { get; set; }
-    
-    // Foreign key for Album
-    public Guid? AlbumId { get; set; }
-    
-    // Navigation property
-    public virtual Album Album { get; set; }
+
+    public string Isrc { get; set; }
+
+    // Album information
+    public string AlbumId { get; set; }
+
+    public string AlbumName { get; set; }
+
+    public string AlbumType { get; set; }
+
+    public string ReleaseDate { get; set; }
+
+    // External URLs
+    public string SpotifyUrl { get; set; }
+
+    // List of simplified artists
+    public List<SimplifiedArtist> Artists { get; set; } = new();
 }

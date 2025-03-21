@@ -1,5 +1,4 @@
-﻿// MusicCatalogService.Core/Services/SearchService.cs
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using MusicCatalogService.Core.DTOs;
 using MusicCatalogService.Core.Interfaces;
 using MusicCatalogService.Core.Models.Spotify;
@@ -22,25 +21,21 @@ public class SearchService : ISearchService
         _logger = logger;
     }
 
-    public async Task<SearchResultDto> SearchAsync(string query, string type, int limit = 20, int offset = 0, string market = null)
+    public async Task<SearchResultDto> SearchAsync(string query, string type, int limit = 20, int offset = 0,
+        string market = null)
     {
-        // Validate and normalize parameters
+        // Validate parameters
         if (string.IsNullOrWhiteSpace(query))
-        {
             throw new ArgumentException("Search query cannot be empty", nameof(query));
-        }
 
-        if (string.IsNullOrWhiteSpace(type))
-        {
-            throw new ArgumentException("Search type cannot be empty", nameof(type));
-        }
+        if (string.IsNullOrWhiteSpace(type)) throw new ArgumentException("Search type cannot be empty", nameof(type));
 
         // Ensure limit is within acceptable range
         limit = Math.Clamp(limit, 1, 50);
-        
+
         // Generate cache key based on search parameters
         var cacheKey = $"search:{query}:{type}:{limit}:{offset}:{market ?? "none"}";
-        
+
         // Try to get from cache first
         var cachedResult = await _cacheService.GetAsync<SearchResultDto>(cacheKey);
         if (cachedResult != null)
@@ -48,11 +43,11 @@ public class SearchService : ISearchService
             _logger.LogInformation("Search results for query '{Query}' retrieved from cache", query);
             return cachedResult;
         }
-        
+
         // Perform search via Spotify API
         _logger.LogInformation("Performing search for query '{Query}' with type '{Type}'", query, type);
         var searchResponse = await _spotifyApiClient.SearchAsync(query, type, limit, offset);
-        
+
         if (searchResponse == null)
         {
             _logger.LogWarning("No search results found for query '{Query}'", query);
@@ -65,17 +60,18 @@ public class SearchService : ISearchService
                 TotalResults = 0
             };
         }
-        
+
         // Map the search response to our DTO
         var result = MapToSearchResultDto(searchResponse, query, type, limit, offset);
-        
+
         // Cache the result for a short period (searches are more dynamic than entity lookups)
         await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(5));
-        
+
         return result;
     }
-    
-    private SearchResultDto MapToSearchResultDto(SpotifySearchResponse response, string query, string type, int limit, int offset)
+
+    private SearchResultDto MapToSearchResultDto(SpotifySearchResponse response, string query, string type, int limit,
+        int offset)
     {
         var result = new SearchResultDto
         {
@@ -85,7 +81,22 @@ public class SearchService : ISearchService
             Offset = offset,
             TotalResults = 0
         };
-        
+
+        // Helper method to get optimal image
+        string GetOptimalImage(List<SpotifyImage> images)
+        {
+            if (images == null || !images.Any())
+                return null;
+
+            // Try to find a 640x640 image
+            var optimalImage = images.FirstOrDefault(img => img.Width == 640 && img.Height == 640);
+
+            // If no 640x640 image exists, take the largest available
+            if (optimalImage == null) optimalImage = images.OrderByDescending(img => img.Width * img.Height).First();
+
+            return optimalImage.Url;
+        }
+
         // Map albums if present
         if (response.Albums != null)
         {
@@ -97,19 +108,19 @@ public class SearchService : ISearchService
                 ReleaseDate = album.ReleaseDate,
                 AlbumType = album.AlbumType,
                 TotalTracks = album.TotalTracks,
-                ImageUrl = album.Images.FirstOrDefault()?.Url,
+                ImageUrl = GetOptimalImage(album.Images),
                 Images = album.Images.Select(img => new ImageDto
                 {
                     Url = img.Url,
                     Height = img.Height,
                     Width = img.Width
                 }).ToList(),
-                ExternalUrls = album.ExternalUrls != null ? new List<string> { album.ExternalUrls.Spotify } : null
+                ExternalUrls = album.ExternalUrls != null ? new List<string> {album.ExternalUrls.Spotify} : null
             }).ToList();
-            
+
             result.TotalResults += response.Albums.Total;
         }
-        
+
         // Map artists if present
         if (response.Artists != null)
         {
@@ -118,19 +129,19 @@ public class SearchService : ISearchService
                 SpotifyId = artist.Id,
                 Name = artist.Name,
                 Popularity = artist.Popularity,
-                ImageUrl = artist.Images?.FirstOrDefault()?.Url,
+                ImageUrl = GetOptimalImage(artist.Images),
                 Images = artist.Images?.Select(img => new ImageDto
                 {
                     Url = img.Url,
                     Height = img.Height,
                     Width = img.Width
                 }).ToList() ?? new List<ImageDto>(),
-                ExternalUrls = artist.ExternalUrls != null ? new List<string> { artist.ExternalUrls.Spotify } : null
+                ExternalUrls = artist.ExternalUrls != null ? new List<string> {artist.ExternalUrls.Spotify} : null
             }).ToList();
-            
+
             result.TotalResults += response.Artists.Total;
         }
-        
+
         // Map tracks if present
         if (response.Tracks != null)
         {
@@ -142,7 +153,7 @@ public class SearchService : ISearchService
                 DurationMs = track.DurationMs,
                 IsExplicit = track.Explicit,
                 TrackNumber = track.TrackNumber,
-                ImageUrl = track.Album?.Images.FirstOrDefault()?.Url,
+                ImageUrl = GetOptimalImage(track.Album?.Images),
                 Images = track.Album?.Images.Select(img => new ImageDto
                 {
                     Url = img.Url,
@@ -150,12 +161,12 @@ public class SearchService : ISearchService
                     Width = img.Width
                 }).ToList() ?? new List<ImageDto>(),
                 Popularity = track.Popularity,
-                ExternalUrls = track.ExternalUrls != null ? new List<string> { track.ExternalUrls.Spotify } : null
+                ExternalUrls = track.ExternalUrls != null ? new List<string> {track.ExternalUrls.Spotify} : null
             }).ToList();
-            
+
             result.TotalResults += response.Tracks.Total;
         }
-        
+
         return result;
     }
 }

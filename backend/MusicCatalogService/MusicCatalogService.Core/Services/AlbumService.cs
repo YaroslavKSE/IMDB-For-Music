@@ -34,7 +34,7 @@ public class AlbumService : IAlbumService
     {
         // Generate cache key for this album
         var cacheKey = $"album:{spotifyId}";
-        
+
         // Try to get from cache first
         var cachedAlbum = await _cacheService.GetAsync<AlbumDetailDto>(cacheKey);
         if (cachedAlbum != null)
@@ -42,96 +42,139 @@ public class AlbumService : IAlbumService
             _logger.LogInformation("Album {SpotifyId} retrieved from cache", spotifyId);
             return cachedAlbum;
         }
-        
+
         // Try to get from database
-        var catalogItem = await _catalogRepository.GetBySpotifyIdAsync(spotifyId, "album");
-        if (catalogItem != null && DateTime.UtcNow < catalogItem.CacheExpiresAt)
+        var album = await _catalogRepository.GetAlbumBySpotifyIdAsync(spotifyId);
+        if (album != null && DateTime.UtcNow < album.CacheExpiresAt)
         {
             _logger.LogInformation("Album {SpotifyId} retrieved from database", spotifyId);
-            
+
             // Deserialize the raw data to Spotify response
             var albumResponse = JsonSerializer.Deserialize<SpotifyAlbumResponse>(
-                catalogItem.RawData, 
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            
-            var albumDto = MapToAlbumDetailDto(albumResponse, catalogItem.Id);
-            
+                album.RawData,
+                new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+
+            var albumDto = MapToAlbumDetailDto(albumResponse, album.Id);
+
             // Store in cache
             await _cacheService.SetAsync(
-                cacheKey, 
-                albumDto, 
+                cacheKey,
+                albumDto,
                 TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
-            
+
             return albumDto;
         }
-        
+
         // Fetch from Spotify API
         _logger.LogInformation("Fetching album {SpotifyId} from Spotify API", spotifyId);
-        var album = await _spotifyApiClient.GetAlbumAsync(spotifyId);
-        if (album == null)
+        var spotifyAlbum = await _spotifyApiClient.GetAlbumAsync(spotifyId);
+        if (spotifyAlbum == null)
         {
             _logger.LogWarning("Album {SpotifyId} not found in Spotify", spotifyId);
             return null;
         }
-        
-        // Create or update catalog item
-        var itemId = catalogItem?.Id ?? Guid.NewGuid();
-        var newCatalogItem = new CatalogItem
+
+        // Create or update album entity
+        var albumEntity = new Album
         {
-            Id = itemId,
-            SpotifyId = album.Id,
-            Type = "album",
-            Name = album.Name,
-            ArtistName = album.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
-            ThumbnailUrl = album.Images.FirstOrDefault()?.Url,
-            Popularity = album.Popularity,
+            Id = album?.Id ?? Guid.NewGuid(),
+            SpotifyId = spotifyAlbum.Id,
+            Name = spotifyAlbum.Name,
+            ArtistName = spotifyAlbum.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
+
+            // Get optimal image (640x640 or closest available)
+            ThumbnailUrl = GetOptimalImage(spotifyAlbum.Images),
+
+            Popularity = spotifyAlbum.Popularity,
             LastAccessed = DateTime.UtcNow,
             CacheExpiresAt = DateTime.UtcNow.AddMinutes(_spotifySettings.CacheExpirationMinutes),
-            RawData = JsonSerializer.Serialize(album)
+
+            // Album-specific fields
+            ReleaseDate = spotifyAlbum.ReleaseDate,
+            ReleaseDatePrecision = spotifyAlbum.ReleaseDatePrecision,
+            AlbumType = spotifyAlbum.AlbumType,
+            TotalTracks = spotifyAlbum.TotalTracks,
+            Label = spotifyAlbum.Label,
+            Copyright = spotifyAlbum.Copyright,
+
+            // External URLs
+            SpotifyUrl = spotifyAlbum.ExternalUrls?.Spotify,
+
+            // Artists
+            Artists = spotifyAlbum.Artists.Select(a => new SimplifiedArtist
+            {
+                Id = a.Id,
+                Name = a.Name,
+                SpotifyUrl = a.ExternalUrls?.Spotify
+            }).ToList(),
+
+            // Genres
+            Genres = spotifyAlbum.Genres?.ToList() ?? new List<string>(),
+
+            // Raw data for future flexibility
+            RawData = JsonSerializer.Serialize(spotifyAlbum)
         };
-        
+
         // Save to database
-        await _catalogRepository.AddOrUpdateAsync(newCatalogItem);
-        
+        await _catalogRepository.AddOrUpdateAlbumAsync(albumEntity);
+
         // Map to DTO
-        var result = MapToAlbumDetailDto(album, itemId);
-        
+        var result = MapToAlbumDetailDto(spotifyAlbum, albumEntity.Id);
+
         // Cache the result
         await _cacheService.SetAsync(
-            cacheKey, 
-            result, 
+            cacheKey,
+            result,
             TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
-        
+
         return result;
     }
-    
+
+    // Helper method to get the optimal image (640x640 or closest)
+    private string GetOptimalImage(List<SpotifyImage> images)
+    {
+        if (images == null || !images.Any())
+            return null;
+
+        // Try to find a 640x640 image
+        var optimalImage = images.FirstOrDefault(img => img.Width == 640 && img.Height == 640);
+
+        // If no 640x640 image exists, take the largest available
+        if (optimalImage == null) optimalImage = images.OrderByDescending(img => img.Width * img.Height).First();
+
+        return optimalImage.Url;
+    }
+
+    // Map Spotify response to DTO
     private AlbumDetailDto MapToAlbumDetailDto(SpotifyAlbumResponse album, Guid catalogItemId)
     {
+        // Get all artists
         var artistSummaries = album.Artists.Select(artist => new ArtistSummaryDto
         {
             SpotifyId = artist.Id,
             Name = artist.Name,
-            ExternalUrls = artist.ExternalUrls != null ? new List<string> { artist.ExternalUrls.Spotify } : null
+            ExternalUrls = artist.ExternalUrls?.Spotify != null
+                ? new List<string> {artist.ExternalUrls.Spotify}
+                : null
         }).ToList();
-        
+
         // Get primary artist
         var primaryArtist = album.Artists.FirstOrDefault()?.Name ?? "Unknown Artist";
-        
-        // Get album images
+
+        // Get thumbnail URL (optimized for 640x640)
+        var thumbnailUrl = GetOptimalImage(album.Images);
+
+        // Get all images (we'll still provide all available sizes in the DTO)
         var images = album.Images.Select(img => new ImageDto
         {
             Url = img.Url,
             Height = img.Height,
             Width = img.Width
         }).ToList();
-        
-        // Get thumbnail (first image)
-        var thumbnailUrl = images.FirstOrDefault()?.Url;
 
         // Map tracks if available
         var tracks = new List<TrackSummaryDto>();
         if (album.Tracks?.Items != null)
-        {
             tracks = album.Tracks.Items.Select(track => new TrackSummaryDto
             {
                 SpotifyId = track.Id,
@@ -140,10 +183,11 @@ public class AlbumService : IAlbumService
                 DurationMs = track.DurationMs,
                 IsExplicit = track.Explicit,
                 TrackNumber = track.TrackNumber,
-                ExternalUrls = track.ExternalUrls != null ? new List<string> { track.ExternalUrls.Spotify } : null
+                ExternalUrls = track.ExternalUrls?.Spotify != null
+                    ? new List<string> {track.ExternalUrls.Spotify}
+                    : null
             }).ToList();
-        }
-        
+
         return new AlbumDetailDto
         {
             CatalogItemId = catalogItemId,
@@ -162,7 +206,9 @@ public class AlbumService : IAlbumService
             Artists = artistSummaries,
             Tracks = tracks,
             Genres = album.Genres?.ToList(),
-            ExternalUrls = album.ExternalUrls != null ? new List<string> { album.ExternalUrls.Spotify } : null
+            ExternalUrls = album.ExternalUrls?.Spotify != null
+                ? new List<string> {album.ExternalUrls.Spotify}
+                : null
         };
     }
 }

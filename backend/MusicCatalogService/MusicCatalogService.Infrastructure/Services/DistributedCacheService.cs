@@ -9,7 +9,7 @@ public class DistributedCacheService : ICacheService
 {
     private readonly IDistributedCache _distributedCache;
     private readonly ILogger<DistributedCacheService> _logger;
-    
+
     public DistributedCacheService(
         IDistributedCache distributedCache,
         ILogger<DistributedCacheService> logger)
@@ -17,18 +17,15 @@ public class DistributedCacheService : ICacheService
         _distributedCache = distributedCache;
         _logger = logger;
     }
-    
+
     public async Task<T> GetAsync<T>(string key) where T : class
     {
         try
         {
             var cachedData = await _distributedCache.GetStringAsync(key);
-            
-            if (string.IsNullOrEmpty(cachedData))
-            {
-                return null;
-            }
-            
+
+            if (string.IsNullOrEmpty(cachedData)) return null;
+
             return JsonSerializer.Deserialize<T>(cachedData);
         }
         catch (Exception ex)
@@ -37,18 +34,15 @@ public class DistributedCacheService : ICacheService
             return null;
         }
     }
-    
+
     public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null) where T : class
     {
         try
         {
             var options = new DistributedCacheEntryOptions();
-            
-            if (expiration.HasValue)
-            {
-                options.AbsoluteExpirationRelativeToNow = expiration;
-            }
-            
+
+            if (expiration.HasValue) options.AbsoluteExpirationRelativeToNow = expiration;
+
             var serializedData = JsonSerializer.Serialize(value);
             await _distributedCache.SetStringAsync(key, serializedData, options);
         }
@@ -57,7 +51,7 @@ public class DistributedCacheService : ICacheService
             _logger.LogError(ex, "Error setting data in cache for key {Key}", key);
         }
     }
-    
+
     public async Task RemoveAsync(string key)
     {
         try

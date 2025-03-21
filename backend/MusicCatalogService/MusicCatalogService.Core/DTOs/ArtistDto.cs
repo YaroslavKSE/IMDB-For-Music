@@ -7,8 +7,8 @@ public class ArtistSummaryDto : BaseSpotifyItemDto
 
 public class ArtistDetailDto : ArtistSummaryDto
 {
-    public List<string> Genres { get; set; } = new List<string>();
+    public List<string> Genres { get; set; } = new();
     public int FollowersCount { get; set; }
-    public List<AlbumSummaryDto> TopAlbums { get; set; } = new List<AlbumSummaryDto>();
-    public List<TrackSummaryDto> TopTracks { get; set; } = new List<TrackSummaryDto>();
+    public List<AlbumSummaryDto> TopAlbums { get; set; } = new();
+    public List<TrackSummaryDto> TopTracks { get; set; } = new();
 }

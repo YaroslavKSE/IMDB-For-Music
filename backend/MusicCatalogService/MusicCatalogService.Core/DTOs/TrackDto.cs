@@ -10,15 +10,15 @@ public class TrackSummaryDto : BaseSpotifyItemDto
 
 public class TrackDetailDto : TrackSummaryDto
 {
-    public List<ArtistSummaryDto> Artists { get; set; } = new List<ArtistSummaryDto>();
+    public List<ArtistSummaryDto> Artists { get; set; } = new();
     public AlbumSummaryDto Album { get; set; }
     public int DiscNumber { get; set; }
     public string Isrc { get; set; }
     public string PreviewUrl { get; set; }
-    
+
     // Formatted duration string (e.g., "3:24")
     public string Duration => FormatDuration(DurationMs);
-    
+
     private string FormatDuration(int ms)
     {
         var totalSeconds = ms / 1000;
