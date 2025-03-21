@@ -93,9 +93,6 @@ This will build the containers if needed and start them in detached mode.
 ### Creating a Simple Grading Method
 
 ```http
-POST /api/GradingMethod/create
-Content-Type: application/json
-
 {
   "name": "Album Rating System",
   "userId": "user123",
@@ -149,9 +146,6 @@ Response:
 ### Posting an Interaction with a Complex Rating
 
 ```http
-POST /postInteraction
-Content-Type: application/json
-
 {
   "userId": "user123",
   "itemId": "album456",
@@ -159,7 +153,7 @@ Content-Type: application/json
   "isLiked": true,
   "reviewText": "This album has excellent lyrics, though the production could be better. The mixing is a bit muddy but the mastering is well done.",
   "useComplexGrading": true,
-  "gradingMethodId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "gradingMethodId": "INSERT_GRADING_METHOD_ID",
   "gradeInputs": [
     {
       "componentName": "Lyrics",
@@ -192,9 +186,6 @@ Response:
 ### Creating a Grading Method with Nested Blocks
 
 ```http
-POST /api/GradingMethod/create
-Content-Type: application/json
-
 {
   "name": "Comprehensive Album Review System",
   "userId": "music_critic_101",
@@ -285,9 +276,6 @@ Content-Type: application/json
 ### Posting an Interaction with a Complex Nested Rating
 
 ```http
-POST /postInteraction
-Content-Type: application/json
-
 {
   "userId": "music_critic_101",
   "itemId": "album789",
@@ -295,7 +283,7 @@ Content-Type: application/json
   "isLiked": true,
   "reviewText": "This album showcases exceptional instrumental skill, though the audio engineering is somewhat uneven. The recording quality is pristine, but the mixing could use some work as certain elements get buried. The mastering is solid overall. From an artistic perspective, the compositions are innovative and the lyrics are thought-provoking, resulting in a highly original work despite some technical shortcomings.",
   "useComplexGrading": true,
-  "gradingMethodId": "3fa85f64-5717-4562-b3fc-2c963f66afa7",
+  "gradingMethodId": "INSERT_GRADING_METHOD_ID",
   "gradeInputs": [
     {
       "componentName": "Technical Execution.Instrumental Proficiency",
