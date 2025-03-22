@@ -17,7 +17,6 @@ public class CreateGradingMethodUseCase : IRequestHandler<CreateGradingMethodCom
     {
         try
         {
-            // Create the grading method
             var gradingMethod = new GradingMethod(request.Name, request.UserId, request.IsPublic);
 
             // Process the components and add them to the grading method
@@ -26,17 +25,14 @@ public class CreateGradingMethodUseCase : IRequestHandler<CreateGradingMethodCom
                 var component = request.Components[i];
                 IGradable gradableComponent = CreateGradableFromDto(component);
 
-                // Add the component to the grading method
                 gradingMethod.AddGrade(gradableComponent);
 
-                // Add actions between components (except after the last component)
                 if (i < request.Components.Count - 1 && i < request.Actions.Count)
                 {
                     gradingMethod.AddAction(request.Actions[i]);
                 }
             }
 
-            // Save the grading method
             await gradingMethodStorage.AddGradingMethodAsync(gradingMethod);
 
             return new CreateGradingMethodResult
@@ -77,10 +73,8 @@ public class CreateGradingMethodUseCase : IRequestHandler<CreateGradingMethodCom
                 var childComponent = blockDto.SubComponents[i];
                 IGradable gradableChild = CreateGradableFromDto(childComponent);
 
-                // Add to block
                 block.AddGrade(gradableChild);
 
-                // Add actions between components (except after the last one)
                 if (i < blockDto.SubComponents.Count - 1 && i < blockDto.Actions.Count)
                 {
                     block.AddAction(blockDto.Actions[i]);

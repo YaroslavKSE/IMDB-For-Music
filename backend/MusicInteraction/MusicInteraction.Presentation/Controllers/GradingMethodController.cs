@@ -53,4 +53,20 @@ public class GradingMethodController : ControllerBase
 
         return Ok(result.GradingMethod);
     }
+
+    [HttpGet("getByCreator/{creatorId}")]
+    public async Task<IActionResult> GetGradingMethodsByCreatorId(string creatorId)
+    {
+        var command = new GetGradingMethodsByCreatorIdCommand()
+        {
+            CreatorId = creatorId
+        };
+
+        var result = await mediator.Send(command);
+
+        if (!result.Success)
+            return BadRequest(result.ErrorMessage);
+
+        return Ok(result.GradingMethods);
+    }
 }
