@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace MusicCatalogService.Core.Models.Spotify;
+namespace MusicCatalogService.Core.Spotify;
 
 public class SpotifyTokenResponse
 {

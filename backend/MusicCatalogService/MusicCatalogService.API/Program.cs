@@ -58,13 +58,14 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddScoped<ICacheService, DistributedCacheService>();
 
 // Register HTTP clients
+builder.Services.AddSingleton<ISpotifyTokenService, SpotifyTokenService>();
 builder.Services.AddHttpClient<ISpotifyApiClient, SpotifyApiClient>();
 
 // Configure rate limiting
 var spotifySettings = builder.Configuration.GetSection("Spotify").Get<SpotifySettings>();
 builder.Services.AddRateLimiter(options =>
 {
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(_ =>
     {
         return RateLimitPartition.GetFixedWindowLimiter("global", _ =>
             new FixedWindowRateLimiterOptions
@@ -91,7 +92,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("MusicAppPolicy", policy =>
     {
-        policy.WithOrigins(builder.Configuration["AllowedOrigins"]?.Split(',') ?? Array.Empty<string>())
+        policy.WithOrigins(builder.Configuration["AllowedOrigins"]?.Split(',') ?? [])
             .AllowAnyMethod()
             .AllowAnyHeader();
     });

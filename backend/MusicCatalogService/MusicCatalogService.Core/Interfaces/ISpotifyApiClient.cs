@@ -1,4 +1,5 @@
 ﻿using MusicCatalogService.Core.Models.Spotify;
+using MusicCatalogService.Core.Spotify;
 
 namespace MusicCatalogService.Core.Interfaces;
 

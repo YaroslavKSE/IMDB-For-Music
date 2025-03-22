@@ -5,6 +5,7 @@ using MusicCatalogService.Core.DTOs;
 using MusicCatalogService.Core.Interfaces;
 using MusicCatalogService.Core.Models;
 using MusicCatalogService.Core.Models.Spotify;
+using MusicCatalogService.Core.Spotify;
 
 namespace MusicCatalogService.Core.Services;
 
@@ -30,6 +31,7 @@ public class TrackService : ITrackService
         _spotifySettings = spotifySettings.Value;
     }
 
+    // Existing method - Get track from Spotify or cache
     public async Task<TrackDetailDto> GetTrackAsync(string spotifyId)
     {
         // Generate cache key for this track
@@ -115,7 +117,7 @@ public class TrackService : ITrackService
             RawData = JsonSerializer.Serialize(spotifyTrack)
         };
 
-        // Save to database
+        // Save to database as a cached item (not permanent)
         await _catalogRepository.AddOrUpdateTrackAsync(trackEntity);
 
         // Map to DTO
@@ -128,6 +130,85 @@ public class TrackService : ITrackService
             TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
 
         return result;
+    }
+
+    // Get by catalog ID
+    public async Task<TrackDetailDto> GetTrackByCatalogIdAsync(Guid catalogId)
+    {
+        try
+        {
+            _logger.LogInformation("Retrieving track with catalog ID: {CatalogId}", catalogId);
+            
+            // Get track by catalog ID directly from database
+            var track = await _catalogRepository.GetTrackByIdAsync(catalogId);
+            
+            if (track == null)
+            {
+                _logger.LogWarning("Track with catalog ID {CatalogId} not found", catalogId);
+                return null;
+            }
+            
+            // Check if the cached item has expired but is still in the database
+            if (DateTime.UtcNow > track.CacheExpiresAt)
+            {
+                _logger.LogInformation("Track with catalog ID {CatalogId} is expired, refreshing from Spotify", catalogId);
+                
+                // Try to refresh from Spotify
+                var refreshedTrack = await GetTrackAsync(track.SpotifyId);
+                if (refreshedTrack != null)
+                {
+                    return refreshedTrack;
+                }
+            }
+            
+            // Deserialize the raw data to Spotify response
+            var trackResponse = JsonSerializer.Deserialize<SpotifyTrackResponse>(
+                track.RawData,
+                new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+            
+            return MapToTrackDetailDto(trackResponse, track.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving track with catalog ID {CatalogId}", catalogId);
+            throw;
+        }
+    }
+
+    // Save track permanently
+    public async Task<TrackDetailDto> SaveTrackAsync(string spotifyId)
+    {
+        try
+        {
+            _logger.LogInformation("Permanently saving track with Spotify ID: {SpotifyId}", spotifyId);
+            
+            // First, ensure we have the track (either from cache, database or Spotify)
+            var trackDto = await GetTrackAsync(spotifyId);
+            if (trackDto == null)
+            {
+                _logger.LogWarning("Cannot save track with Spotify ID {SpotifyId}: not found", spotifyId);
+                return null;
+            }
+            
+            // Retrieve the entity from the database
+            var track = await _catalogRepository.GetTrackBySpotifyIdAsync(spotifyId);
+            if (track == null)
+            {
+                _logger.LogError("Unexpected error: track entity not found after GetTrackAsync succeeded");
+                throw new InvalidOperationException($"Track entity with Spotify ID {spotifyId} not found");
+            }
+            
+            // Permanently save to database with extended expiration
+            await _catalogRepository.SaveTrackAsync(track);
+            
+            // Return the track DTO for the API response
+            return trackDto;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving track with Spotify ID {SpotifyId}", spotifyId);
+            throw;
+        }
     }
 
     // Helper method to get the optimal image (640x640 or closest)

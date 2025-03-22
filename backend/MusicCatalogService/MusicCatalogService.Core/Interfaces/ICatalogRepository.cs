@@ -4,19 +4,27 @@ namespace MusicCatalogService.Core.Interfaces;
 
 public interface ICatalogRepository
 {
-    // Album methods
+    // Existing methods for Spotify ID lookups
     Task<Album> GetAlbumBySpotifyIdAsync(string spotifyId);
     Task AddOrUpdateAlbumAsync(Album album);
     Task<IEnumerable<Album>> GetBatchAlbumsBySpotifyIdsAsync(IEnumerable<string> spotifyIds);
-
-    // Track methods
+    
     Task<Track> GetTrackBySpotifyIdAsync(string spotifyId);
     Task AddOrUpdateTrackAsync(Track track);
     Task<IEnumerable<Track>> GetBatchTracksBySpotifyIdsAsync(IEnumerable<string> spotifyIds);
-
-    // Generic method to get either an album or track by Spotify ID
+    
+    // Get methods for retrieving from MongoDb using Catalog ID lookups
+    Task<Album> GetAlbumByIdAsync(Guid catalogId);
+    Task<Track> GetTrackByIdAsync(Guid catalogId);
+    
+    // Generic method updated to support both lookup types
     Task<T> GetBySpotifyIdAsync<T>(string spotifyId) where T : CatalogItemBase;
-
-    // Clean up expired cache items (optional, for maintenance)
+    Task<T> GetByIdAsync<T>(Guid catalogId) where T : CatalogItemBase;
+    
+    // Save method (ensures item is explicitly stored permanently)
+    Task SaveAlbumAsync(Album album);
+    Task SaveTrackAsync(Track track);
+    
+    // Cleanup method (existing)
     Task CleanupExpiredItemsAsync();
 }

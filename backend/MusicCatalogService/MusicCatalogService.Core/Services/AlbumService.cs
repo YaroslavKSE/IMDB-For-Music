@@ -5,6 +5,7 @@ using MusicCatalogService.Core.DTOs;
 using MusicCatalogService.Core.Interfaces;
 using MusicCatalogService.Core.Models;
 using MusicCatalogService.Core.Models.Spotify;
+using MusicCatalogService.Core.Spotify;
 
 namespace MusicCatalogService.Core.Services;
 
@@ -30,6 +31,7 @@ public class AlbumService : IAlbumService
         _spotifySettings = spotifySettings.Value;
     }
 
+    // Get album from Spotify or cache
     public async Task<AlbumDetailDto> GetAlbumAsync(string spotifyId)
     {
         // Generate cache key for this album
@@ -115,7 +117,7 @@ public class AlbumService : IAlbumService
             RawData = JsonSerializer.Serialize(spotifyAlbum)
         };
 
-        // Save to database
+        // Save to database as a cached item (not permanent)
         await _catalogRepository.AddOrUpdateAlbumAsync(albumEntity);
 
         // Map to DTO
@@ -128,6 +130,85 @@ public class AlbumService : IAlbumService
             TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
 
         return result;
+    }
+
+    // Get by catalog ID
+    public async Task<AlbumDetailDto> GetAlbumByCatalogIdAsync(Guid catalogId)
+    {
+        try
+        {
+            _logger.LogInformation("Retrieving album with catalog ID: {CatalogId}", catalogId);
+            
+            // Get album by catalog ID directly from database
+            var album = await _catalogRepository.GetAlbumByIdAsync(catalogId);
+            
+            if (album == null)
+            {
+                _logger.LogWarning("Album with catalog ID {CatalogId} not found", catalogId);
+                return null;
+            }
+            
+            // Check if the cached item has expired but is still in the database
+            if (DateTime.UtcNow > album.CacheExpiresAt)
+            {
+                _logger.LogInformation("Album with catalog ID {CatalogId} is expired, refreshing from Spotify", catalogId);
+                
+                // Try to refresh from Spotify
+                var refreshedAlbum = await GetAlbumAsync(album.SpotifyId);
+                if (refreshedAlbum != null)
+                {
+                    return refreshedAlbum;
+                }
+            }
+            
+            // Deserialize the raw data to Spotify response
+            var albumResponse = JsonSerializer.Deserialize<SpotifyAlbumResponse>(
+                album.RawData,
+                new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+            
+            return MapToAlbumDetailDto(albumResponse, album.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving album with catalog ID {CatalogId}", catalogId);
+            throw;
+        }
+    }
+
+    // Save album permanently
+    public async Task<AlbumDetailDto> SaveAlbumAsync(string spotifyId)
+    {
+        try
+        {
+            _logger.LogInformation("Permanently saving album with Spotify ID: {SpotifyId}", spotifyId);
+            
+            // First, ensure we have the album (either from cache, database or Spotify)
+            var albumDto = await GetAlbumAsync(spotifyId);
+            if (albumDto == null)
+            {
+                _logger.LogWarning("Cannot save album with Spotify ID {SpotifyId}: not found", spotifyId);
+                return null;
+            }
+            
+            // Retrieve the entity from the database
+            var album = await _catalogRepository.GetAlbumBySpotifyIdAsync(spotifyId);
+            if (album == null)
+            {
+                _logger.LogError("Unexpected error: album entity not found after GetAlbumAsync succeeded");
+                throw new InvalidOperationException($"Album entity with Spotify ID {spotifyId} not found");
+            }
+            
+            // Permanently save to database with extended expiration
+            await _catalogRepository.SaveAlbumAsync(album);
+            
+            // Return the album DTO for the API response
+            return albumDto;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving album with Spotify ID {SpotifyId}", spotifyId);
+            throw;
+        }
     }
 
     // Helper method to get the optimal image (640x640 or closest)

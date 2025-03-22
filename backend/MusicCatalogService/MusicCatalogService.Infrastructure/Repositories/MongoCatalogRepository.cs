@@ -60,7 +60,7 @@ public class MongoCatalogRepository : ICatalogRepository
                 Builders<Track>.IndexKeys.Ascending(track => track.AlbumId)));
     }
 
-    // Album methods
+    // Existing Album methods by Spotify ID
     public async Task<Album> GetAlbumBySpotifyIdAsync(string spotifyId)
     {
         try
@@ -93,6 +93,43 @@ public class MongoCatalogRepository : ICatalogRepository
         }
     }
 
+    // Save album permanently (identical to AddOrUpdateAlbumAsync but with different semantics)
+    public async Task SaveAlbumAsync(Album album)
+    {
+        try
+        {
+            // For a permanent save, ensure the expiration date for a year and then adjust "hot" data
+            album.CacheExpiresAt = DateTime.UtcNow.AddYears(1);
+            
+            var filter = Builders<Album>.Filter.Eq(a => a.SpotifyId, album.SpotifyId);
+            var options = new ReplaceOptions {IsUpsert = true};
+
+            await _albums.ReplaceOneAsync(filter, album, options);
+
+            _logger.LogInformation("Album with SpotifyId {SpotifyId} permanently saved", album.SpotifyId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error permanently saving album with SpotifyId {SpotifyId}", album.SpotifyId);
+            throw;
+        }
+    }
+
+    // New method - Get album by catalog ID (Guid)
+    public async Task<Album> GetAlbumByIdAsync(Guid catalogId)
+    {
+        try
+        {
+            var filter = Builders<Album>.Filter.Eq(album => album.Id, catalogId);
+            return await _albums.Find(filter).FirstOrDefaultAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving album with catalog ID {CatalogId}", catalogId);
+            throw;
+        }
+    }
+
     public async Task<IEnumerable<Album>> GetBatchAlbumsBySpotifyIdsAsync(IEnumerable<string> spotifyIds)
     {
         try
@@ -107,7 +144,7 @@ public class MongoCatalogRepository : ICatalogRepository
         }
     }
 
-    // Track methods
+    // Existing Track methods by Spotify ID
     public async Task<Track> GetTrackBySpotifyIdAsync(string spotifyId)
     {
         try
@@ -140,6 +177,43 @@ public class MongoCatalogRepository : ICatalogRepository
         }
     }
 
+    // New method - Save track permanently
+    public async Task SaveTrackAsync(Track track)
+    {
+        try
+        {
+            // For a permanent save, ensure the expiration date is far in the future
+            track.CacheExpiresAt = DateTime.UtcNow.AddYears(1);
+            
+            var filter = Builders<Track>.Filter.Eq(t => t.SpotifyId, track.SpotifyId);
+            var options = new ReplaceOptions {IsUpsert = true};
+
+            await _tracks.ReplaceOneAsync(filter, track, options);
+
+            _logger.LogInformation("Track with SpotifyId {SpotifyId} permanently saved", track.SpotifyId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error permanently saving track with SpotifyId {SpotifyId}", track.SpotifyId);
+            throw;
+        }
+    }
+
+    // New method - Get track by catalog ID (Guid)
+    public async Task<Track> GetTrackByIdAsync(Guid catalogId)
+    {
+        try
+        {
+            var filter = Builders<Track>.Filter.Eq(track => track.Id, catalogId);
+            return await _tracks.Find(filter).FirstOrDefaultAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving track with catalog ID {CatalogId}", catalogId);
+            throw;
+        }
+    }
+
     public async Task<IEnumerable<Track>> GetBatchTracksBySpotifyIdsAsync(IEnumerable<string> spotifyIds)
     {
         try
@@ -154,7 +228,7 @@ public class MongoCatalogRepository : ICatalogRepository
         }
     }
 
-    // Generic method implementation
+    // Generic method implementation for Spotify ID
     public async Task<T> GetBySpotifyIdAsync<T>(string spotifyId) where T : CatalogItemBase
     {
         if (typeof(T) == typeof(Album))
@@ -165,6 +239,23 @@ public class MongoCatalogRepository : ICatalogRepository
         else if (typeof(T) == typeof(Track))
         {
             var track = await GetTrackBySpotifyIdAsync(spotifyId);
+            return track as T;
+        }
+
+        throw new ArgumentException($"Type {typeof(T).Name} is not supported.");
+    }
+
+    // New generic method for catalog ID
+    public async Task<T> GetByIdAsync<T>(Guid catalogId) where T : CatalogItemBase
+    {
+        if (typeof(T) == typeof(Album))
+        {
+            var album = await GetAlbumByIdAsync(catalogId);
+            return album as T;
+        }
+        else if (typeof(T) == typeof(Track))
+        {
+            var track = await GetTrackByIdAsync(catalogId);
             return track as T;
         }
 

@@ -2,6 +2,7 @@
 using MusicCatalogService.Core.DTOs;
 using MusicCatalogService.Core.Interfaces;
 using MusicCatalogService.Core.Models.Spotify;
+using MusicCatalogService.Core.Spotify;
 
 namespace MusicCatalogService.Core.Services;
 
@@ -22,7 +23,7 @@ public class SearchService : ISearchService
     }
 
     public async Task<SearchResultDto> SearchAsync(string query, string type, int limit = 20, int offset = 0,
-        string market = null)
+        string? market = null)
     {
         // Validate parameters
         if (string.IsNullOrWhiteSpace(query))
