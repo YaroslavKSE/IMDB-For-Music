@@ -82,6 +82,29 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             return result;
         }
 
+        public async Task<InteractionsAggregate> GetInteractionById(Guid interactionId)
+        {
+            try
+            {
+                var interactionEntity = await _dbContext.Interactions
+                    .Include(i => i.Rating)
+                    .Include(i => i.Review)
+                    .Include(i => i.Like)
+                    .FirstOrDefaultAsync(i => i.AggregateId == interactionId);
+
+                if (interactionEntity == null)
+                {
+                    return null;
+                }
+                return await InteractionMapper.ToDomain(interactionEntity, _dbContext);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving interaction with ID {interactionId}: {ex.Message}");
+                throw;
+            }
+        }
+
         public async Task<List<Like>> GetLikes()
         {
             var likeEntities = await _dbContext.Likes

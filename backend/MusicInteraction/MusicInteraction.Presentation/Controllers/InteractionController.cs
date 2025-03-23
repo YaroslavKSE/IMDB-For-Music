@@ -41,8 +41,6 @@ public class InteractionController : ControllerBase
 
         if (!string.IsNullOrEmpty(result.ErrorMessage))
         {
-            // Return the result with a 200 status code, but include the error message
-            // This way the client can see what went wrong while still getting the interaction ID
             return Ok(result);
         }
 
@@ -55,6 +53,20 @@ public class InteractionController : ControllerBase
         var result = await mediator.Send(new GetInteractionsCommand());
         if (result.InteractionsEmpty) return NotFound("There are no interactions");
         return Ok(result.Interactions);
+    }
+
+    [HttpGet("getInteraction/{id}")]
+    public async Task<IActionResult> GetInteractionById(Guid id)
+    {
+        var command = new GetInteractionByIdCommand() { InteractionId = id };
+        var result = await mediator.Send(command);
+
+        if (!result.Success)
+        {
+            return NotFound(result.ErrorMessage);
+        }
+
+        return Ok(result.Interaction);
     }
 
     [HttpGet("getLikes")]

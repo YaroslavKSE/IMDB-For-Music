@@ -7,6 +7,7 @@ public interface IInteractionStorage
     Task<bool> IsEmpty();
     Task AddInteractionAsync(InteractionsAggregate interaction);
     Task<List<InteractionsAggregate>> GetInteractions();
+    Task<InteractionsAggregate> GetInteractionById(Guid interactionId);
     Task<List<Like>> GetLikes();
     Task<List<Review>> GetReviews();
     Task<List<Rating>> GetRatings();
