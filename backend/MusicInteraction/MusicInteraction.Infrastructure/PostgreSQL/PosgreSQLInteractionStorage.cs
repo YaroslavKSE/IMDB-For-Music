@@ -63,6 +63,34 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             }
         }
 
+        public async Task DeleteInteractionAsync(Guid interactionId)
+        {
+            using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            try
+            {
+                // Find the interaction
+                var interactionEntity = await _dbContext.Interactions
+                    .FirstOrDefaultAsync(i => i.AggregateId == interactionId);
+
+                if (interactionEntity == null)
+                {
+                    throw new KeyNotFoundException($"Interaction with ID {interactionId} not found");
+                }
+
+                // Simply remove the interaction - EF Core will handle cascade deletes
+                _dbContext.Interactions.Remove(interactionEntity);
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                Console.WriteLine($"Error deleting interaction: {ex.Message}");
+                throw;
+            }
+        }
+
         public async Task<List<InteractionsAggregate>> GetInteractions()
         {
             var interactionEntities = await _dbContext.Interactions

@@ -5,7 +5,7 @@ using MusicInteraction.Application;
 namespace MusicInteraction.Presentation.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/grading-methods")]
 public class GradingMethodController : ControllerBase
 {
     private readonly IMediator mediator;
@@ -26,7 +26,7 @@ public class GradingMethodController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("public")]
+    [HttpGet("public-all")]
     public async Task<IActionResult> GetPublicGradingMethods()
     {
         var command = new GetPublicGradingMethodsCommand();
@@ -38,7 +38,7 @@ public class GradingMethodController : ControllerBase
         return Ok(result.GradingMethods);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("by-id/{id}")]
     public async Task<IActionResult> GetGradingMethodById(Guid id)
     {
         var command = new GetGradingMethodByIdCommand
@@ -54,7 +54,7 @@ public class GradingMethodController : ControllerBase
         return Ok(result.GradingMethod);
     }
 
-    [HttpGet("getByCreator/{creatorId}")]
+    [HttpGet("by-creator-id/{creatorId}")]
     public async Task<IActionResult> GetGradingMethodsByCreatorId(string creatorId)
     {
         var command = new GetGradingMethodsByCreatorIdCommand()

@@ -132,7 +132,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                         column: x => x.RatingId,
                         principalTable: "Ratings",
                         principalColumn: "RatingId",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade); // Changed to Cascade
                 });
 
             // 7. Create Grades table (dependent on both Ratings and potentially part of a block or method)
@@ -159,7 +159,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                         column: x => x.RatingId,
                         principalTable: "Ratings",
                         principalColumn: "RatingId",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade); // Changed to Cascade
                 });
 
             // 8. Create GradingMethodComponents table
@@ -188,13 +188,13 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                         column: x => x.BlockComponentId,
                         principalTable: "GradingBlocks",
                         principalColumn: "EntityId",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade); // Changed to Cascade
                     table.ForeignKey(
                         name: "FK_GradingMethodComponents_Grades_GradeComponentId",
                         column: x => x.GradeComponentId,
                         principalTable: "Grades",
                         principalColumn: "EntityId",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade); // Changed to Cascade
                 });
 
             // 9. Create GradingBlockComponents table
@@ -223,13 +223,13 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                         column: x => x.BlockComponentId,
                         principalTable: "GradingBlocks",
                         principalColumn: "EntityId",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade); // Changed to Cascade
                     table.ForeignKey(
                         name: "FK_GradingBlockComponents_Grades_GradeComponentId",
                         column: x => x.GradeComponentId,
                         principalTable: "Grades",
                         principalColumn: "EntityId",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade); // Changed to Cascade
                 });
 
             // 10. Create GradingMethodActions table
@@ -343,10 +343,99 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                 table: "GradingBlockActions",
                 columns: new[] { "GradingBlockId", "ActionNumber" },
                 unique: true);
+
+            // Create function to check if a grade is still referenced
+            migrationBuilder.Sql(@"
+CREATE OR REPLACE FUNCTION check_grade_references() RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if the grade is not referenced by any grading block or method component
+    IF NOT EXISTS (
+        SELECT 1 FROM ""GradingBlockComponents"" 
+        WHERE ""GradeComponentId"" = OLD.""GradeComponentId""
+    ) AND NOT EXISTS (
+        SELECT 1 FROM ""GradingMethodComponents"" 
+        WHERE ""GradeComponentId"" = OLD.""GradeComponentId""
+    ) AND EXISTS (
+        SELECT 1 FROM ""Grades"" 
+        WHERE ""EntityId"" = OLD.""GradeComponentId"" AND ""RatingId"" IS NULL
+    ) THEN
+        -- Delete the grade if it's not referenced and not directly related to a rating
+        DELETE FROM ""Grades"" WHERE ""EntityId"" = OLD.""GradeComponentId"";
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+");
+
+            // Create function to check if a grading block is still referenced
+            migrationBuilder.Sql(@"
+CREATE OR REPLACE FUNCTION check_block_references() RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if the block is not referenced by any grading block or method component
+    IF NOT EXISTS (
+        SELECT 1 FROM ""GradingBlockComponents"" 
+        WHERE ""BlockComponentId"" = OLD.""BlockComponentId""
+    ) AND NOT EXISTS (
+        SELECT 1 FROM ""GradingMethodComponents"" 
+        WHERE ""BlockComponentId"" = OLD.""BlockComponentId""
+    ) THEN
+        -- Delete the block if it's not referenced
+        DELETE FROM ""GradingBlocks"" WHERE ""EntityId"" = OLD.""BlockComponentId"";
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+");
+
+            // Create trigger for GradingBlockComponents table
+            migrationBuilder.Sql(@"
+CREATE TRIGGER trigger_delete_unused_grade_from_block_component
+AFTER DELETE ON ""GradingBlockComponents""
+FOR EACH ROW
+WHEN (OLD.""GradeComponentId"" IS NOT NULL)
+EXECUTE FUNCTION check_grade_references();
+");
+
+            // Create trigger for GradingMethodComponents table
+            migrationBuilder.Sql(@"
+CREATE TRIGGER trigger_delete_unused_grade_from_method_component
+AFTER DELETE ON ""GradingMethodComponents""
+FOR EACH ROW
+WHEN (OLD.""GradeComponentId"" IS NOT NULL)
+EXECUTE FUNCTION check_grade_references();
+");
+
+            // Create trigger for GradingBlockComponents table
+            migrationBuilder.Sql(@"
+CREATE TRIGGER trigger_delete_unused_block_from_block_component
+AFTER DELETE ON ""GradingBlockComponents""
+FOR EACH ROW
+WHEN (OLD.""BlockComponentId"" IS NOT NULL)
+EXECUTE FUNCTION check_block_references();
+");
+
+            // Create trigger for GradingMethodComponents table
+            migrationBuilder.Sql(@"
+CREATE TRIGGER trigger_delete_unused_block_from_method_component
+AFTER DELETE ON ""GradingMethodComponents""
+FOR EACH ROW
+WHEN (OLD.""BlockComponentId"" IS NOT NULL)
+EXECUTE FUNCTION check_block_references();
+");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // Drop triggers and functions first
+            migrationBuilder.Sql(@"
+DROP TRIGGER IF EXISTS trigger_delete_unused_grade_from_block_component ON ""GradingBlockComponents"";
+DROP TRIGGER IF EXISTS trigger_delete_unused_grade_from_method_component ON ""GradingMethodComponents"";
+DROP TRIGGER IF EXISTS trigger_delete_unused_block_from_block_component ON ""GradingBlockComponents"";
+DROP TRIGGER IF EXISTS trigger_delete_unused_block_from_method_component ON ""GradingMethodComponents"";
+DROP FUNCTION IF EXISTS check_grade_references();
+DROP FUNCTION IF EXISTS check_block_references();
+");
+
             // Drop tables in reverse order of dependencies
             migrationBuilder.DropTable(
                 name: "GradingBlockActions");
