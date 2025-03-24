@@ -45,9 +45,7 @@ public static class InteractionMapper
         if (reviewEntity != null)
         {
             typeof(InteractionsAggregate).GetProperty("Review")?.SetValue(
-                domain,
-                ReviewMapper.ToDomain(reviewEntity, dbContext).Result
-            );
+                domain, ReviewMapper.ToDomain(reviewEntity, dbContext).Result);
         }
 
         try {

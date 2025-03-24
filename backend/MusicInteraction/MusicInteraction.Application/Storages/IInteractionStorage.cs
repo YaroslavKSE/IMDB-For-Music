@@ -13,4 +13,5 @@ public interface IInteractionStorage
     Task<List<Rating>> GetRatings();
     Task<Rating> GetRatingById(Guid ratingId);
     Task DeleteInteractionAsync(Guid interactionId);
+    Task UpdateInteractionAsync(InteractionsAggregate interaction);
 }

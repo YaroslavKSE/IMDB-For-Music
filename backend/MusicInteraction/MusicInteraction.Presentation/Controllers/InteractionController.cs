@@ -47,6 +47,24 @@ public class InteractionController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPut("update")]
+    public async Task<IActionResult> UpdateInteraction([FromBody] UpdateInteractionCommand command)
+    {
+        var result = await mediator.Send(command);
+
+        if (!result.InteractionUpdated)
+        {
+            return BadRequest("Error interaction not updated");
+        }
+
+        if (!string.IsNullOrEmpty(result.ErrorMessage))
+        {
+            return Ok(result);
+        }
+
+        return Ok(result);
+    }
+
     [HttpGet("all")]
     public async Task<IActionResult> GetInteractions()
     {

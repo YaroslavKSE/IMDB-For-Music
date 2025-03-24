@@ -25,7 +25,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
                 await _dbContext.Interactions.AddAsync(interactionEntity);
 
-                // Save changes to ensure the interaction is created with its ID
                 await _dbContext.SaveChangesAsync();
 
                 if (interaction.IsLiked)
@@ -63,9 +62,67 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             }
         }
 
+        public async Task UpdateInteractionAsync(InteractionsAggregate interaction)
+        {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            //Implement like changes
+            var likeEntity = await _dbContext.Likes.FirstOrDefaultAsync(i => i.AggregateId == interaction.AggregateId);
+            if (likeEntity == null && interaction.IsLiked)
+            {
+                likeEntity = new LikeEntity
+                {
+                    LikeId = Guid.NewGuid(),
+                    AggregateId = interaction.AggregateId
+                };
+                await _dbContext.Likes.AddAsync(likeEntity);
+            }
+            else if(likeEntity != null && !interaction.IsLiked)
+            {
+                _dbContext.Likes.Remove(likeEntity);
+            }
+
+            //Implement review changes
+            var reviewEntity =
+                await _dbContext.Reviews.FirstOrDefaultAsync(i => i.AggregateId == interaction.AggregateId);
+            if (reviewEntity != null)
+            {
+                if (interaction.Review == null || interaction.Review.ReviewText == "")
+                {
+                    _dbContext.Reviews.Remove(reviewEntity);
+                }
+                else if(interaction.Review.ReviewText != reviewEntity.ReviewText)
+                {
+                    reviewEntity.ReviewText = interaction.Review.ReviewText;
+                    _dbContext.Reviews.Update(reviewEntity);
+                }
+            }
+            else if (reviewEntity == null && interaction.Review != null && interaction.Review.ReviewText != "")
+            {
+                reviewEntity = ReviewMapper.ToEntity(interaction.Review);
+                reviewEntity.AggregateId = interaction.AggregateId;
+                await _dbContext.Reviews.AddAsync(reviewEntity);
+            }
+
+            //Implement rating changes
+            var ratingEntity =
+                await _dbContext.Ratings.FirstOrDefaultAsync(i => i.AggregateId == interaction.AggregateId);
+            if (ratingEntity != null)
+            {
+                _dbContext.Ratings.Remove(ratingEntity);
+            }
+            if (interaction.Rating != null)
+            {
+                await RatingMapper.ToEntityAsync(interaction.Rating, _dbContext);
+            }
+
+            await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+
         public async Task DeleteInteractionAsync(Guid interactionId)
         {
-            using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
             {
                 // Find the interaction

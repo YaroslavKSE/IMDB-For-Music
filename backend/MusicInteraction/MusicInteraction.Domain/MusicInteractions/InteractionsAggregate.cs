@@ -9,9 +9,19 @@ public class InteractionsAggregate
     public DateTime CreatedAt { get; private set; }
     public virtual Rating? Rating { get; private set; }
     public virtual Review? Review { get; private set; }
-    public bool IsLiked { get; private set; }
+    public bool IsLiked { get; set; }
 
     public InteractionsAggregate(string userId, string itemId, string itemType)
+    {
+        AggregateId = Guid.NewGuid();
+        UserId = userId;
+        ItemId = itemId;
+        ItemType = itemType;
+        CreatedAt = DateTime.UtcNow;
+        IsLiked = false;
+    }
+
+    public InteractionsAggregate(Guid aggregateId, DateTime createdAt, string userId, string itemId, string itemType)
     {
         AggregateId = Guid.NewGuid();
         UserId = userId;

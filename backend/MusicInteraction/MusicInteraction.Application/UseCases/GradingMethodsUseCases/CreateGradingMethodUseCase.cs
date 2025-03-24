@@ -19,19 +19,7 @@ public class CreateGradingMethodUseCase : IRequestHandler<CreateGradingMethodCom
         {
             var gradingMethod = new GradingMethod(request.Name, request.UserId, request.IsPublic);
 
-            // Process the components and add them to the grading method
-            for (int i = 0; i < request.Components.Count; i++)
-            {
-                var component = request.Components[i];
-                IGradable gradableComponent = CreateGradableFromDto(component);
-
-                gradingMethod.AddGrade(gradableComponent);
-
-                if (i < request.Components.Count - 1 && i < request.Actions.Count)
-                {
-                    gradingMethod.AddAction(request.Actions[i]);
-                }
-            }
+            GradingMethodBuilder.BuildGradingMethod(request.Components, request.Actions, gradingMethod);
 
             await gradingMethodStorage.AddGradingMethodAsync(gradingMethod);
 
@@ -49,41 +37,5 @@ public class CreateGradingMethodUseCase : IRequestHandler<CreateGradingMethodCom
                 ErrorMessage = ex.Message
             };
         }
-    }
-
-    private IGradable CreateGradableFromDto(ComponentDto component)
-    {
-        if (component is GradeComponentDto gradeDto)
-        {
-            return new Grade(
-                gradeDto.MinGrade,
-                gradeDto.MaxGrade,
-                gradeDto.StepAmount,
-                gradeDto.Name,
-                gradeDto.Description
-            );
-        }
-        else if (component is BlockComponentDto blockDto)
-        {
-            var block = new GradingBlock(blockDto.Name);
-
-            // Process child components
-            for (int i = 0; i < blockDto.SubComponents.Count; i++)
-            {
-                var childComponent = blockDto.SubComponents[i];
-                IGradable gradableChild = CreateGradableFromDto(childComponent);
-
-                block.AddGrade(gradableChild);
-
-                if (i < blockDto.SubComponents.Count - 1 && i < blockDto.Actions.Count)
-                {
-                    block.AddAction(blockDto.Actions[i]);
-                }
-            }
-
-            return block;
-        }
-
-        throw new ArgumentException($"Unsupported component type: {component.GetType().Name}");
     }
 }

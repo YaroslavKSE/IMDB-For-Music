@@ -28,28 +28,10 @@ public class UpdateGradingMethodUseCase : IRequestHandler<UpdateGradingMethodCom
             }
 
             var gradingMethodToUpdate = await _gradingMethodStorage.GetGradingMethodById(request.GradingMethodId);
-            if (gradingMethodToUpdate == null)
-            {
-                return new CreateGradingMethodResult
-                {
-                    Success = false,
-                    ErrorMessage = $"Grading method with ID {request.GradingMethodId} not found"
-                };
-            }
 
             var updatedGradingMethod = new GradingMethod(gradingMethodToUpdate.SystemId, gradingMethodToUpdate.CreatedAt, gradingMethodToUpdate.Name, gradingMethodToUpdate.CreatorId, request.IsPublic);
-            for (int i = 0; i < request.Components.Count; i++)
-            {
-                var component = request.Components[i];
-                IGradable gradableComponent = CreateGradableFromDto(component);
 
-                updatedGradingMethod.AddGrade(gradableComponent);
-
-                if (i < request.Components.Count - 1 && i < request.Actions.Count)
-                {
-                    updatedGradingMethod.AddAction(request.Actions[i]);
-                }
-            }
+            GradingMethodBuilder.BuildGradingMethod(request.Components, request.Actions, updatedGradingMethod);
 
             await _gradingMethodStorage.UpdateGradingMethodAsync(updatedGradingMethod);
 
@@ -58,7 +40,6 @@ public class UpdateGradingMethodUseCase : IRequestHandler<UpdateGradingMethodCom
                 Success = true,
                 GradingMethodId = updatedGradingMethod.SystemId
             };
-
         }
         catch (Exception ex)
         {
@@ -68,41 +49,5 @@ public class UpdateGradingMethodUseCase : IRequestHandler<UpdateGradingMethodCom
                 ErrorMessage = ex.Message
             };
         }
-    }
-
-    private IGradable CreateGradableFromDto(ComponentDto component)
-    {
-        if (component is GradeComponentDto gradeDto)
-        {
-            return new Grade(
-                gradeDto.MinGrade,
-                gradeDto.MaxGrade,
-                gradeDto.StepAmount,
-                gradeDto.Name,
-                gradeDto.Description
-            );
-        }
-        else if (component is BlockComponentDto blockDto)
-        {
-            var block = new GradingBlock(blockDto.Name);
-
-            // Process child components
-            for (int i = 0; i < blockDto.SubComponents.Count; i++)
-            {
-                var childComponent = blockDto.SubComponents[i];
-                IGradable gradableChild = CreateGradableFromDto(childComponent);
-
-                block.AddGrade(gradableChild);
-
-                if (i < blockDto.SubComponents.Count - 1 && i < blockDto.Actions.Count)
-                {
-                    block.AddAction(blockDto.Actions[i]);
-                }
-            }
-
-            return block;
-        }
-
-        throw new ArgumentException($"Unsupported component type: {component.GetType().Name}");
     }
 }
