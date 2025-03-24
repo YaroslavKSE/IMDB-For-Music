@@ -118,6 +118,6 @@ public class InteractionController : ControllerBase
             return NotFound(result.ErrorMessage);
         }
 
-        return Ok(result.Success);
+        return Ok();
     }
 }

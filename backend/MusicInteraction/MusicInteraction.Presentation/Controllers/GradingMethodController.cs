@@ -69,4 +69,31 @@ public class GradingMethodController : ControllerBase
 
         return Ok(result.GradingMethods);
     }
+
+    [HttpDelete("by-id/{id}")]
+    public async Task<IActionResult> DeleteGradingMethodById(Guid id)
+    {
+        var command = new DeleteGradingMethodCommand
+        {
+            GradingMethodId = id
+        };
+
+        var result = await mediator.Send(command);
+
+        if (!result.Success)
+            return BadRequest(result.ErrorMessage);
+
+        return Ok();
+    }
+
+    [HttpPut()]
+    public async Task<IActionResult> UpdateGradingMethod([FromBody] UpdateGradingMethodCommand request)
+    {
+        var result = await mediator.Send(request);
+
+        if (!result.Success)
+            return BadRequest(result.ErrorMessage);
+
+        return Ok(result);
+    }
 }

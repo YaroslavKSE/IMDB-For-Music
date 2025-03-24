@@ -21,6 +21,12 @@ public class MongoGradingMethodStorage : IGradingMethodStorage
         await _repository.CreateAsync(entity);
     }
 
+    public async Task UpdateGradingMethodAsync(GradingMethod gradingMethod)
+    {
+        var entity = gradingMethod.ToEntity();
+        await _repository.UpdateAsync(entity);
+    }
+
     public async Task<GradingMethod> GetGradingMethodById(Guid methodId)
     {
         var entity = await _repository.GetByIdAsync(methodId);
@@ -37,6 +43,11 @@ public class MongoGradingMethodStorage : IGradingMethodStorage
     {
         var entities = await _repository.GetUserGradingMethodsAsync(userId);
         return entities.Select(e => e.ToDomain()).ToList();
+    }
+
+    public async Task DeleteGradingMethodAsync(Guid Id)
+    {
+        await _repository.DeleteAsync(Id);
     }
 
     public async Task<bool> IsEmpty()
