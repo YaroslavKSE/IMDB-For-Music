@@ -5,7 +5,7 @@ using MusicInteraction.Application;
 namespace MusicInteraction.Presentation.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/interactions/")]
 public class InteractionController : ControllerBase
 {
     private readonly IMediator mediator;
@@ -15,7 +15,7 @@ public class InteractionController : ControllerBase
         this.mediator = _mediator;
     }
 
-    [HttpPost("postInteraction")]
+    [HttpPost("create")]
     public async Task<IActionResult> PostInteraction([FromBody] PostInteractionCommand command)
     {
         // Validate required fields
@@ -41,15 +41,31 @@ public class InteractionController : ControllerBase
 
         if (!string.IsNullOrEmpty(result.ErrorMessage))
         {
-            // Return the result with a 200 status code, but include the error message
-            // This way the client can see what went wrong while still getting the interaction ID
             return Ok(result);
         }
 
         return Ok(result);
     }
 
-    [HttpGet("getInteractions")]
+    [HttpPut("update")]
+    public async Task<IActionResult> UpdateInteraction([FromBody] UpdateInteractionCommand command)
+    {
+        var result = await mediator.Send(command);
+
+        if (!result.InteractionUpdated)
+        {
+            return BadRequest("Error interaction not updated");
+        }
+
+        if (!string.IsNullOrEmpty(result.ErrorMessage))
+        {
+            return Ok(result);
+        }
+
+        return Ok(result);
+    }
+
+    [HttpGet("all")]
     public async Task<IActionResult> GetInteractions()
     {
         var result = await mediator.Send(new GetInteractionsCommand());
@@ -57,7 +73,21 @@ public class InteractionController : ControllerBase
         return Ok(result.Interactions);
     }
 
-    [HttpGet("getLikes")]
+    [HttpGet("by-id/{id}")]
+    public async Task<IActionResult> GetInteractionById(Guid id)
+    {
+        var command = new GetInteractionByIdCommand() { InteractionId = id };
+        var result = await mediator.Send(command);
+
+        if (!result.Success)
+        {
+            return NotFound(result.ErrorMessage);
+        }
+
+        return Ok(result.Interaction);
+    }
+
+    [HttpGet("likes-all")]
     public async Task<IActionResult> GetLikes()
     {
         var result = await mediator.Send(new GetLikesCommand());
@@ -65,7 +95,7 @@ public class InteractionController : ControllerBase
         return Ok(result.Likes);
     }
 
-    [HttpGet("getReviews")]
+    [HttpGet("reviews-all")]
     public async Task<IActionResult> GetReviews()
     {
         var result = await mediator.Send(new GetReviewsCommand());
@@ -73,7 +103,7 @@ public class InteractionController : ControllerBase
         return Ok(result.Reviews);
     }
 
-    [HttpGet("getRatings")]
+    [HttpGet("ratings-all")]
     public async Task<IActionResult> GetRatings()
     {
         var result = await mediator.Send(new GetRatingsCommand());
@@ -81,7 +111,7 @@ public class InteractionController : ControllerBase
         return Ok(result.Ratings);
     }
 
-    [HttpGet("getRating/{id}")]
+    [HttpGet("rating-by-id/{id}")]
     public async Task<IActionResult> GetRatingById(Guid id)
     {
         var command = new GetRatingByIdCommand { RatingId = id };
@@ -93,5 +123,19 @@ public class InteractionController : ControllerBase
         }
 
         return Ok(result.Rating);
+    }
+
+    [HttpDelete("by-id/{id}")]
+    public async Task<IActionResult> DeleteInteractionById(Guid id)
+    {
+        var command = new DeleteInteractionCommand { InteractionId = id };
+        var result = await mediator.Send(command);
+
+        if (!result.Success)
+        {
+            return NotFound(result.ErrorMessage);
+        }
+
+        return Ok();
     }
 }

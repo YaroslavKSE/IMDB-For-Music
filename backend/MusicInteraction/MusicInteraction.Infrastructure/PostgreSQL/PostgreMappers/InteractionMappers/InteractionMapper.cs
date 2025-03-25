@@ -23,7 +23,6 @@ public static class InteractionMapper
     public static async Task<InteractionsAggregate> ToDomain(InteractionAggregateEntity entity,
         MusicInteractionDbContext dbContext)
     {
-        // Create the interaction aggregate with the basic properties
         var domain = new InteractionsAggregate(entity.UserId, entity.ItemId, entity.ItemType);
 
         // Use reflection to set the private fields that can't be set through constructor
@@ -46,9 +45,7 @@ public static class InteractionMapper
         if (reviewEntity != null)
         {
             typeof(InteractionsAggregate).GetProperty("Review")?.SetValue(
-                domain,
-                ReviewMapper.ToDomain(reviewEntity, dbContext).Result
-            );
+                domain, ReviewMapper.ToDomain(reviewEntity, dbContext).Result);
         }
 
         try {
@@ -63,9 +60,7 @@ public static class InteractionMapper
             }
         }
         catch (Exception ex) {
-            // Log the error but don't fail the whole request
             Console.WriteLine($"Error loading rating for interaction {entity.AggregateId}: {ex.Message}");
-            // We could set a "placeholder" rating here if needed
         }
 
         return domain;

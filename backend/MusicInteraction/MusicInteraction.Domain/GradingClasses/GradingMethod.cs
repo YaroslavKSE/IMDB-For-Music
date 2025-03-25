@@ -18,6 +18,16 @@ public class GradingMethod : GradingBlock
         Name = name;
     }
 
+    public GradingMethod(Guid systemId, DateTime createdAt , string name, string creatorId, bool isPublic = false)
+        : base(name)
+    {
+        SystemId = systemId;
+        CreatorId = creatorId;
+        IsPublic = isPublic;
+        CreatedAt = createdAt;
+        Name = name;
+    }
+
     public void MakePublic()
     {
         IsPublic = true;

@@ -84,14 +84,16 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
                 .HasOne(r => r.SimpleGrade)
                 .WithOne(g => g.Rating)
                 .HasForeignKey<GradeEntity>(g => g.RatingId)
-                .IsRequired(false);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // One-to-one between Rating and GradingMethodInstance (for complex ratings)
             modelBuilder.Entity<RatingEntity>()
                 .HasOne(r => r.ComplexGrade)
                 .WithOne(g => g.Rating)
                 .HasForeignKey<GradingMethodInstanceEntity>(g => g.RatingId)
-                .IsRequired(false);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // GradingMethodComponent relationships
             modelBuilder.Entity<GradingMethodComponentEntity>()
@@ -105,14 +107,14 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
                 .WithMany(b => b.MethodComponents)
                 .HasForeignKey(c => c.BlockComponentId)
                 .IsRequired(false)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<GradingMethodComponentEntity>()
                 .HasOne(c => c.GradeComponent)
                 .WithMany(g => g.MethodComponents)
                 .HasForeignKey(c => c.GradeComponentId)
                 .IsRequired(false)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             // GradingBlockComponent relationships
             modelBuilder.Entity<GradingBlockComponentEntity>()
@@ -126,14 +128,14 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
                 .WithMany(b => b.ParentBlockComponents)
                 .HasForeignKey(c => c.BlockComponentId)
                 .IsRequired(false)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<GradingBlockComponentEntity>()
                 .HasOne(c => c.GradeComponent)
                 .WithMany(g => g.BlockComponents)
                 .HasForeignKey(c => c.GradeComponentId)
                 .IsRequired(false)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Action relationships
             modelBuilder.Entity<GradingMethodActionEntity>()
