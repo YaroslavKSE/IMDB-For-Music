@@ -43,12 +43,13 @@ The Terraform configuration creates the following infrastructure:
 - Internet Gateway for public internet access
 - NAT Gateway for private subnet outbound access
 - Route tables for both subnets
-- VPC Endpoint for MongoDB Atlas
+- Optional VPC Endpoint for MongoDB Atlas (can be enabled/disabled)
 
 ### Frontend Hosting (S3 Module)
 - S3 bucket for static website files
 - Security configuration to block public access
-- Automated frontend build and deployment process
+- Optional automated frontend build and deployment process
+- Support for force destroy to enable clean infrastructure teardown
 
 ### Content Delivery (CloudFront Module)
 - CloudFront distribution with Origin Access Control
@@ -56,6 +57,7 @@ The Terraform configuration creates the following infrastructure:
 - Optimal caching configuration
 - SPA support with 404 handling
 - Support for custom domain with HTTPS
+- Cache invalidation on deployment
 
 ### DNS Management (Route53 Module)
 - A and AAAA records pointing to CloudFront
@@ -88,8 +90,56 @@ terraform workspace select prod
 ### Plan and Apply
 
 ```bash
-terraform plan -var-file="environments/prod.tfvars"
-terraform apply -var-file="environments/prod.tfvars"
+terraform plan -var-file="environments/dev.tfvars"
+terraform apply -var-file="environments/dev.tfvars"
+```
+
+### Destroy Infrastructure
+
+To destroy all resources:
+
+```bash
+terraform destroy -var-file="environments/dev.tfvars"
+```
+
+Note: The S3 bucket will be automatically emptied before deletion if `force_destroy_s3` is set to `true` (default).
+
+## Configuration Options
+
+### MongoDB VPC Endpoint
+
+You can choose whether to create a VPC endpoint for MongoDB Atlas:
+
+```bash
+# To skip MongoDB VPC endpoint creation
+terraform apply -var-file="environments/dev.tfvars" -var="create_mongodb_endpoint=false"
+
+# To create MongoDB VPC endpoint (default)
+terraform apply -var-file="environments/dev.tfvars" -var="create_mongodb_endpoint=true"
+```
+
+### Frontend Deployment
+
+You can control the frontend build and upload process:
+
+```bash
+# Skip frontend build and upload (useful for CI/CD pipelines)
+terraform apply -var-file="environments/dev.tfvars" -var="build_and_upload_frontend=false"
+
+# Include frontend build and upload (default)
+terraform apply -var-file="environments/dev.tfvars" -var="build_and_upload_frontend=true"
+```
+
+### S3 Bucket Cleanup
+
+Control whether the S3 bucket should be automatically emptied before deletion:
+
+```bash
+# Enable auto-cleanup of S3 bucket on destroy (default)
+terraform apply -var-file="environments/dev.tfvars" -var="force_destroy_s3=true"
+
+# Disable auto-cleanup (requires manual emptying before destroy)
+terraform apply -var-file="environments/dev.tfvars" -var="force_destroy_s3=false"
 ```
 
 ## Important Notes
@@ -122,10 +172,13 @@ Key variables to set in your environment files:
 ```hcl
 region = "us-east-1"
 project_name = "music-catalog-service"
+create_mongodb_endpoint = true
 mongodb_service_name = "com.amazonaws.vpce.us-east-1.vpce-svc-mongodb"
 frontend_project_path = "../frontend"
+build_and_upload_frontend = true
+force_destroy_s3 = true
 domain_name = "academichub.net"
-create_acm_certificate = true
+use_acm_certificate = true
 acm_certificate_arn = "arn:aws:acm:us-east-1:YOUR_ACCOUNT_ID:certificate/YOUR_CERTIFICATE_ID"
 ```
 
@@ -137,3 +190,24 @@ After successful deployment, you should:
 2. Confirm DNS resolution is working correctly for your domain
 3. Test your website through both the CloudFront URL and your custom domain
 4. Implement a CI/CD pipeline for automated deployments
+
+## Troubleshooting
+
+### CloudFront Invalidation Issues
+
+If you encounter issues with CloudFront invalidation during deployment:
+
+1. Check that AWS CLI is properly installed and configured with appropriate permissions
+2. Verify that the invalidation path pattern is correctly formatted (`/*`)
+3. If using Windows, ensure command line arguments are properly escaped
+
+### S3 Bucket Deletion Problems
+
+If you have trouble destroying the S3 bucket:
+
+1. Check if `force_destroy_s3` is set to `true`
+2. If set to `false`, manually empty the bucket before running `terraform destroy`:
+   ```bash
+   aws s3 rm s3://your-bucket-name --recursive
+   ```
+3. Wait a few minutes after emptying the bucket before attempting to destroy it

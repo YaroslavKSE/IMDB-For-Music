@@ -121,13 +121,7 @@ resource "null_resource" "frontend_invalidation" {
   }
 
   provisioner "local-exec" {
-    # Using a JSON format that works reliably across platforms
-    command = <<-EOT
-      echo '{"Paths":{"Quantity":1,"Items":["/*"]},"CallerReference":"terraform-${timestamp()}"}' > invalidation.json
-      aws cloudfront create-invalidation --distribution-id ${aws_cloudfront_distribution.frontend.id} --invalidation-batch file://invalidation.json
-      rm invalidation.json
-    EOT
-    interpreter = ["bash", "-c"]
+    command = "aws cloudfront create-invalidation --distribution-id ${aws_cloudfront_distribution.frontend.id} --paths '/*'"
   }
 
   depends_on = [aws_cloudfront_distribution.frontend]
