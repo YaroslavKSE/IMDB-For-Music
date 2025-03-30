@@ -2,31 +2,34 @@ provider "aws" {
   region = var.region
 }
 
+provider "mongodbatlas" {
+  public_key  = var.mongodb_atlas_public_key
+  private_key = var.mongodb_atlas_private_key
+}
+
 locals {
   environment = terraform.workspace
 
   # Environment-specific configurations
   env_configs = {
     dev = {
-      vpc_cidr                = "10.0.0.0/16"
-      public_subnet_cidr_a    = "10.0.1.0/24"
-      public_subnet_cidr_b    = "10.0.2.0/24"
-      private_subnet_cidr_a   = "10.0.3.0/24"
-      private_subnet_cidr_b   = "10.0.4.0/24"
-      frontend_bucket         = "${var.project_name}-frontend-${terraform.workspace}"
-      create_mongodb_endpoint = var.create_mongodb_endpoint
-      api_subdomain           = "api-dev"
+      vpc_cidr              = "10.0.0.0/16"
+      public_subnet_cidr_a  = "10.0.1.0/24"
+      public_subnet_cidr_b  = "10.0.2.0/24"
+      private_subnet_cidr_a = "10.0.3.0/24"
+      private_subnet_cidr_b = "10.0.4.0/24"
+      frontend_bucket       = "${var.project_name}-frontend-${terraform.workspace}"
+      api_subdomain         = "api-dev"
     }
 
     prod = {
-      vpc_cidr                = "10.1.0.0/16"
-      public_subnet_cidr_a    = "10.1.1.0/24"
-      public_subnet_cidr_b    = "10.1.2.0/24"
-      private_subnet_cidr_a   = "10.1.3.0/24"
-      private_subnet_cidr_b   = "10.1.4.0/24"
-      frontend_bucket         = "${var.project_name}-frontend-${terraform.workspace}"
-      create_mongodb_endpoint = var.create_mongodb_endpoint
-      api_subdomain           = "api"
+      vpc_cidr              = "10.1.0.0/16"
+      public_subnet_cidr_a  = "10.1.1.0/24"
+      public_subnet_cidr_b  = "10.1.2.0/24"
+      private_subnet_cidr_a = "10.1.3.0/24"
+      private_subnet_cidr_b = "10.1.4.0/24"
+      frontend_bucket       = "${var.project_name}-frontend-${terraform.workspace}"
+      api_subdomain         = "api"
     }
   }
 
@@ -44,16 +47,14 @@ locals {
 module "vpc" {
   source = "./modules/vpc"
 
-  environment             = local.environment
-  region                  = var.region
-  vpc_cidr                = local.config.vpc_cidr
-  public_subnet_cidr_a    = local.config.public_subnet_cidr_a
-  public_subnet_cidr_b    = local.config.public_subnet_cidr_b
-  private_subnet_cidr_a   = local.config.private_subnet_cidr_a
-  private_subnet_cidr_b   = local.config.private_subnet_cidr_b
-  create_mongodb_endpoint = local.config.create_mongodb_endpoint
-  mongodb_service_name    = var.mongodb_service_name
-  common_tags             = local.common_tags
+  environment           = local.environment
+  region                = var.region
+  vpc_cidr              = local.config.vpc_cidr
+  public_subnet_cidr_a  = local.config.public_subnet_cidr_a
+  public_subnet_cidr_b  = local.config.public_subnet_cidr_b
+  private_subnet_cidr_a = local.config.private_subnet_cidr_a
+  private_subnet_cidr_b = local.config.private_subnet_cidr_b
+  common_tags           = local.common_tags
 }
 
 module "s3" {
@@ -111,4 +112,118 @@ module "route53" {
   common_tags               = local.common_tags
 
   depends_on = [module.cloudfront, module.alb]
+}
+
+resource "aws_security_group" "ecs_tasks_sg" {
+  name        = "${local.environment}-ecs-tasks-sg"
+  description = "Security group for ECS tasks"
+  vpc_id      = module.vpc.vpc_id
+
+  # Allow outbound internet access
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.environment}-ecs-tasks-sg"
+    }
+  )
+}
+
+# RDS Database module
+module "rds" {
+  source = "./modules/rds"
+
+  environment                = local.environment
+  vpc_id                     = module.vpc.vpc_id
+  subnet_ids                 = module.vpc.private_subnet_ids
+  allowed_security_group_ids = [aws_security_group.ecs_tasks_sg.id]
+
+  # Database settings
+  db_name               = var.rds_database_name
+  db_username           = var.rds_username
+  postgres_version      = "17.4-R1"
+  instance_class        = lookup(var.rds_instance_class, local.environment, "db.t3.micro")
+  allocated_storage     = 20
+  max_allocated_storage = local.environment == "prod" ? 100 : 20
+  storage_encrypted     = local.environment == "prod" ? true : false # Free tier limitation
+
+  # Backup settings
+  backup_retention_period = local.environment == "prod" ? 7 : 1
+  skip_final_snapshot     = var.rds_skip_final_snapshot
+  apply_immediately       = local.environment == "prod" ? false : true
+
+  # High availability settings
+  multi_az = var.rds_multi_az
+
+  deletion_protection = var.rds_deletion_protection
+
+  common_tags = local.common_tags
+}
+
+# Redis ElastiCache module
+module "redis" {
+  source = "./modules/redis"
+
+  environment                = local.environment
+  vpc_id                     = module.vpc.vpc_id
+  subnet_ids                 = module.vpc.private_subnet_ids
+  allowed_security_group_ids = [aws_security_group.ecs_tasks_sg.id]
+
+  # Redis settings
+  node_type     = local.environment == "prod" ? "cache.t3.small" : "cache.t3.micro" # Near free tier
+  redis_version = "6.2"
+
+  # Maintenance settings
+  maintenance_window = "sun:05:00-sun:07:00"
+  snapshot_window    = "03:00-05:00"
+  apply_immediately  = local.environment == "prod" ? false : true
+
+  common_tags = local.common_tags
+}
+
+# MongoDB Atlas Module
+module "mongodb" {
+  source = "./modules/mongodb"
+
+  environment  = local.environment
+  project_name = var.project_name
+
+  # MongoDB Atlas credentials
+  atlas_org_id      = var.mongodb_atlas_org_id
+  atlas_public_key  = var.mongodb_atlas_public_key
+  atlas_private_key = var.mongodb_atlas_private_key
+
+  # Atlas configuration
+  atlas_region  = lookup(var.mongodb_atlas_region, local.environment, "US_EAST_1")
+  instance_size = lookup(var.mongodb_instance_size, local.environment, "M10")
+  disk_size_gb  = lookup(var.mongodb_disk_size_gb, local.environment, 10)
+
+  # Database settings
+  db_name     = var.mongodb_database_name
+  db_username = var.mongodb_username
+
+  # Auto-scaling settings
+  allow_cluster_scale_down = local.environment == "dev" ? true : false
+  min_instance_size        = local.environment == "dev" ? "M10" : "M20"
+  max_instance_size        = local.environment == "dev" ? "M20" : "M40"
+
+  # Backup settings
+  enable_backup = local.environment == "prod" ? true : true
+
+  # VPC settings
+  vpc_id                     = module.vpc.vpc_id
+  private_subnet_ids         = module.vpc.private_subnet_ids
+  allowed_security_group_ids = [aws_security_group.ecs_tasks_sg.id]
+
+  common_tags = local.common_tags
+
+  # Ensure MongoDB module depends on the VPC module
+  depends_on = [module.vpc]
 }

@@ -12,6 +12,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    mongodbatlas = {
+      source  = "mongodb/mongodbatlas"
+      version = "~> 1.31.0"
+    }
   }
 
   required_version = ">= 1.2.0"

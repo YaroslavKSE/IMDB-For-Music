@@ -43,11 +43,6 @@ output "nat_gateway_id" {
   value       = aws_nat_gateway.nat.id
 }
 
-output "mongodb_vpc_endpoint_id" {
-  description = "The ID of the MongoDB Atlas VPC Endpoint"
-  value       = var.create_mongodb_endpoint ? aws_vpc_endpoint.mongodb[0].id : null
-}
-
 output "public_route_table_id" {
   description = "The ID of the public route table"
   value       = aws_route_table.public.id
