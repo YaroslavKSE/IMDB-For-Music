@@ -39,24 +39,9 @@ output "www_website_url" {
 }
 
 # MongoDB Atlas Outputs
-output "mongodb_project_id" {
-  description = "MongoDB Atlas project ID"
-  value       = module.mongodb.project_id
-}
-
 output "mongodb_cluster_name" {
   description = "MongoDB Atlas cluster name"
   value       = module.mongodb.cluster_name
-}
-
-output "mongodb_connection_string_param" {
-  description = "SSM Parameter Store key for MongoDB Atlas connection string"
-  value       = module.mongodb.mongodb_connection_string_parameter
-}
-
-output "mongodb_password_param" {
-  description = "SSM Parameter Store key for MongoDB Atlas password"
-  value       = module.mongodb.db_password_parameter
 }
 
 output "mongodb_privatelink_endpoint_id" {

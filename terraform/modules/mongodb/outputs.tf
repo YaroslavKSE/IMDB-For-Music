@@ -1,8 +1,3 @@
-output "project_id" {
-  description = "MongoDB Atlas project ID"
-  value       = mongodbatlas_project.main.id
-}
-
 output "cluster_id" {
   description = "MongoDB Atlas cluster ID"
   value       = mongodbatlas_advanced_cluster.main.cluster_id

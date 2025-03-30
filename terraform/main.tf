@@ -196,9 +196,9 @@ module "mongodb" {
   project_name = var.project_name
 
   # MongoDB Atlas credentials
-  atlas_org_id      = var.mongodb_atlas_org_id
-  atlas_public_key  = var.mongodb_atlas_public_key
-  atlas_private_key = var.mongodb_atlas_private_key
+  mongo_atlas_project_id = var.mongo_atlas_project_id
+  atlas_public_key       = var.mongodb_atlas_public_key
+  atlas_private_key      = var.mongodb_atlas_private_key
 
   # Atlas configuration
   atlas_region  = lookup(var.mongodb_atlas_region, local.environment, "US_EAST_1")
@@ -223,7 +223,82 @@ module "mongodb" {
   allowed_security_group_ids = [aws_security_group.ecs_tasks_sg.id]
 
   common_tags = local.common_tags
+}
 
-  # Ensure MongoDB module depends on the VPC module
-  depends_on = [module.vpc]
+# ECS Module with direct secrets
+module "ecs" {
+  source = "./modules/ecs"
+
+  environment                                = local.environment
+  region                                     = var.region
+  name                                       = var.project_name
+  domain_name                                = var.domain_name
+  vpc_id                                     = module.vpc.vpc_id
+  private_subnet_ids                         = module.vpc.private_subnet_ids
+  alb_security_group_id                      = module.alb.security_group_id
+  user_service_target_group_arn              = module.alb.user_service_target_group_arn
+  music_catalog_service_target_group_arn     = module.alb.music_catalog_target_group_arn
+  music_interaction_service_target_group_arn = module.alb.rating_service_target_group_arn
+
+  # RDS configuration - Only passing parameter store variables that the tasks will access
+  rds_address_parameter                = "/${local.environment}/database/address"
+  postgres_connection_string_parameter = "/${local.environment}/database/connection_string"
+
+  # MongoDB configuration
+  mongodb_connection_string_parameter = "/${local.environment}/mongodb/connection_string"
+
+  # Redis configuration
+  redis_connection_string_parameter = "/${local.environment}/redis/connection_string"
+
+  # Service configurations
+  user_service_config = {
+    ecr_repository_url = var.user_service_repository_url
+    image_tag          = var.user_service_image_tag
+    cpu                = var.user_service_cpu
+    memory             = var.user_service_memory
+    desired_count      = var.user_service_desired_count
+    min_capacity       = var.user_service_min_capacity
+    max_capacity       = var.user_service_max_capacity
+    db_name            = var.rds_database_name
+  }
+
+  music_catalog_service_config = {
+    ecr_repository_url = var.music_catalog_service_repository_url
+    image_tag          = var.music_catalog_service_image_tag
+    cpu                = var.music_catalog_service_cpu
+    memory             = var.music_catalog_service_memory
+    desired_count      = var.music_catalog_service_desired_count
+    min_capacity       = var.music_catalog_service_min_capacity
+    max_capacity       = var.music_catalog_service_max_capacity
+  }
+
+  music_interaction_service_config = {
+    ecr_repository_url = var.music_interaction_service_repository_url
+    image_tag          = var.music_interaction_service_image_tag
+    cpu                = var.music_interaction_service_cpu
+    memory             = var.music_interaction_service_memory
+    desired_count      = var.music_interaction_service_desired_count
+    min_capacity       = var.music_interaction_service_min_capacity
+    max_capacity       = var.music_interaction_service_max_capacity
+    db_name            = var.music_interaction_db_name
+  }
+
+  # Pass secrets directly (from tfvars)
+  spotify_client_id     = var.spotify_client_id
+  spotify_client_secret = var.spotify_client_secret
+
+  auth0_domain                  = var.auth0_domain
+  auth0_client_id               = var.auth0_client_id
+  auth0_client_secret           = var.auth0_client_secret
+  auth0_audience                = var.auth0_audience
+  auth0_management_api_audience = var.auth0_management_api_audience
+
+  common_tags = local.common_tags
+
+  depends_on = [
+    module.alb,
+    module.rds,
+    module.redis,
+    module.mongodb
+  ]
 }

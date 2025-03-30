@@ -8,21 +8,21 @@ terraform {
 }
 
 # Create a MongoDB Atlas Project
-resource "mongodbatlas_project" "main" {
-  name   = "${var.environment}-${var.project_name}"
-  org_id = var.atlas_org_id
-}
+# resource "mongodbatlas_project" "main" {
+#   name   = "${var.environment}-${var.project_name}"
+#   org_id = var.atlas_org_id
+# }
 
 # Create a MongoDB Atlas Cluster
 resource "mongodbatlas_advanced_cluster" "main" {
-  project_id   = mongodbatlas_project.main.id
+  project_id   = var.mongo_atlas_project_id
   name         = "${var.environment}-cluster"
   cluster_type = "REPLICASET"
 
   mongo_db_major_version = "8.0"
 
   replication_specs {
-    num_shards = 1
+    #    num_shards = 1
 
     region_configs {
       provider_name = "AWS"
@@ -66,7 +66,7 @@ resource "mongodbatlas_advanced_cluster" "main" {
 resource "mongodbatlas_database_user" "main" {
   username           = var.db_username
   password           = random_password.db_password.result
-  project_id         = mongodbatlas_project.main.id
+  project_id   = var.mongo_atlas_project_id
   auth_database_name = "admin"
 
   roles {
@@ -115,7 +115,7 @@ resource "aws_ssm_parameter" "connection_string" {
 
 # Configure AWS PrivateLink for MongoDB Atlas
 resource "mongodbatlas_privatelink_endpoint" "main" {
-  project_id    = mongodbatlas_project.main.id
+  project_id   = var.mongo_atlas_project_id
   provider_name = "AWS"
   region        = var.atlas_region
 }
@@ -174,7 +174,7 @@ resource "aws_vpc_endpoint" "mongodb" {
 
 # Get the AWS VPC Endpoint Service Name
 resource "mongodbatlas_privatelink_endpoint_service" "main" {
-  project_id          = mongodbatlas_project.main.id
+  project_id   = var.mongo_atlas_project_id
   private_link_id     = mongodbatlas_privatelink_endpoint.main.private_link_id
   endpoint_service_id = aws_vpc_endpoint.mongodb.id
   provider_name       = "AWS"
@@ -182,7 +182,7 @@ resource "mongodbatlas_privatelink_endpoint_service" "main" {
 
 # Allow access from the specified security groups
 resource "mongodbatlas_project_ip_access_list" "main" {
-  project_id = mongodbatlas_project.main.id
+  project_id   = var.mongo_atlas_project_id
   cidr_block = data.aws_vpc.selected.cidr_block
   comment    = "CIDR block for ${var.environment} VPC"
 }

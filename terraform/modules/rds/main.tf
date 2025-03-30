@@ -107,21 +107,26 @@ resource "aws_db_parameter_group" "main" {
   family      = "postgres17"
   description = "Parameter group for ${var.environment} ${var.db_name} PostgreSQL 17"
 
+  # Static parameters
   parameter {
     name  = "max_connections"
     value = "100"
+    apply_method = "pending-reboot"  # Add this line
   }
 
   parameter {
     name  = "shared_buffers"
     value = "16384" # 16MB for free tier
+    apply_method = "pending-reboot"  # Add this line
   }
 
   parameter {
     name  = "work_mem"
     value = "4096" # 4MB for free tier
+    apply_method = "pending-reboot"  # Add this line
   }
 
+  # Dynamic parameters don't need apply_method
   parameter {
     name  = "log_min_duration_statement"
     value = "1000" # Log statements taking more than 1 second
@@ -135,7 +140,7 @@ resource "aws_db_parameter_group" "main" {
   tags = merge(
     var.common_tags,
     {
-      Name = "${var.environment}-${var.db_name}-pg13"
+      Name = "${var.environment}-${var.db_name}-pg17"
     }
   )
 }

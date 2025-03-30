@@ -115,14 +115,14 @@ resource "aws_cloudfront_distribution" "frontend" {
 }
 
 # Create an invalidation resource to clear cache after deployment
-resource "null_resource" "frontend_invalidation" {
-  triggers = {
-    timestamp = timestamp()
-  }
-
-  provisioner "local-exec" {
-    command = "aws cloudfront create-invalidation --distribution-id ${aws_cloudfront_distribution.frontend.id} --paths '/*'"
-  }
-
-  depends_on = [aws_cloudfront_distribution.frontend]
-}
+# resource "null_resource" "frontend_invalidation" {
+#   triggers = {
+#     timestamp = timestamp()
+#   }
+#
+#   provisioner "local-exec" {
+#     command = "aws cloudfront create-invalidation --distribution-id ${aws_cloudfront_distribution.frontend.id} --paths '/*'"
+#   }
+#
+#   depends_on = [aws_cloudfront_distribution.frontend]
+# }

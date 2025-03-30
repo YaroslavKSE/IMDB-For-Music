@@ -95,8 +95,8 @@ variable "redis_node_type" {
 }
 
 # MongoDB Atlas Credentials
-variable "mongodb_atlas_org_id" {
-  description = "MongoDB Atlas organization ID"
+variable "mongo_atlas_project_id" {
+  description = "MongoDB Atlas project ID"
   type        = string
   sensitive   = true
 }
@@ -153,4 +153,182 @@ variable "mongodb_username" {
   type        = string
   sensitive   = true
   default     = "app_user"
+}
+
+# Add these variables to your existing variables.tf file
+
+# ECR Repository URLs (pre-created)
+variable "user_service_repository_url" {
+  description = "ECR repository URL for user service"
+  type        = string
+}
+
+variable "music_catalog_service_repository_url" {
+  description = "ECR repository URL for music catalog service"
+  type        = string
+}
+
+variable "music_interaction_service_repository_url" {
+  description = "ECR repository URL for music interaction service"
+  type        = string
+}
+
+# Image tags
+variable "user_service_image_tag" {
+  description = "Image tag for user service"
+  type        = string
+  default     = "latest"
+}
+
+variable "music_catalog_service_image_tag" {
+  description = "Image tag for music catalog service"
+  type        = string
+  default     = "latest"
+}
+
+variable "music_interaction_service_image_tag" {
+  description = "Image tag for music interaction service"
+  type        = string
+  default     = "latest"
+}
+
+# Resource allocations
+variable "user_service_cpu" {
+  description = "CPU units for user service"
+  type        = number
+  default     = 256
+}
+
+variable "user_service_memory" {
+  description = "Memory for user service (MiB)"
+  type        = number
+  default     = 512
+}
+
+variable "user_service_desired_count" {
+  description = "Desired number of user service tasks"
+  type        = number
+  default     = 1
+}
+
+variable "user_service_min_capacity" {
+  description = "Minimum number of user service tasks"
+  type        = number
+  default     = 1
+}
+
+variable "user_service_max_capacity" {
+  description = "Maximum number of user service tasks"
+  type        = number
+  default     = 3
+}
+
+variable "music_catalog_service_cpu" {
+  description = "CPU units for music catalog service"
+  type        = number
+  default     = 256
+}
+
+variable "music_catalog_service_memory" {
+  description = "Memory for music catalog service (MiB)"
+  type        = number
+  default     = 512
+}
+
+variable "music_catalog_service_desired_count" {
+  description = "Desired number of music catalog service tasks"
+  type        = number
+  default     = 1
+}
+
+variable "music_catalog_service_min_capacity" {
+  description = "Minimum number of music catalog service tasks"
+  type        = number
+  default     = 1
+}
+
+variable "music_catalog_service_max_capacity" {
+  description = "Maximum number of music catalog service tasks"
+  type        = number
+  default     = 3
+}
+
+variable "music_interaction_service_cpu" {
+  description = "CPU units for music interaction service"
+  type        = number
+  default     = 256
+}
+
+variable "music_interaction_service_memory" {
+  description = "Memory for music interaction service (MiB)"
+  type        = number
+  default     = 512
+}
+
+variable "music_interaction_service_desired_count" {
+  description = "Desired number of music interaction service tasks"
+  type        = number
+  default     = 1
+}
+
+variable "music_interaction_service_min_capacity" {
+  description = "Minimum number of music interaction service tasks"
+  type        = number
+  default     = 1
+}
+
+variable "music_interaction_service_max_capacity" {
+  description = "Maximum number of music interaction service tasks"
+  type        = number
+  default     = 3
+}
+
+variable "music_interaction_db_name" {
+  description = "Name of the database for music interaction service"
+  type        = string
+  default     = "musicinteraction"
+}
+
+# Application secrets - Auth0
+variable "auth0_domain" {
+  description = "Auth0 Domain"
+  type        = string
+  sensitive   = true
+}
+
+variable "auth0_client_id" {
+  description = "Auth0 Client ID"
+  type        = string
+  sensitive   = true
+}
+
+variable "auth0_client_secret" {
+  description = "Auth0 Client Secret"
+  type        = string
+  sensitive   = true
+}
+
+variable "auth0_audience" {
+  description = "Auth0 Audience"
+  type        = string
+  sensitive   = true
+}
+
+variable "auth0_management_api_audience" {
+  description = "Auth0 Management API Audience"
+  type        = string
+  sensitive   = true
+}
+
+# Application secrets - Spotify
+variable "spotify_client_id" {
+  description = "Spotify Client ID"
+  type        = string
+  sensitive   = true
+}
+
+variable "spotify_client_secret" {
+  description = "Spotify Client Secret"
+  type        = string
+  sensitive   = true
 }

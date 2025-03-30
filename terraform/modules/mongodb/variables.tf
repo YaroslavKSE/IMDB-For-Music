@@ -8,11 +8,6 @@ variable "project_name" {
   type        = string
 }
 
-variable "atlas_org_id" {
-  description = "MongoDB Atlas organization ID"
-  type        = string
-}
-
 variable "atlas_public_key" {
   description = "MongoDB Atlas public API key"
   type        = string
@@ -105,4 +100,10 @@ variable "common_tags" {
   description = "Common tags to be applied to all resources"
   type        = map(string)
   default     = {}
+}
+
+variable "mongo_atlas_project_id" {
+  description = "Existing MongoDB Atlas project ID (if not creating a new one)"
+  type        = string
+  default     = null
 }
