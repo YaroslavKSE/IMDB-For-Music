@@ -18,6 +18,11 @@ output "www_domain_website_endpoint" {
   value       = var.create_www_subdomain ? "https://www.${var.domain_name}" : null
 }
 
+output "api_domain_endpoint" {
+  description = "The API domain endpoint"
+  value       = var.create_api_records ? "https://${var.api_subdomain}.${var.domain_name}" : null
+}
+
 output "root_a_record_name" {
   description = "The name of the root A record"
   value       = aws_route53_record.root_a.name
@@ -26,4 +31,9 @@ output "root_a_record_name" {
 output "www_a_record_name" {
   description = "The name of the www A record"
   value       = var.create_www_subdomain ? aws_route53_record.www_a[0].name : null
+}
+
+output "api_a_record_name" {
+  description = "The name of the API A record"
+  value       = var.create_api_records ? aws_route53_record.api_a[0].name : null
 }

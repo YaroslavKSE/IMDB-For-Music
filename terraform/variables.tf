@@ -7,7 +7,7 @@ variable "region" {
 variable "project_name" {
   description = "Name of the project"
   type        = string
-  default     = "my-project"
+  default     = "imdb-for-music"
 }
 
 variable "create_mongodb_endpoint" {
@@ -47,13 +47,19 @@ variable "domain_name" {
 }
 
 variable "use_acm_certificate" {
-  description = "Whether to use a custom ACM certificate for CloudFront"
+  description = "Whether to use a custom ACM certificate for CloudFront and ALB"
   type        = bool
   default     = true
 }
 
 variable "acm_certificate_arn" {
-  description = "ARN of the ACM certificate to use for CloudFront"
+  description = "ARN of the ACM certificate to use for CloudFront and ALB (should be a wildcard certificate)"
   type        = string
   default     = null
+}
+
+variable "create_api_records" {
+  description = "Whether to create Route53 records for the API domain"
+  type        = bool
+  default     = true
 }

@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "frontend" {
-  bucket = var.bucket_name
+  bucket        = var.bucket_name
   force_destroy = var.force_destroy
 
   tags = merge(

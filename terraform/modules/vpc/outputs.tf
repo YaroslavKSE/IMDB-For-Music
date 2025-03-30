@@ -3,14 +3,34 @@ output "vpc_id" {
   value       = aws_vpc.main.id
 }
 
-output "public_subnet_id" {
-  description = "The ID of the public subnet"
-  value       = aws_subnet.public.id
+output "public_subnet_id_a" {
+  description = "The ID of the public subnet in AZ a"
+  value       = aws_subnet.public_a.id
 }
 
-output "private_subnet_id" {
-  description = "The ID of the private subnet"
-  value       = aws_subnet.private.id
+output "public_subnet_id_b" {
+  description = "The ID of the public subnet in AZ b"
+  value       = aws_subnet.public_b.id
+}
+
+output "public_subnet_ids" {
+  description = "List of all public subnet IDs"
+  value       = [aws_subnet.public_a.id, aws_subnet.public_b.id]
+}
+
+output "private_subnet_id_a" {
+  description = "The ID of the private subnet in AZ a"
+  value       = aws_subnet.private_a.id
+}
+
+output "private_subnet_id_b" {
+  description = "The ID of the private subnet in AZ b"
+  value       = aws_subnet.private_b.id
+}
+
+output "private_subnet_ids" {
+  description = "List of all private subnet IDs"
+  value       = [aws_subnet.private_a.id, aws_subnet.private_b.id]
 }
 
 output "internet_gateway_id" {

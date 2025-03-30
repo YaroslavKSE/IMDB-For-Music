@@ -53,9 +53,9 @@ resource "aws_cloudfront_distribution" "frontend" {
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
 
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
+    min_ttl     = 0
+    default_ttl = 3600
+    max_ttl     = 86400
 
     forwarded_values {
       query_string = false
@@ -74,9 +74,9 @@ resource "aws_cloudfront_distribution" "frontend" {
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
 
-    min_ttl                = 0
-    default_ttl            = 0
-    max_ttl                = 0
+    min_ttl     = 0
+    default_ttl = 0
+    max_ttl     = 0
 
     forwarded_values {
       query_string = false
