@@ -8,35 +8,6 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure connection strings
-var configuration = builder.Configuration;
-
-// Configure specific settings for Docker environment
-if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
-{
-    Console.WriteLine("Running in Docker container");
-
-    // Override connection strings if provided as environment variables
-    var postgresConnection = Environment.GetEnvironmentVariable("ConnectionStrings__PostgreSQL");
-    var mongoConnection = Environment.GetEnvironmentVariable("MongoDB__ConnectionString");
-    var mongoDbName = Environment.GetEnvironmentVariable("MongoDB__DatabaseName");
-
-    if (!string.IsNullOrEmpty(postgresConnection))
-    {
-        configuration["ConnectionStrings:PostgreSQL"] = postgresConnection;
-    }
-
-    if (!string.IsNullOrEmpty(mongoConnection))
-    {
-        configuration["MongoDB:ConnectionString"] = mongoConnection;
-    }
-
-    if (!string.IsNullOrEmpty(mongoDbName))
-    {
-        configuration["MongoDB:DatabaseName"] = mongoDbName;
-    }
-}
-
 // Register MongoDB services for grading methods
 builder.Services.AddMongoDbServices();
 
@@ -45,6 +16,26 @@ builder.Services.AddPostgreSQLServices();
 
 // Register MediatR services
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(PostInteractionCommand).Assembly));
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy", policy =>
+    {
+        // Get allowed origins from configuration based on environment
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        
+        var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Environment: {Environment}", builder.Environment.EnvironmentName);
+        logger.LogInformation("CORS configured with allowed origins: {Origins}", 
+            allowedOrigins.Length > 0 ? string.Join(", ", allowedOrigins) : "none");
+        
+        policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
 
 // Basic health checks
 builder.Services.AddHealthChecks();
@@ -61,6 +52,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 app.MapControllers();
+app.UseCors("CorsPolicy");
 
 app.MapHealthChecks("/health");
 

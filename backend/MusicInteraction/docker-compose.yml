@@ -13,6 +13,7 @@ services:
       - ConnectionStrings__PostgreSQL=Host=${POSTGRES_HOST};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - MongoDB__ConnectionString=${MONGODB_CONNECTION_STRING}
       - MongoDB__DatabaseName=${MONGODB_DATABASE_NAME}
+      - FRONTEND_BASE_URL=${FRONTEND_BASE_URL}
     depends_on:
       postgres:
         condition: service_healthy
