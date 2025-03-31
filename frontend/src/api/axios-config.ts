@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 
 // Base API URLs for different services
 const USER_SERVICE_URL = import.meta.env.VITE_USER_SERVICE_URL || 'http://localhost:5001';
-const CATALOG_API_URL = import.meta.env.VITE_CATALOG_API_URL || 'http://localhost:5002';
+const CATALOG_API_URL = import.meta.env.VITE_CATALOG_API_URL || 'http://localhost:5010';
 const RATING_API_URL = import.meta.env.VITE_RATING_API_URL || 'http://localhost:5003';
 
 // Main API instance for user service
