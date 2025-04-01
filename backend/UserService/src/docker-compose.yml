@@ -24,6 +24,7 @@
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
       - ConnectionStrings__DefaultConnection=Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
+      - Cors__AllowedOrigins__0=${FRONTEND_BASE_URL}
       - Auth0__Domain=${AUTH0_DOMAIN}
       - Auth0__ClientId=${AUTH0_CLIENT_ID}
       - Auth0__ClientSecret=${AUTH0_CLIENT_SECRET}

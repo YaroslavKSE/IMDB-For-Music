@@ -24,11 +24,8 @@ resource "aws_ecs_task_definition" "music_catalog_service" {
       # Standard environment variables
       environment = [
         { name = "ASPNETCORE_ENVIRONMENT", value = var.environment == "prod" ? "Production" : "Development" },
-        { name = "AllowedOrigins__0", value = "http://localhost:5173" },
-        { name = "AllowedOrigins__1", value = var.environment == "prod" ? "https://${var.domain_name}" : "https://dev.${var.domain_name}" },
-        # Spotify API credentials
-        { name = "SPOTIFY_CLIENT_ID", value = var.spotify_client_id },
-        { name = "SPOTIFY_CLIENT_SECRET", value = var.spotify_client_secret }
+        #         { name = "AllowedOrigins__0", value = "http://localhost:5173" },
+        { name = "AllowedOrigins__0", value = var.environment == "prod" ? "https://${var.domain_name}" : "https://dev.${var.domain_name}" },
       ]
 
       # Access secrets from parameter store
@@ -36,7 +33,10 @@ resource "aws_ecs_task_definition" "music_catalog_service" {
         # MongoDB connection string
         { name = "MongoDb__ConnectionString", valueFrom = var.mongodb_connection_string_parameter },
         # Redis connection string
-        { name = "ConnectionStrings__Redis", valueFrom = var.redis_connection_string_parameter }
+        { name = "ConnectionStrings__Redis", valueFrom = var.redis_connection_string_parameter },
+        # Spotify API credentials
+        { name = "Spotify__ClientId", valueFrom = var.spotify_client_id },
+        { name = "Spotify__ClientSecret", valueFrom = var.spotify_client_secret }
       ]
 
       logConfiguration = {

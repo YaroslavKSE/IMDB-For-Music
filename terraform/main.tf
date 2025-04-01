@@ -104,7 +104,7 @@ module "route53" {
   cloudfront_domain_name    = module.cloudfront.cloudfront_domain_name
   cloudfront_hosted_zone_id = module.cloudfront.cloudfront_hosted_zone_id
   enable_ipv6               = false
-  create_www_subdomain      = true
+  create_www_subdomain      = false
   create_api_records        = true
   api_subdomain             = local.config.api_subdomain
   alb_domain_name           = module.alb.alb_dns_name
@@ -234,6 +234,54 @@ module "mongodb" {
   common_tags = local.common_tags
 }
 
+module "ssm_parameters" {
+  source = "./modules/parameter-store"
+
+  environment = local.environment
+  common_tags = local.common_tags
+
+  parameters = {
+    "auth0/domain" = {
+      description = "Auth0 Domain"
+      type        = "SecureString"
+    },
+    "auth0/client_id" = {
+      description = "Auth0 Client ID"
+      type        = "SecureString"
+    },
+    "auth0/client_secret" = {
+      description = "Auth0 Client Secret"
+      type        = "SecureString"
+    },
+    "auth0/audience" = {
+      description = "Auth0 Audience"
+      type        = "SecureString"
+    },
+    "auth0/management_api_audience" = {
+      description = "Auth0 Management API Audience"
+      type        = "SecureString"
+    },
+    "spotify/client_id" = {
+      description = "Spotify Client ID"
+      type        = "SecureString"
+    },
+    "spotify/client_secret" = {
+      description = "Spotify Client Secret"
+      type        = "SecureString"
+    }
+  }
+
+  parameter_values = {
+    "auth0/domain"                  = var.auth0_domain
+    "auth0/client_id"               = var.auth0_client_id
+    "auth0/client_secret"           = var.auth0_client_secret
+    "auth0/audience"                = var.auth0_audience
+    "auth0/management_api_audience" = var.auth0_management_api_audience
+    "spotify/client_id"             = var.spotify_client_id
+    "spotify/client_secret"         = var.spotify_client_secret
+  }
+}
+
 # ECS Module with direct secrets
 module "ecs" {
   source = "./modules/ecs"
@@ -293,15 +341,14 @@ module "ecs" {
     db_name            = var.music_interaction_db_name
   }
 
-  # Pass secrets directly (from tfvars)
-  spotify_client_id     = var.spotify_client_id
-  spotify_client_secret = var.spotify_client_secret
+  auth0_domain                  = module.ssm_parameters.parameter_arns["auth0/domain"]
+  auth0_client_id               = module.ssm_parameters.parameter_arns["auth0/client_id"]
+  auth0_client_secret           = module.ssm_parameters.parameter_arns["auth0/client_secret"]
+  auth0_audience                = module.ssm_parameters.parameter_arns["auth0/audience"]
+  auth0_management_api_audience = module.ssm_parameters.parameter_arns["auth0/management_api_audience"]
 
-  auth0_domain                  = var.auth0_domain
-  auth0_client_id               = var.auth0_client_id
-  auth0_client_secret           = var.auth0_client_secret
-  auth0_audience                = var.auth0_audience
-  auth0_management_api_audience = var.auth0_management_api_audience
+  spotify_client_id     = module.ssm_parameters.parameter_arns["spotify/client_id"]
+  spotify_client_secret = module.ssm_parameters.parameter_arns["spotify/client_secret"]
 
   common_tags = local.common_tags
 

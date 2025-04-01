@@ -24,21 +24,23 @@ resource "aws_ecs_task_definition" "user_service" {
       # Standard environment variables
       environment = [
         { name = "ASPNETCORE_ENVIRONMENT", value = var.environment == "prod" ? "Production" : "Development" },
-        { name = "FRONTEND_BASE_URL", value = var.environment == "prod" ? "https://${var.domain_name}" : "https://dev.${var.domain_name}" },
 
-        # Auth0 configuration (all directly in environment variables)
-        { name = "AUTH0_DOMAIN", value = var.auth0_domain },
-        { name = "AUTH0_CLIENT_ID", value = var.auth0_client_id },
-        { name = "AUTH0_CLIENT_SECRET", value = var.auth0_client_secret },
-        { name = "AUTH0_AUDIENCE", value = var.auth0_audience },
-        { name = "AUTH0_MANAGEMENT_API_AUDIENCE", value = var.auth0_management_api_audience }
+        # CORS configuration
+        { name = "Cors__AllowedOrigins__0", value = var.environment == "prod" ? "https://${var.domain_name}" : "https://dev.${var.domain_name}" },
       ]
-
       # Access connection strings from parameter store
       secrets = [
-        # Full connection string for PostgreSQL
-        { name = "ConnectionStrings__DefaultConnection", valueFrom = var.postgres_connection_string_parameter }
+        # PostgreSQL connection string
+        { name = "ConnectionStrings__DefaultConnection", valueFrom = var.postgres_connection_string_parameter },
+
+        # Auth0 credentials
+        { name = "Auth0__Domain", valueFrom = var.auth0_domain },
+        { name = "Auth0__ClientId", valueFrom = var.auth0_client_id },
+        { name = "Auth0__ClientSecret", valueFrom = var.auth0_client_secret },
+        { name = "Auth0__Audience", valueFrom = var.auth0_audience },
+        { name = "Auth0__ManagementApiAudience", valueFrom = var.auth0_management_api_audience }
       ]
+
 
       logConfiguration = {
         logDriver = "awslogs"

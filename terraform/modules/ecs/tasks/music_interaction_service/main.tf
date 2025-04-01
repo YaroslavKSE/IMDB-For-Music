@@ -24,7 +24,8 @@ resource "aws_ecs_task_definition" "music_interaction_service" {
       # Standard environment variables
       environment = [
         { name = "ASPNETCORE_ENVIRONMENT", value = var.environment == "prod" ? "Production" : "Development" },
-        { name = "FRONTEND_BASE_URL", value = var.environment == "prod" ? "https://${var.domain_name}" : "https://dev.${var.domain_name}" }
+        # CORS configuration
+        { name = "Cors__AllowedOrigins__0", value = var.environment == "prod" ? "https://${var.domain_name}" : "https://dev.${var.domain_name}" },
       ]
 
       # Access connection strings from parameter store

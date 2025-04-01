@@ -56,13 +56,13 @@ variable "redis_connection_string_parameter" {
 
 # Spotify variables
 variable "spotify_client_id" {
-  description = "Spotify Client ID"
+  description = "Spotify Client ID parameter ARN in SSM"
   type        = string
   sensitive   = true
 }
 
 variable "spotify_client_secret" {
-  description = "Spotify Client Secret"
+  description = "Spotify Client Secret parameter ARN in SSM"
   type        = string
   sensitive   = true
 }

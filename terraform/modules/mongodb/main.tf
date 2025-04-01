@@ -86,11 +86,14 @@ resource "mongodbatlas_database_user" "main" {
   }
 }
 
-# Generate a random password for the database user
+# Generate a random password for the database user without problematic special characters
 resource "random_password" "db_password" {
-  length           = 16
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
+  length  = 16
+  special = true
+  # Use a limited set of special characters that don't need URL encoding in connection strings
+  override_special = "-_."
+  # Alternatively, you can disable special characters completely:
+  # special          = false
 }
 
 # Store the password in SSM Parameter Store

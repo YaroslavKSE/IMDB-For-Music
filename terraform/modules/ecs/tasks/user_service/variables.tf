@@ -52,31 +52,31 @@ variable "postgres_connection_string_parameter" {
 
 # Auth0 variables
 variable "auth0_domain" {
-  description = "Auth0 Domain"
+  description = "Auth0 Domain parameter ARN in SSM"
   type        = string
   sensitive   = true
 }
 
 variable "auth0_client_id" {
-  description = "Auth0 Client ID"
+  description = "Auth0 Client ID parameter ARN in SSM"
   type        = string
   sensitive   = true
 }
 
 variable "auth0_client_secret" {
-  description = "Auth0 Client Secret"
+  description = "Auth0 Client Secret parameter ARN in SSM"
   type        = string
   sensitive   = true
 }
 
 variable "auth0_audience" {
-  description = "Auth0 Audience"
+  description = "Auth0 Audience parameter ARN in SSM"
   type        = string
   sensitive   = true
 }
 
 variable "auth0_management_api_audience" {
-  description = "Auth0 Management API Audience"
+  description = "Auth0 Management API Audience parameter ARN in SSM"
   type        = string
   sensitive   = true
 }
