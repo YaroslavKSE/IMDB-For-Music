@@ -45,7 +45,7 @@ resource "aws_lb" "api_alb" {
   security_groups    = [aws_security_group.alb_sg.id]
   subnets            = var.public_subnet_ids
 
-  enable_deletion_protection = var.environment == "prod" ? true : false
+# enable_deletion_protection = var.environment == "prod" ? true : false
 
   tags = merge(
     var.common_tags,

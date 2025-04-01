@@ -119,6 +119,15 @@ resource "aws_security_group" "ecs_tasks_sg" {
   description = "Security group for ECS tasks"
   vpc_id      = module.vpc.vpc_id
 
+  # Allow inbound from ALB
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [module.alb.security_group_id]
+    description     = "Allow HTTP traffic from ALB"
+  }
+
   # Allow outbound internet access
   egress {
     from_port   = 0
@@ -148,7 +157,7 @@ module "rds" {
   # Database settings
   db_name               = var.rds_database_name
   db_username           = var.rds_username
-  postgres_version      = "17.4-R1"
+  postgres_version      = "17.2"
   instance_class        = lookup(var.rds_instance_class, local.environment, "db.t3.micro")
   allocated_storage     = 20
   max_allocated_storage = local.environment == "prod" ? 100 : 20
@@ -233,6 +242,7 @@ module "ecs" {
   region                                     = var.region
   name                                       = var.project_name
   domain_name                                = var.domain_name
+  ecs_security_group                         = [aws_security_group.ecs_tasks_sg.id]
   vpc_id                                     = module.vpc.vpc_id
   private_subnet_ids                         = module.vpc.private_subnet_ids
   alb_security_group_id                      = module.alb.security_group_id
@@ -240,12 +250,12 @@ module "ecs" {
   music_catalog_service_target_group_arn     = module.alb.music_catalog_target_group_arn
   music_interaction_service_target_group_arn = module.alb.rating_service_target_group_arn
 
-  # RDS configuration - Only passing parameter store variables that the tasks will access
-  rds_address_parameter                = "/${local.environment}/database/address"
+  # RDS configuration - passing parameter store variables that the tasks will access
+  # rds_address_parameter                = "/${local.environment}/database/address"
   postgres_connection_string_parameter = "/${local.environment}/database/connection_string"
 
   # MongoDB configuration
-  mongodb_connection_string_parameter = "/${local.environment}/mongodb/connection_string"
+  mongodb_connection_string_parameter = "/${local.environment}/mongodb/${var.mongodb_database_name}/connection_string"
 
   # Redis configuration
   redis_connection_string_parameter = "/${local.environment}/redis/connection_string"

@@ -60,6 +60,16 @@ resource "aws_ssm_parameter" "db_password" {
   tags = var.common_tags
 }
 
+# Create a PostgreSQL connection string parameter
+resource "aws_ssm_parameter" "db_connection_string" {
+  name        = "/${var.environment}/database/connection_string"
+  description = "PostgreSQL connection string for ${var.db_name}"
+  type        = "SecureString"
+  value       = "Host=${aws_db_instance.main.endpoint};Database=${var.db_name};Username=${var.db_username};Password=${random_password.db_password.result}"
+
+  tags = var.common_tags
+}
+
 # RDS PostgreSQL Instance
 resource "aws_db_instance" "main" {
   identifier              = "${var.environment}-${var.db_name}"
@@ -109,21 +119,21 @@ resource "aws_db_parameter_group" "main" {
 
   # Static parameters
   parameter {
-    name  = "max_connections"
-    value = "100"
-    apply_method = "pending-reboot"  # Add this line
+    name         = "max_connections"
+    value        = "100"
+    apply_method = "pending-reboot" # Add this line
   }
 
   parameter {
-    name  = "shared_buffers"
-    value = "16384" # 16MB for free tier
-    apply_method = "pending-reboot"  # Add this line
+    name         = "shared_buffers"
+    value        = "16384"          # 16MB for free tier
+    apply_method = "pending-reboot" # Add this line
   }
 
   parameter {
-    name  = "work_mem"
-    value = "4096" # 4MB for free tier
-    apply_method = "pending-reboot"  # Add this line
+    name         = "work_mem"
+    value        = "4096"           # 4MB for free tier
+    apply_method = "pending-reboot" # Add this line
   }
 
   # Dynamic parameters don't need apply_method

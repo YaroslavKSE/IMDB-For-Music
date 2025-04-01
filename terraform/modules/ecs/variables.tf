@@ -109,11 +109,6 @@ variable "music_interaction_service_target_group_arn" {
 }
 
 # Parameter Store paths for connection strings
-variable "rds_address_parameter" {
-  description = "SSM Parameter Store path for RDS address"
-  type        = string
-}
-
 variable "postgres_connection_string_parameter" {
   description = "SSM Parameter Store path for PostgreSQL connection string"
   type        = string
@@ -171,4 +166,10 @@ variable "spotify_client_secret" {
   description = "Spotify Client Secret"
   type        = string
   sensitive   = true
+}
+
+variable "ecs_security_group" {
+  description = "ECS Security group ID"
+  type        = list(string)
+  default     = []
 }

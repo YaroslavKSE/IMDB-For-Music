@@ -31,45 +31,45 @@ resource "aws_cloudwatch_log_group" "ecs_logs" {
 }
 
 # Create security group for ECS tasks
-resource "aws_security_group" "ecs_tasks_sg" {
-  name        = "${var.environment}-ecs-tasks-sg"
-  description = "Security group for ECS tasks"
-  vpc_id      = var.vpc_id
-
-  # Allow all outbound
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow all outbound traffic"
-  }
-
-  # Allow inbound from ALB
-  ingress {
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    security_groups = [var.alb_security_group_id]
-    description     = "Allow HTTP traffic from ALB"
-  }
-
-  # Optional: Allow traffic between services if needed
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    self        = true
-    description = "Allow all traffic between ECS tasks"
-  }
-
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.environment}-ecs-tasks-sg"
-    }
-  )
-}
+# resource "aws_security_group" "ecs_tasks_sg" {
+#   name        = "${var.environment}-ecs-tasks-sg"
+#   description = "Security group for ECS tasks"
+#   vpc_id      = var.vpc_id
+#
+#   # Allow all outbound
+#   egress {
+#     from_port   = 0
+#     to_port     = 0
+#     protocol    = "-1"
+#     cidr_blocks = ["0.0.0.0/0"]
+#     description = "Allow all outbound traffic"
+#   }
+#
+#   # Allow inbound from ALB
+#   ingress {
+#     from_port       = 80
+#     to_port         = 80
+#     protocol        = "tcp"
+#     security_groups = [var.alb_security_group_id]
+#     description     = "Allow HTTP traffic from ALB"
+#   }
+#
+#   # Optional: Allow traffic between services if needed
+#   ingress {
+#     from_port   = 0
+#     to_port     = 0
+#     protocol    = "-1"
+#     self        = true
+#     description = "Allow all traffic between ECS tasks"
+#   }
+#
+#   tags = merge(
+#     var.common_tags,
+#     {
+#       Name = "${var.environment}-ecs-tasks-sg"
+#     }
+#   )
+# }
 
 # IAM Role for ECS Tasks
 resource "aws_iam_role" "ecs_task_execution_role" {
@@ -257,7 +257,7 @@ resource "aws_ecs_service" "user_service" {
   deployment_maximum_percent         = 200
 
   network_configuration {
-    security_groups  = [aws_security_group.ecs_tasks_sg.id]
+    security_groups  = var.ecs_security_group
     subnets          = var.private_subnet_ids
     assign_public_ip = false
   }
@@ -292,7 +292,7 @@ resource "aws_ecs_service" "music_catalog_service" {
   deployment_maximum_percent         = 200
 
   network_configuration {
-    security_groups  = [aws_security_group.ecs_tasks_sg.id]
+    security_groups  = var.ecs_security_group
     subnets          = var.private_subnet_ids
     assign_public_ip = false
   }
@@ -327,7 +327,7 @@ resource "aws_ecs_service" "music_interaction_service" {
   deployment_maximum_percent         = 200
 
   network_configuration {
-    security_groups  = [aws_security_group.ecs_tasks_sg.id]
+    security_groups  = var.ecs_security_group
     subnets          = var.private_subnet_ids
     assign_public_ip = false
   }

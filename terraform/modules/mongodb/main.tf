@@ -66,7 +66,7 @@ resource "mongodbatlas_advanced_cluster" "main" {
 resource "mongodbatlas_database_user" "main" {
   username           = var.db_username
   password           = random_password.db_password.result
-  project_id   = var.mongo_atlas_project_id
+  project_id         = var.mongo_atlas_project_id
   auth_database_name = "admin"
 
   roles {
@@ -115,7 +115,7 @@ resource "aws_ssm_parameter" "connection_string" {
 
 # Configure AWS PrivateLink for MongoDB Atlas
 resource "mongodbatlas_privatelink_endpoint" "main" {
-  project_id   = var.mongo_atlas_project_id
+  project_id    = var.mongo_atlas_project_id
   provider_name = "AWS"
   region        = var.atlas_region
 }
@@ -162,7 +162,7 @@ resource "aws_vpc_endpoint" "mongodb" {
   vpc_endpoint_type   = "Interface"
   subnet_ids          = var.private_subnet_ids
   security_group_ids  = [aws_security_group.mongodb_endpoint.id]
-  private_dns_enabled = true
+  private_dns_enabled = false # Changed from true to false
 
   tags = merge(
     var.common_tags,
@@ -174,7 +174,7 @@ resource "aws_vpc_endpoint" "mongodb" {
 
 # Get the AWS VPC Endpoint Service Name
 resource "mongodbatlas_privatelink_endpoint_service" "main" {
-  project_id   = var.mongo_atlas_project_id
+  project_id          = var.mongo_atlas_project_id
   private_link_id     = mongodbatlas_privatelink_endpoint.main.private_link_id
   endpoint_service_id = aws_vpc_endpoint.mongodb.id
   provider_name       = "AWS"
@@ -182,7 +182,7 @@ resource "mongodbatlas_privatelink_endpoint_service" "main" {
 
 # Allow access from the specified security groups
 resource "mongodbatlas_project_ip_access_list" "main" {
-  project_id   = var.mongo_atlas_project_id
+  project_id = var.mongo_atlas_project_id
   cidr_block = data.aws_vpc.selected.cidr_block
   comment    = "CIDR block for ${var.environment} VPC"
 }

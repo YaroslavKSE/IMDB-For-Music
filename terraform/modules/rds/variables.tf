@@ -33,7 +33,7 @@ variable "db_username" {
 variable "postgres_version" {
   description = "PostgreSQL engine version"
   type        = string
-  default     = "17.4-R1"
+  default     = "17.2"
 }
 
 variable "instance_class" {
