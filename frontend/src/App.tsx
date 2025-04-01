@@ -12,6 +12,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import Search from './pages/Search';
 import NotFound from "./pages/NotFound.tsx";
 
 // Auth callback handler component
@@ -21,18 +22,18 @@ const AuthCallback = () => {
 
   useEffect(() => {
     handleAuthCallback()
-      .then(({ accessToken, provider }) => {
-        // Use the store's socialLogin function with the tokens
-        return socialLogin(accessToken, provider);
-      })
-      .then(() => {
-        // Redirect to home page after successful login
-        navigate('/', { replace: true });
-      })
-      .catch(error => {
-        console.error('Auth callback error:', error);
-        navigate('/login', { replace: true });
-      });
+        .then(({ accessToken, provider }) => {
+          // Use the store's socialLogin function with the tokens
+          return socialLogin(accessToken, provider);
+        })
+        .then(() => {
+          // Redirect to home page after successful login
+          navigate('/', { replace: true });
+        })
+        .catch(error => {
+          console.error('Auth callback error:', error);
+          navigate('/login', { replace: true });
+        });
   }, [navigate, socialLogin]);
 
   // Show a loading indicator while processing the callback
@@ -64,32 +65,33 @@ function App() {
   }, [isAuthenticated, fetchUserProfile]);
 
   return (
-    <Router>
-      <Routes>
-        {/* Auth0 callback route */}
-        <Route path="/callback" element={<AuthCallback />} />
+      <Router>
+        <Routes>
+          {/* Auth0 callback route */}
+          <Route path="/callback" element={<AuthCallback />} />
 
-        {/* Public routes */}
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Home />} />
-          <Route path="login" element={<Login />} />
-          <Route path="register" element={<Register />} />
+          {/* Public routes */}
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<Home />} />
+            <Route path="login" element={<Login />} />
+            <Route path="register" element={<Register />} />
+            <Route path="search" element={<Search />} />
 
-          {/* Protected routes */}
-          <Route
-            path="profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
+            {/* Protected routes */}
+            <Route
+                path="profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+            />
 
-          {/* Catch-all route for 404 */}
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </Router>
+            {/* Catch-all route for 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+      </Router>
   );
 }
 
