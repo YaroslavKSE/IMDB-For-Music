@@ -306,7 +306,7 @@ module "ecs" {
   mongodb_connection_string_parameter = "/${local.environment}/mongodb/${var.mongodb_database_name}/connection_string"
 
   # Redis configuration
-  redis_connection_string_parameter = "/${local.environment}/redis/connection_string"
+  redis_connection_string_parameter = "/${local.environment}/redis/endpoint"
 
   # Service configurations
   user_service_config = {

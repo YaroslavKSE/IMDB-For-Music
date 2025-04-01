@@ -25,7 +25,7 @@ resource "aws_ecs_task_definition" "music_catalog_service" {
       environment = [
         { name = "ASPNETCORE_ENVIRONMENT", value = var.environment == "prod" ? "Production" : "Development" },
         #         { name = "AllowedOrigins__0", value = "http://localhost:5173" },
-        { name = "AllowedOrigins__0", value = var.environment == "prod" ? "https://${var.domain_name}" : "https://dev.${var.domain_name}" },
+        { name = "AllowedOrigins", value = var.environment == "prod" ? "https://${var.domain_name},https://www.${var.domain_name}"  : "https://dev.${var.domain_name},http://localhost:5173" },
       ]
 
       # Access secrets from parameter store
