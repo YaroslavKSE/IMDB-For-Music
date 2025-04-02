@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Music, Disc, User, Loader } from 'lucide-react';
-import CatalogService, {
-    SearchResult,
-    AlbumSummary,
-    TrackSummary,
-    ArtistSummary
-} from '../api/catalog';
+import CatalogService, {SearchResult} from '../api/catalog';
 import EmptyState from '../components/common/EmptyState';
-import { formatDuration } from '../utils/formatters';
+import ArtistCard from "../components/Search/ArtistCard.tsx";
+import TrackRow from "../components/Search/TrackRow.tsx";
+import AlbumCard from "../components/Search/AlbumCard.tsx";
 
 // Tabs definition for search filter
 type SearchTab = 'all' | 'album' | 'track' | 'artist';
@@ -183,100 +180,6 @@ const Search = () => {
                     )}
                 </div>
             )}
-        </div>
-    );
-};
-
-// Album Card Component
-const AlbumCard = ({ album }: { album: AlbumSummary }) => {
-    return (
-        <div className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow duration-200">
-            <a href={`/album/${album.spotifyId}`} className="block">
-                <div className="aspect-square w-full overflow-hidden bg-gray-200">
-                    <img
-                        src={album.imageUrl || '/placeholder-album.jpg'}
-                        alt={album.name}
-                        className="w-full h-full object-cover"
-                    />
-                </div>
-                <div className="p-3">
-                    <h3 className="font-medium text-gray-900 truncate">{album.name}</h3>
-                    <p className="text-sm text-gray-600 truncate">{album.artistName}</p>
-                    <div className="flex items-center mt-1 text-xs text-gray-500">
-                        <span>{album.releaseDate?.split('-')[0] || 'Unknown year'}</span>
-                        <span className="mx-1">•</span>
-                        <span>{album.albumType === 'album' ? 'Album' : album.albumType}</span>
-                    </div>
-                </div>
-            </a>
-        </div>
-    );
-};
-
-// Track Row Component
-const TrackRow = ({ track, index }: { track: TrackSummary; index: number }) => {
-    return (
-        <div className={`flex items-center px-4 py-3 ${
-            index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-        }`}>
-            <div className="flex-shrink-0 mr-4">
-                <img
-                    src={track.imageUrl || '/placeholder-album.jpg'}
-                    alt={track.name}
-                    className="w-12 h-12 object-cover shadow"
-                />
-            </div>
-            <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                        <a
-                            href={`/track/${track.spotifyId}`}
-                            className="block hover:text-primary-600"
-                        >
-                            <h4 className="text-sm font-medium text-gray-900 truncate flex items-center">
-                                {track.name}
-                                {track.isExplicit && (
-                                    <span className="ml-2 px-1.5 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">
-                                        E
-                                    </span>
-                                )}
-                            </h4>
-                            <p className="text-xs text-gray-500 truncate">{track.artistName}</p>
-                        </a>
-                    </div>
-                    <div className="ml-4 flex-shrink-0 flex items-center">
-                        <span className="text-xs text-gray-500">{formatDuration(track.durationMs)}</span>
-                        <a
-                            href={`/album/${track.albumId}`}
-                            className="ml-3 text-gray-500 hover:text-primary-600 focus:outline-none"
-                            title="View Album"
-                        >
-                            <Disc className="h-5 w-5" />
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// Artist Card Component
-const ArtistCard = ({ artist }: { artist: ArtistSummary }) => {
-    return (
-        <div className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow duration-200">
-            <a href={`/artist/${artist.spotifyId}`} className="block">
-                <div className="aspect-square w-full overflow-hidden bg-gray-200 rounded-full mx-auto p-2">
-                    <img
-                        src={artist.imageUrl || '/placeholder-artist.jpg'}
-                        alt={artist.name}
-                        className="w-full h-full object-cover rounded-full"
-                    />
-                </div>
-                <div className="p-3 text-center">
-                    <h3 className="font-medium text-gray-900 truncate">{artist.name}</h3>
-                    <p className="text-sm text-gray-600">Artist</p>
-                </div>
-            </a>
         </div>
     );
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, User, Home, Disc, ListMusic, TrendingUp, LogIn, Star, Headphones } from 'lucide-react';
+import { Search, Menu, X, User, Home, Disc, ListMusic, TrendingUp, LogIn, Star, Headphones, NotebookPen } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
 const Header = () => {
@@ -54,26 +54,15 @@ const Header = () => {
                   Home
                 </Link>
                 <Link
-                    to="/search"
+                    to="/diary"
                     className={`inline-flex items-center px-1 pt-1 text-sm font-medium ${
-                        location.pathname === '/search'
+                        location.pathname === '/diary'
                             ? 'text-primary-600 border-b-2 border-primary-600'
                             : 'text-zinc-500 hover:text-zinc-900 border-b-2 border-transparent hover:border-zinc-300'
                     }`}
                 >
-                  <Disc className="h-4 w-4 mr-1" />
-                  Explore
-                </Link>
-                <Link
-                    to="/charts"
-                    className={`inline-flex items-center px-1 pt-1 text-sm font-medium ${
-                        location.pathname === '/charts'
-                            ? 'text-primary-600 border-b-2 border-primary-600'
-                            : 'text-zinc-500 hover:text-zinc-900 border-b-2 border-transparent hover:border-zinc-300'
-                    }`}
-                >
-                  <TrendingUp className="h-4 w-4 mr-1" />
-                  Charts
+                  <NotebookPen className="h-4 w-4 mr-1" />
+                  Diary
                 </Link>
                 <Link
                     to="/lists"
