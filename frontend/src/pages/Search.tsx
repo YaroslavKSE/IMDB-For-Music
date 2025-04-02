@@ -216,12 +216,9 @@ const AlbumCard = ({ album }: { album: AlbumSummary }) => {
 // Track Row Component
 const TrackRow = ({ track, index }: { track: TrackSummary; index: number }) => {
     return (
-        <a
-            href={`/track/${track.spotifyId}`}
-            className={`flex items-center px-4 py-3 hover:bg-gray-50 ${
-                index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-            }`}
-        >
+        <div className={`flex items-center px-4 py-3 ${
+            index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+        }`}>
             <div className="flex-shrink-0 mr-4">
                 <img
                     src={track.imageUrl || '/placeholder-album.jpg'}
@@ -232,20 +229,34 @@ const TrackRow = ({ track, index }: { track: TrackSummary; index: number }) => {
             <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                        <h4 className="text-sm font-medium text-gray-900 truncate">{track.name}</h4>
-                        <p className="text-xs text-gray-500 truncate">{track.artistName}</p>
+                        <a
+                            href={`/track/${track.spotifyId}`}
+                            className="block hover:text-primary-600"
+                        >
+                            <h4 className="text-sm font-medium text-gray-900 truncate flex items-center">
+                                {track.name}
+                                {track.isExplicit && (
+                                    <span className="ml-2 px-1.5 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">
+                                        E
+                                    </span>
+                                )}
+                            </h4>
+                            <p className="text-xs text-gray-500 truncate">{track.artistName}</p>
+                        </a>
                     </div>
-                    <div className="ml-4 flex-shrink-0 text-right">
+                    <div className="ml-4 flex-shrink-0 flex items-center">
                         <span className="text-xs text-gray-500">{formatDuration(track.durationMs)}</span>
-                        {track.isExplicit && (
-                            <span className="ml-2 px-1.5 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">
-                E
-              </span>
-                        )}
+                        <a
+                            href={`/album/${track.albumId}`}
+                            className="ml-3 text-gray-500 hover:text-primary-600 focus:outline-none"
+                            title="View Album"
+                        >
+                            <Disc className="h-5 w-5" />
+                        </a>
                     </div>
                 </div>
             </div>
-        </a>
+        </div>
     );
 };
 

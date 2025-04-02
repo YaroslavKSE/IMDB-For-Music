@@ -26,6 +26,7 @@ export interface TrackSummary {
   durationMs: number;
   isExplicit: boolean;
   trackNumber?: number;
+  albumId: string;
   popularity?: number;
   externalUrls?: string[];
 }

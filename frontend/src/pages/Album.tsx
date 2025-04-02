@@ -172,7 +172,7 @@ const Album = () => {
                     {album.externalUrls && album.externalUrls.length > 0 && (
                         <div className="mt-4">
                             <a
-                                href={album.externalUrls[0]}
+                                href={`https://open.spotify.com/album/${album.spotifyId}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center text-sm text-gray-600 hover:text-primary-600"
@@ -203,12 +203,15 @@ const Album = () => {
 
                             <div className="flex-grow min-w-0 ml-4">
                                 <div className="flex items-center">
-                                    <Link
-                                        to={`/track/${track.spotifyId}`}
-                                        className="text-gray-900 font-medium hover:text-primary-600 truncate"
+                                    <a
+                                        href={`https://open.spotify.com/track/${track.spotifyId}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-gray-900 font-medium hover:text-primary-600 truncate flex items-center"
                                     >
                                         {track.name}
-                                    </Link>
+                                        <ExternalLink className="h-3 w-3 ml-1 inline opacity-60" />
+                                    </a>
 
                                     {track.isExplicit && (
                                         <span className="ml-2 px-1.5 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">
