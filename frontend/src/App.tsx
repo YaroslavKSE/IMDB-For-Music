@@ -13,86 +13,88 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Search from './pages/Search';
+import Album from './pages/Album';
 import NotFound from "./pages/NotFound.tsx";
 
 // Auth callback handler component
 const AuthCallback = () => {
-  const navigate = useNavigate();
-  const { socialLogin } = useAuthStore();
+    const navigate = useNavigate();
+    const { socialLogin } = useAuthStore();
 
-  useEffect(() => {
-    handleAuthCallback()
-        .then(({ accessToken, provider }) => {
-          // Use the store's socialLogin function with the tokens
-          return socialLogin(accessToken, provider);
-        })
-        .then(() => {
-          // Redirect to home page after successful login
-          navigate('/', { replace: true });
-        })
-        .catch(error => {
-          console.error('Auth callback error:', error);
-          navigate('/login', { replace: true });
-        });
-  }, [navigate, socialLogin]);
+    useEffect(() => {
+        handleAuthCallback()
+            .then(({ accessToken, provider }) => {
+                // Use the store's socialLogin function with the tokens
+                return socialLogin(accessToken, provider);
+            })
+            .then(() => {
+                // Redirect to home page after successful login
+                navigate('/', { replace: true });
+            })
+            .catch(error => {
+                console.error('Auth callback error:', error);
+                navigate('/login', { replace: true });
+            });
+    }, [navigate, socialLogin]);
 
-  // Show a loading indicator while processing the callback
-  return <div>Processing authentication, please wait...</div>;
+    // Show a loading indicator while processing the callback
+    return <div>Processing authentication, please wait...</div>;
 };
 
 // Protected route wrapper component
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
 
-  return <>{children}</>;
+    return <>{children}</>;
 };
 
 function App() {
-  const { isAuthenticated, fetchUserProfile } = useAuthStore();
+    const { isAuthenticated, fetchUserProfile } = useAuthStore();
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchUserProfile();
-    }
-  }, [isAuthenticated, fetchUserProfile]);
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchUserProfile();
+        }
+    }, [isAuthenticated, fetchUserProfile]);
 
-  return (
-      <Router>
-        <Routes>
-          {/* Auth0 callback route */}
-          <Route path="/callback" element={<AuthCallback />} />
+    return (
+        <Router>
+            <Routes>
+                {/* Auth0 callback route */}
+                <Route path="/callback" element={<AuthCallback />} />
 
-          {/* Public routes */}
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Home />} />
-            <Route path="login" element={<Login />} />
-            <Route path="register" element={<Register />} />
-            <Route path="search" element={<Search />} />
+                {/* Public routes */}
+                <Route path="/" element={<MainLayout />}>
+                    <Route index element={<Home />} />
+                    <Route path="login" element={<Login />} />
+                    <Route path="register" element={<Register />} />
+                    <Route path="search" element={<Search />} />
+                    <Route path="album/:id" element={<Album />} />
 
-            {/* Protected routes */}
-            <Route
-                path="profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-            />
+                    {/* Protected routes */}
+                    <Route
+                        path="profile"
+                        element={
+                            <ProtectedRoute>
+                                <Profile />
+                            </ProtectedRoute>
+                        }
+                    />
 
-            {/* Catch-all route for 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Route>
-        </Routes>
-      </Router>
-  );
+                    {/* Catch-all route for 404 */}
+                    <Route path="*" element={<NotFound />} />
+                </Route>
+            </Routes>
+        </Router>
+    );
 }
 
 export default App;
