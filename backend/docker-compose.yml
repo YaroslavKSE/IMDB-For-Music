@@ -130,7 +130,7 @@ services:
       - MongoDB__DatabaseName=${MONGO_DATABASE}
       - Cors__AllowedOrigins__0=${FRONTEND_BASE_URL}
     ports:
-      - "5003:8080"
+      - "5003:80"
     depends_on:
       postgres:
         condition: service_healthy
