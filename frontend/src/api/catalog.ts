@@ -26,6 +26,7 @@ export interface TrackSummary {
   durationMs: number;
   isExplicit: boolean;
   trackNumber?: number;
+  albumId: string;
   popularity?: number;
   externalUrls?: string[];
 }
@@ -74,12 +75,12 @@ export interface SearchResult {
 
 const CatalogService = {
   getTrack: async (spotifyId: string): Promise<TrackDetail> => {
-    const response = await catalogApi.get(`/catalog/tracks/${spotifyId}`);
+    const response = await catalogApi.get(`/catalog/tracks/spotify/${spotifyId}`);
     return response.data;
   },
 
   getAlbum: async (spotifyId: string): Promise<AlbumDetail> => {
-    const response = await catalogApi.get(`/catalog/albums/${spotifyId}`);
+    const response = await catalogApi.get(`/catalog/albums/spotify/${spotifyId}`);
     return response.data;
   },
 

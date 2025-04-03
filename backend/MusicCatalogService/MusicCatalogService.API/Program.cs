@@ -98,6 +98,9 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Basic health checks
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
@@ -118,5 +121,7 @@ app.UseCors("MusicAppPolicy");
 app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
+
+app.MapHealthChecks("/health");
 
 app.Run();

@@ -154,6 +154,7 @@ public class SearchService : ISearchService
                 DurationMs = track.DurationMs,
                 IsExplicit = track.Explicit,
                 TrackNumber = track.TrackNumber,
+                AlbumId = track.Album.Id,
                 ImageUrl = GetOptimalImage(track.Album?.Images),
                 Images = track.Album?.Images.Select(img => new ImageDto
                 {

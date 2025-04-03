@@ -51,23 +51,20 @@ const Register = () => {
     }
   };
 
-  const handleGoogleSignup = async () => {
+  const handleGoogleSignup = () => {
     try {
       setSocialLoading(true);
       clearError();
       setError(null);
 
-      const success = await handleAuth0Login('google-oauth2');
+      // Just call the function without awaiting or checking its result
+      handleAuth0Login('google-oauth2');
 
-      if (success) {
-        navigate('/');
-      } else {
-        setError('Google signup failed. Please try again.');
-      }
+      // The redirect will happen automatically, so this code won't execute
+      // You don't need the navigate() here since Auth0 will handle the redirect
     } catch (err) {
       console.error('Google signup failed:', err);
       setError('An error occurred during Google authentication.');
-    } finally {
       setSocialLoading(false);
     }
   };

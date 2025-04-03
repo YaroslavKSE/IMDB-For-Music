@@ -148,8 +148,8 @@ builder.Services.AddSwaggerGen(c => {
 });
 
 // Health checks
-// builder.Services.AddHealthChecks()
-//     .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection"));
+builder.Services.AddHealthChecks()
+    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection"));
 
 builder.Services.AddCors(options =>
 {
@@ -262,6 +262,6 @@ app.UseAuthorization();
 // app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.MapControllers();
-// app.MapHealthChecks("/health");
+app.MapHealthChecks("/health");
 
 app.Run();

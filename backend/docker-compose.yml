@@ -1,0 +1,171 @@
+version: '3.8'
+
+services:
+  # PostgreSQL for UserService and MusicInteractionService
+  postgres:
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - music-app-network
+
+  # MongoDB for MusicCatalogService and MusicInteractionService
+  mongodb:
+    image: mongo:latest
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_DATABASE}
+    ports:
+      - "${MONGO_PORT}:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet mongodb://${MONGO_USER}:${MONGO_PASSWORD}@localhost:27017/admin
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - music-app-network
+
+  # Redis for MusicCatalogService
+  redis:
+    image: redis:alpine
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    networks:
+      - music-app-network
+
+  # UserService Microservice
+  user-service:
+    build:
+      context: ./UserService/src
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - Auth0__Domain=${AUTH0_DOMAIN}
+      - Auth0__ClientId=${AUTH0_CLIENT_ID}
+      - Auth0__ClientSecret=${AUTH0_CLIENT_SECRET}
+      - Auth0__Audience=${AUTH0_AUDIENCE}
+      - Auth0__ManagementApiAudience=${AUTH0_MANAGEMENT_API_AUDIENCE}
+      - Cors__AllowedOrigins__0=${FRONTEND_BASE_URL}
+    ports:
+      - "5001:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - music-app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MusicCatalogService Microservice
+  music-catalog-service:
+    build:
+      context: ./MusicCatalogService
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ConnectionStrings__Redis=redis:6379,abortConnect=false
+      - MongoDb__ConnectionString=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017
+      - MongoDb__DatabaseName=${MONGO_DATABASE}
+      - MongoDb__AlbumsCollectionName=Albums
+      - MongoDb__TracksCollectionName=Tracks
+      - MongoDb__SpotifyCacheCollectionName=SpotifyCache
+      - Spotify__ClientId=${SPOTIFY_CLIENT_ID}
+      - Spotify__ClientSecret=${SPOTIFY_CLIENT_SECRET}
+      - Spotify__CacheExpirationMinutes=360
+      - Spotify__RateLimitPerMinute=160
+      - AllowedOrigins=${FRONTEND_BASE_URL}
+    ports:
+      - "5002:80"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - music-app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MusicInteractionService Microservice
+  music-interaction-service:
+    build:
+      context: ./MusicInteraction
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ConnectionStrings__PostgreSQL=Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - MongoDB__ConnectionString=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017
+      - MongoDB__DatabaseName=${MONGO_DATABASE}
+      - Cors__AllowedOrigins__0=${FRONTEND_BASE_URL}
+    ports:
+      - "5003:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      - music-app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Application
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${API_BASE_URL}
+    ports:
+      - "5173:80"
+    depends_on:
+      - user-service
+      - music-catalog-service
+      - music-interaction-service
+    networks:
+      - music-app-network
+
+networks:
+  music-app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:
