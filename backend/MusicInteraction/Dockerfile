@@ -19,8 +19,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# Configure environment variables - THIS IS IMPORTANT
+# Configure environment variables
 ENV ASPNETCORE_URLS=http://+:80
+ENV ASPNETCORE_HTTP_PORTS=80
 
 # Expose port 80
 EXPOSE 80
