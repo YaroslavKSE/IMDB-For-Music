@@ -10,7 +10,6 @@ import {
     Calendar,
     Loader,
     Tag,
-    PlusCircle,
     List,
     MessageSquare,
     History,
@@ -218,7 +217,7 @@ const Album = () => {
                             }`}
                         >
                             <Music className="h-4 w-4 mr-2" />
-                            Tracks
+                            Tracklist
                         </button>
                         <button
                             onClick={() => setActiveTab('reviews')}
@@ -316,7 +315,7 @@ const Album = () => {
                                         onClick={() => handleTrackInteraction(track.spotifyId, track.name)}
                                         className="text-gray-400 hover:text-primary-600 focus:outline-none"
                                     >
-                                        <PlusCircle className="h-5 w-5" />
+                                        <Star className="h-5 w-5" />
                                     </button>
                                 </div>
                             </div>
