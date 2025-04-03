@@ -14,6 +14,7 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Search from './pages/Search';
 import Album from './pages/Album';
+import Song from './pages/Song';
 import NotFound from "./pages/NotFound.tsx";
 
 // Auth callback handler component
@@ -78,6 +79,7 @@ function App() {
                     <Route path="register" element={<Register />} />
                     <Route path="search" element={<Search />} />
                     <Route path="album/:id" element={<Album />} />
+                    <Route path="track/:id" element={<Song />} />
 
                     {/* Protected routes */}
                     <Route

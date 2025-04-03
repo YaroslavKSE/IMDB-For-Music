@@ -1,15 +1,34 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Music, Heart, Star, Share, ExternalLink, Disc, Calendar, Loader, Tag, PlusCircle, List } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import {
+    Music,
+    Heart,
+    Star,
+    Share,
+    ExternalLink,
+    Disc,
+    Calendar,
+    Loader,
+    Tag,
+    PlusCircle,
+    List,
+    MessageSquare,
+    History,
+    ListMusic,
+    Play
+} from 'lucide-react';
 import CatalogService, { AlbumDetail } from '../api/catalog';
 import { formatDuration, formatDate } from '../utils/formatters';
 import EmptyState from '../components/common/EmptyState';
 
 const Album = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const [album, setAlbum] = useState<AlbumDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'tracks' | 'reviews' | 'lists' | 'my-history'>('tracks');
+    const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchAlbumDetails = async () => {
@@ -95,13 +114,14 @@ const Album = () => {
                         />
                     </div>
 
-                    <div className="mt-4 flex justify-between">
+                    {/* Primary Album Action Button */}
+                    <div className="mt-4">
                         <button
                             onClick={handleAlbumInteraction}
-                            className="flex-1 flex items-center justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none"
+                            className="w-full flex items-center justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none"
                         >
                             <Star className="h-4 w-4 mr-2" />
-                            Log Interaction
+                            Rate Album
                         </button>
                     </div>
 
@@ -120,15 +140,15 @@ const Album = () => {
                 {/* Album Info */}
                 <div className="flex-grow">
                     <div className="flex items-center text-gray-500 text-sm mb-2">
-            <span className="uppercase bg-gray-200 rounded px-2 py-0.5">
-              {album.albumType === 'album' ? 'Album' : album.albumType}
-            </span>
+                        <span className="uppercase bg-gray-200 rounded px-2 py-0.5">
+                            {album.albumType === 'album' ? 'Album' : album.albumType}
+                        </span>
 
                         {album.releaseDate && (
                             <span className="ml-2 flex items-center">
-                <Calendar className="h-3.5 w-3.5 mr-1" />
+                                <Calendar className="h-3.5 w-3.5 mr-1" />
                                 {formatDate(album.releaseDate)}
-              </span>
+                            </span>
                         )}
                     </div>
 
@@ -185,80 +205,169 @@ const Album = () => {
                 </div>
             </div>
 
-            {/* Tracklist */}
+            {/* Content Tabs */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-xl font-bold text-gray-900">Tracklist</h2>
+                <div className="border-b border-gray-200">
+                    <nav className="flex -mb-px">
+                        <button
+                            onClick={() => setActiveTab('tracks')}
+                            className={`mr-8 py-4 px-6 border-b-2 font-medium text-sm flex items-center ${
+                                activeTab === 'tracks'
+                                    ? 'border-primary-600 text-primary-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            <Music className="h-4 w-4 mr-2" />
+                            Tracks
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('reviews')}
+                            className={`mr-8 py-4 px-6 border-b-2 font-medium text-sm flex items-center ${
+                                activeTab === 'reviews'
+                                    ? 'border-primary-600 text-primary-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Reviews
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('lists')}
+                            className={`mr-8 py-4 px-6 border-b-2 font-medium text-sm flex items-center ${
+                                activeTab === 'lists'
+                                    ? 'border-primary-600 text-primary-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            <ListMusic className="h-4 w-4 mr-2" />
+                            In Lists
+                        </button>
+                        <button
+                            onClick={() => setActiveTab(`my-history`)}
+                            className={`mr-8 py-4 px-6 border-b-2 font-medium text-sm flex items-center ${
+                                activeTab === 'my-history'
+                                    ? 'border-primary-600 text-primary-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            <History className="h-4 w-4 mr-2" />
+                            My History
+                        </button>
+                    </nav>
                 </div>
 
-                <div className="divide-y divide-gray-200">
-                    {album.tracks.map((track, index) => (
-                        <div
-                            key={track.spotifyId}
-                            className={`flex items-center px-6 py-3 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                        >
-                            <div className="w-8 text-center text-gray-500 font-medium">
-                                {track.trackNumber || index + 1}
-                            </div>
-
-                            <div className="flex-grow min-w-0 ml-4">
-                                <div className="flex items-center">
-                                    <a
-                                        href={`https://open.spotify.com/track/${track.spotifyId}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-gray-900 font-medium hover:text-primary-600 truncate flex items-center"
-                                    >
-                                        {track.name}
-                                        <ExternalLink className="h-3 w-3 ml-1 inline opacity-60" />
-                                    </a>
-
-                                    {track.isExplicit && (
-                                        <span className="ml-2 px-1.5 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">
-                      E
-                    </span>
+                {/* Tracks Tab Content */}
+                {activeTab === 'tracks' && (
+                    <div className="divide-y divide-gray-200">
+                        {album.tracks.map((track, index) => (
+                            <div
+                                key={track.spotifyId}
+                                className={`flex items-center px-6 py-3 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                            >
+                                <div
+                                    className="w-8 text-center relative"
+                                    onMouseEnter={() => setHoveredTrack(track.spotifyId)}
+                                    onMouseLeave={() => setHoveredTrack(null)}
+                                >
+                                    {hoveredTrack === track.spotifyId ? (
+                                        <a
+                                            href={`https://open.spotify.com/track/${track.spotifyId}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="absolute inset-0 flex items-center justify-center text-primary-600 hover:text-primary-800"
+                                            title="Play on Spotify"
+                                        >
+                                            <Play className="h-5 w-5 fill-current" />
+                                        </a>
+                                    ) : (
+                                        <span className="text-gray-500 font-medium">
+                                            {track.trackNumber || index + 1}
+                                        </span>
                                     )}
                                 </div>
 
-                                <div className="text-sm text-gray-500 truncate">
-                                    {track.artistName}
+                                <div className="flex-grow min-w-0 ml-4">
+                                    <div className="flex items-center">
+                                        <Link
+                                            to={`/track/${track.spotifyId}`}
+                                            className="text-gray-900 font-medium hover:text-primary-600 truncate flex items-center"
+                                        >
+                                            {track.name}
+                                        </Link>
+
+                                        {track.isExplicit && (
+                                            <span className="ml-2 px-1.5 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">
+                                                E
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="text-sm text-gray-500 truncate">
+                                        {track.artistName}
+                                    </div>
+                                </div>
+
+                                <div className="ml-auto flex items-center">
+                                    <span className="text-sm text-gray-500 mr-4">
+                                        {formatDuration(track.durationMs)}
+                                    </span>
+
+                                    <button
+                                        onClick={() => handleTrackInteraction(track.spotifyId, track.name)}
+                                        className="text-gray-400 hover:text-primary-600 focus:outline-none"
+                                    >
+                                        <PlusCircle className="h-5 w-5" />
+                                    </button>
                                 </div>
                             </div>
+                        ))}
+                    </div>
+                )}
 
-                            <div className="ml-auto flex items-center">
-                <span className="text-sm text-gray-500 mr-4">
-                  {formatDuration(track.durationMs)}
-                </span>
+                {/* Reviews Tab Content */}
+                {activeTab === 'reviews' && (
+                    <div className="p-6">
+                        <EmptyState
+                            title="No reviews yet"
+                            message="Be the first to share your thoughts about this album."
+                            icon={<MessageSquare className="h-12 w-12 text-gray-400" />}
+                            action={{
+                                label: "Write a Review",
+                                onClick: () => handleAlbumInteraction()
+                            }}
+                        />
+                    </div>
+                )}
 
-                                <button
-                                    onClick={() => handleTrackInteraction(track.spotifyId, track.name)}
-                                    className="text-gray-400 hover:text-primary-600 focus:outline-none"
-                                >
-                                    <PlusCircle className="h-5 w-5" />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+                {/* Lists Tab Content */}
+                {activeTab === 'lists' && (
+                    <div className="p-6">
+                        <EmptyState
+                            title="Not in any lists yet"
+                            message="This album hasn't been added to any lists yet."
+                            icon={<ListMusic className="h-12 w-12 text-gray-400" />}
+                            action={{
+                                label: "Create a List",
+                                onClick: () => navigate('/lists/create')
+                            }}
+                        />
+                    </div>
+                )}
 
-            {/* Popular Albums by Artist */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden mb-4">
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-xl font-bold text-gray-900">Community Reviews</h2>
-                </div>
-
-                <div className="p-6">
-                    <EmptyState
-                        title="No reviews yet"
-                        message="Be the first to share your thoughts about this album."
-                        icon={<Star className="h-12 w-12 text-gray-400" />}
-                        action={{
-                            label: "Write a Review",
-                            onClick: () => handleAlbumInteraction()
-                        }}
-                    />
-                </div>
+                {/* History Tab Content */}
+                {activeTab === 'my-history' && (
+                    <div className="p-6">
+                        <EmptyState
+                            title="No history"
+                            message="You haven't interacted with this album."
+                            icon={<History className="h-12 w-12 text-gray-400" />}
+                            action={{
+                                label: "Log interaction",
+                                onClick: () => handleAlbumInteraction()
+                            }}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

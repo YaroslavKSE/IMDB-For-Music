@@ -1,8 +1,11 @@
 import {TrackSummary} from "../../api/catalog.ts";
 import {formatDuration} from "../../utils/formatters.ts";
-import {Disc} from "lucide-react";
+import {Disc2} from "lucide-react";
+import { useState } from "react";
 
 const TrackRow = ({ track, index }: { track: TrackSummary; index: number }) => {
+    const [isHovered, setIsHovered] = useState(false);
+
     return (
         <div className={`flex items-center px-6 py-5 ${
             index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
@@ -19,9 +22,13 @@ const TrackRow = ({ track, index }: { track: TrackSummary; index: number }) => {
                     <div className="min-w-0 flex-1">
                         <a
                             href={`/track/${track.spotifyId}`}
-                            className="block hover:text-primary-600"
+                            className="block"
+                            onMouseEnter={() => setIsHovered(true)}
+                            onMouseLeave={() => setIsHovered(false)}
                         >
-                            <h4 className="text-base font-medium text-gray-900 truncate flex items-center">
+                            <h4 className={`text-base font-medium truncate flex items-center ${
+                                isHovered ? 'text-primary-600' : 'text-gray-900'
+                            } transition-colors duration-200`}>
                                 {track.name}
                                 {track.isExplicit && (
                                     <span className="ml-2 px-1.5 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">
@@ -39,7 +46,7 @@ const TrackRow = ({ track, index }: { track: TrackSummary; index: number }) => {
                             className="ml-4 text-gray-500 hover:text-primary-600 focus:outline-none"
                             title="View Album"
                         >
-                            <Disc className="h-6 w-6" />
+                            <Disc2 className="h-6 w-6" />
                         </a>
                     </div>
                 </div>
