@@ -152,6 +152,16 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_API_BASE_URL=${API_BASE_URL}
+    environment:
+      # API Service URLs - now using relative paths
+      - VITE_USER_SERVICE_URL=/api/v1/auth
+      - VITE_CATALOG_API_URL=/api/v1/catalog
+      - VITE_RATING_API_URL=/api/v1/rating
+
+      # Auth0 Configuration
+      - VITE_AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - VITE_AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
+      - VITE_AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
     ports:
       - "5173:80"
     depends_on:
