@@ -14,7 +14,8 @@ import {
     MessageSquare,
     History,
     ListMusic,
-    Play
+    Play,
+    Pause
 } from 'lucide-react';
 import CatalogService, { AlbumDetail } from '../api/catalog';
 import { formatDuration, formatDate } from '../utils/formatters';
@@ -29,8 +30,9 @@ const Album = () => {
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'tracks' | 'reviews' | 'lists' | 'my-history'>('tracks');
     const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
-    const [, setCurrentPreview] = useState<string | null>(null);
+    const [playingTrack, setPlayingTrack] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const animationFrameRef = useRef<number | null>(null);
 
     useEffect(() => {
         const fetchAlbumDetails = async () => {
@@ -58,6 +60,9 @@ const Album = () => {
             if (audioRef.current) {
                 audioRef.current.pause();
             }
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
         };
     }, []);
 
@@ -65,16 +70,28 @@ const Album = () => {
         const previewUrl = await getPreviewUrl(trackId);
         if (!previewUrl) return;
 
-        if (audioRef.current?.src === previewUrl && !audioRef.current.paused) {
-            audioRef.current.pause();
-            setCurrentPreview(null);
-        } else {
+        if (playingTrack === trackId) {
+            // Stop playing the current track
             if (audioRef.current) {
                 audioRef.current.pause();
             }
+            setPlayingTrack(null);
+        } else {
+            // Stop any currently playing track
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
+
+            // Start playing the new track
             audioRef.current = new Audio(previewUrl);
+
+            // Set up ended event to clear the playing state
+            audioRef.current.addEventListener('ended', () => {
+                setPlayingTrack(null);
+            });
+
             audioRef.current.play();
-            setCurrentPreview(previewUrl);
+            setPlayingTrack(trackId);
         }
     };
 
@@ -86,6 +103,70 @@ const Album = () => {
     const handleTrackInteraction = (trackId: string, trackName: string) => {
         console.log('Log interaction for track:', trackId, trackName);
         alert(`Track interaction logged for: ${trackName}`);
+    };
+
+    // Audio Visualizer Component
+    const AudioVisualizer = () => {
+        const [bars, setBars] = useState([
+            { height: 6, animationDuration: '1.2s', animationDelay: '0s' },
+            { height: 8, animationDuration: '1.5s', animationDelay: '0.2s' },
+            { height: 5, animationDuration: '1.3s', animationDelay: '0.1s' },
+        ]);
+
+        useEffect(() => {
+            // Use a faster interval for more dynamic updates
+            const interval = setInterval(() => {
+                setBars(() => [
+                    {
+                        height: 4 + Math.random() * 8,
+                        animationDuration: `${1.2 + Math.random() * 0.5}s`,
+                        animationDelay: `${Math.random() * 0.3}s`,
+                    },
+                    {
+                        height: 4 + Math.random() * 8,
+                        animationDuration: `${1.2 + Math.random() * 0.5}s`,
+                        animationDelay: `${Math.random() * 0.3}s`,
+                    },
+                    {
+                        height: 4 + Math.random() * 8,
+                        animationDuration: `${1.2 + Math.random() * 0.5}s`,
+                        animationDelay: `${Math.random() * 0.3}s`,
+                    }
+                ]);
+            }, 1000); // Update every 1 second for a more dynamic effect
+
+            return () => {
+                clearInterval(interval);
+            };
+        }, []);
+
+        return (
+            <div className="flex justify-center items-end space-x-1 h-6">
+                {bars.map((bar, index) => (
+                    <div
+                        key={index}
+                        style={{
+                            height: `${bar.height}px`,
+                            width: '4px', // Wider bars
+                            backgroundColor: '#4F46E5', // Indigo color for the bars
+                            animation: `equalizer ${bar.animationDuration} ease-in-out infinite alternate`,
+                            animationDelay: bar.animationDelay,
+                            borderRadius: '1px',
+                        }}
+                    />
+                ))}
+                <style>{`
+                    @keyframes equalizer {
+                        0% {
+                            height: 3px;
+                        }
+                        100% {
+                            height: 16px;
+                        }
+                    }
+                `}</style>
+            </div>
+        );
     };
 
     if (loading) {
@@ -288,19 +369,26 @@ const Album = () => {
                             <div
                                 key={track.spotifyId}
                                 className={`flex items-center px-6 py-3 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                                onMouseEnter={() => setHoveredTrack(track.spotifyId)}
+                                onMouseLeave={() => setHoveredTrack(null)}
                             >
                                 <div
                                     className="w-8 text-center relative"
-                                    onMouseEnter={() => setHoveredTrack(track.spotifyId)}
-                                    onMouseLeave={() => setHoveredTrack(null)}
                                 >
-                                    {hoveredTrack === track.spotifyId ? (
+                                    {/* Playing animation when track is playing but not hovered */}
+                                    {playingTrack === track.spotifyId && hoveredTrack !== track.spotifyId ? (
+                                        <AudioVisualizer />
+                                    ) : hoveredTrack === track.spotifyId ? (
                                         <button
                                             onClick={() => handlePreviewToggle(track.spotifyId)}
                                             className="absolute inset-0 flex items-center justify-center text-primary-600 hover:text-primary-800"
-                                            title="Play preview"
+                                            title={playingTrack === track.spotifyId ? "Stop preview" : "Play preview"}
                                         >
-                                            <Play className="h-5 w-5 fill-current" />
+                                            {playingTrack === track.spotifyId ? (
+                                                <Pause className="h-5 w-5 fill-current" />
+                                            ) : (
+                                                <Play className="h-5 w-5 fill-current" />
+                                            )}
                                         </button>
                                     ) : (
                                         <span className="text-gray-500 font-medium">
