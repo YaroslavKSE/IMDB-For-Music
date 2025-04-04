@@ -111,7 +111,10 @@ jobs:
           NEW_VERSION="${major}.${minor}.${patch}"
           echo "New version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "tags=${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:v$NEW_VERSION,${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:latest" >> $GITHUB_OUTPUT
+          
+          # Convert organization name to lowercase for Docker compatibility
+          ORG_LOWER=$(echo "${{ env.ORGANIZATION }}" | tr '[:upper:]' '[:lower:]')
+          echo "tags=${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:v$NEW_VERSION,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:latest" >> $GITHUB_OUTPUT
           
           # Update version file
           echo "$NEW_VERSION" > ${{ env.VERSION_FILE }}
