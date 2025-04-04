@@ -92,7 +92,7 @@ const Album = () => {
                 setPlayingTrack(null);
             });
 
-            audioRef.current.play();
+            await audioRef.current.play();
             setPlayingTrack(trackId);
         }
     };

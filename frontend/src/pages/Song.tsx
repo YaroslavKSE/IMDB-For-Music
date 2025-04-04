@@ -91,7 +91,7 @@ const Song = () => {
                     setIsPlaying(false);
                 });
 
-                audioRef.current.play();
+                await audioRef.current.play();
                 setIsPlaying(true);
             } catch (error) {
                 console.error('Error playing preview:', error);
