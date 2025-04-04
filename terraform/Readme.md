@@ -42,11 +42,23 @@ This project contains a complete Terraform configuration for deploying a web app
     │   ├── main.tf         # Redis ElastiCache
     │   ├── variables.tf    # Redis module variables
     │   └── outputs.tf      # Redis module outputs
-    └── mongodb/
-        ├── main.tf         # MongoDB Atlas cluster and PrivateLink
-        ├── variables.tf    # MongoDB module variables
-        ├── outputs.tf      # MongoDB module outputs
-        └── providers.tf    # MongoDB Atlas provider configuration
+    ├── mongodb/
+    │   ├── main.tf         # MongoDB Atlas cluster and PrivateLink
+    │   ├── variables.tf    # MongoDB module variables
+    │   ├── outputs.tf      # MongoDB module outputs
+    │   └── providers.tf    # MongoDB Atlas provider configuration
+    ├── ecs/
+    │   ├── main.tf         # ECS cluster and services
+    │   ├── variables.tf    # ECS module variables
+    │   ├── outputs.tf      # ECS module outputs
+    │   └── tasks/          # Task definition modules
+    │       ├── user_service/
+    │       ├── music_catalog_service/
+    │       └── music_interaction_service/
+    └── parameter-store/
+        ├── main.tf         # SSM Parameter Store resources
+        ├── variables.tf    # Parameter Store module variables
+        └── outputs.tf      # Parameter Store module outputs
 ```
 
 ## Infrastructure Components
@@ -84,7 +96,7 @@ The Terraform configuration creates the following infrastructure:
 - Security group with appropriate access controls
 
 ### PostgreSQL Database (RDS Module)
-- PostgreSQL 17.4-R1 database instance
+- PostgreSQL 17.2 database instance
 - Free tier eligible configuration for development
 - Configurable Multi-AZ deployment for high availability
 - Parameter group optimized for application workloads
@@ -109,10 +121,28 @@ The Terraform configuration creates the following infrastructure:
 - Credentials securely stored in AWS SSM Parameter Store
 - Security group for controlled access to MongoDB endpoint
 
+### Containers and Orchestration (ECS Module)
+- ECS Fargate cluster for containerized microservices
+- Task definitions for multiple microservices (User Service, Music Catalog Service, Music Interaction Service)
+- Auto-scaling configurations based on CPU and memory utilization
+- IAM roles and policies for ECS task execution
+- CloudWatch log groups for centralized logging
+- Service integrations with ALB target groups
+- Security groups for controlled network access
+- Container environment variables and secrets from SSM Parameter Store
+
+### Parameter Management (Parameter Store Module)
+- Centralized management of application secrets and configuration
+- Secure storage of sensitive credentials (Auth0, Spotify API)
+- Consistent parameter naming convention with environment prefixes
+- Support for various parameter types (SecureString, String)
+- Integration with ECS task definitions for secure access
+
 ### DNS Management (Route53 Module)
 - A and AAAA records pointing to CloudFront for frontend
 - A and AAAA records pointing to ALB for API endpoints
 - Support for both root domain and www subdomain
+- API subdomain configuration for environment-specific endpoints
 
 ## Usage Instructions
 
@@ -164,7 +194,7 @@ Key settings that differ between environments:
 | Setting | Development | Production |
 |---------|-------------|------------|
 | VPC CIDR | 10.0.0.0/16 | 10.1.0.0/16 |
-| RDS Instance | db.t3.micro (free tier) | db.t3.small |
+| RDS Instance | db.t4g.micro | db.t4g.small |
 | RDS Multi-AZ | false | true |
 | RDS Deletion Protection | false | true |
 | RDS Skip Final Snapshot | true | false |
@@ -172,6 +202,7 @@ Key settings that differ between environments:
 | MongoDB Instance | M10 | M30 |
 | MongoDB Disk Size | 10 GB | 30 GB |
 | Domain | dev.academichub.net | academichub.net |
+| API Subdomain | api-dev | api |
 
 ### PostgreSQL RDS Configuration
 
@@ -209,6 +240,33 @@ terraform apply -var-file="environments/dev.tfvars" -var="mongodb_instance_size=
 terraform apply -var-file="environments/dev.tfvars" -var="mongodb_disk_size_gb={\"dev\"=10, \"prod\"=30}"
 ```
 
+### ECS Services Configuration
+
+You can configure the ECS services through variables:
+
+```bash
+# Set desired task count for user service
+terraform apply -var-file="environments/dev.tfvars" -var="user_service_desired_count=2"
+
+# Set CPU and memory limits for music catalog service
+terraform apply -var-file="environments/dev.tfvars" -var="music_catalog_service_cpu=512" -var="music_catalog_service_memory=1024"
+
+# Configure auto-scaling limits for music interaction service
+terraform apply -var-file="environments/dev.tfvars" -var="music_interaction_service_min_capacity=2" -var="music_interaction_service_max_capacity=5"
+```
+
+### Parameter Store Configuration
+
+Sensitive parameters are stored securely in Parameter Store:
+
+```bash
+# Update Auth0 configuration
+terraform apply -var-file="environments/dev.tfvars" -var="auth0_domain=yourdomain.auth0.com" -var="auth0_client_id=yourclientid"
+
+# Update Spotify API credentials
+terraform apply -var-file="environments/dev.tfvars" -var="spotify_client_id=yourspotifyid" -var="spotify_client_secret=yoursecret"
+```
+
 ### Frontend Deployment
 
 You can control the frontend build and upload process:
@@ -242,49 +300,60 @@ ECS task definitions are configured to access database services through environm
 ```json
 "secrets": [
   {
-    "name": "DB_PASSWORD",
-    "valueFrom": "arn:aws:ssm:[region]:[account-id]:parameter/[environment]/database/[db-name]/password"
+    "name": "ConnectionStrings__DefaultConnection",
+    "valueFrom": "arn:aws:ssm:[region]:[account-id]:parameter/[environment]/database/connection_string"
   },
   {
-    "name": "REDIS_CONNECTION_STRING",
+    "name": "ConnectionStrings__Redis",
     "valueFrom": "arn:aws:ssm:[region]:[account-id]:parameter/[environment]/redis/connection_string"
   },
   {
-    "name": "MONGODB_CONNECTION_STRING",
+    "name": "MongoDB__ConnectionString",
     "valueFrom": "arn:aws:ssm:[region]:[account-id]:parameter/[environment]/mongodb/[db-name]/connection_string"
   }
 ],
 "environment": [
   {
-    "name": "DB_HOST",
-    "value": "[rds-endpoint]"
+    "name": "ASPNETCORE_ENVIRONMENT",
+    "value": "Production"
   },
   {
-    "name": "DB_PORT",
-    "value": "5432"
-  },
-  {
-    "name": "DB_NAME",
-    "value": "[db-name]"
-  },
-  {
-    "name": "REDIS_HOST",
-    "value": "[redis-endpoint]"
-  },
-  {
-    "name": "REDIS_PORT",
-    "value": "6379"
+    "name": "AllowedOrigins",
+    "value": "https://academichub.net,https://www.academichub.net"
   }
 ]
 ```
+
+## Microservice Architecture
+
+The application is built using a microservice architecture with three main services:
+
+### User Service
+- Handles user authentication and profile management
+- Uses PostgreSQL for persistent data storage
+- Integrates with Auth0 for identity management
+- Exposed at `/api/v1/auth/*` and `/api/v1/users/*` endpoints
+
+### Music Catalog Service
+- Manages music metadata and catalog information
+- Uses MongoDB for flexible schema storage
+- Uses Redis for caching frequently accessed data
+- Integrates with Spotify API for additional music data
+- Exposed at `/api/v1/catalog/*` endpoints
+
+### Music Interaction Service
+- Handles user interactions with music (ratings, reviews, etc.)
+- Uses a dedicated PostgreSQL database
+- Integrates with MongoDB for complex data queries
+- Exposed at `/api/v1/rating/*`, `/api/grading-methods/*`, and `/api/interactions/*` endpoints
 
 ## Important Notes
 
 1. The S3 backend configuration in `backend.tf` requires a DynamoDB table named `terraform-locks` with a partition key named "LockID" of type String.
 
 2. Environment-specific CIDR blocks are defined in the main.tf file:
-   - Development: VPC CIDR `10.0.0.0/16`, Public Subnet `10.0.1.0/24`, Private Subnet `10.0.2.0/24`
-   - Production: VPC CIDR `10.1.0.0/16`, Public Subnet `10.1.1.0/24`, Private Subnet `10.1.2.0/24`
+   - Development: VPC CIDR `10.0.0.0/16`, Public Subnet `10.0.1.0/24`, Private Subnet `10.0.3.0/24`
+   - Production: VPC CIDR `10.1.0.0/16`, Public Subnet `10.1.1.0/24`, Private Subnet `10.1.3.0/24`
 
 3. The MongoDB Atlas module requires:
    - A MongoDB Atlas account and organization
@@ -308,10 +377,16 @@ ECS task definitions are configured to access database services through environm
 
 10. ECS tasks require IAM permissions to access the SSM Parameter Store.
 
+11. ECR repositories for container images must be created before applying the Terraform configuration.
+
+12. The ECS module uses Fargate launch type for all services, eliminating the need to manage EC2 instances.
+
+13. Auto-scaling is configured for all ECS services based on CPU and memory utilization metrics.
+
 ## Free Tier and Cost Considerations
 
 ### PostgreSQL RDS
-- Instance Type: `db.t3.micro` is free tier eligible
+- Instance Type: `db.t4g.micro` is free tier eligible
 - Storage: 20 GB included in free tier
 - Storage Encryption: Disabled in dev to remain free tier eligible
 - Multi-AZ: Disabled in dev (not free tier eligible)
@@ -325,6 +400,15 @@ ECS task definitions are configured to access database services through environm
 - M10 provides 2 vCPUs, 2 GB RAM, and 10 GB storage
 - Note: MongoDB Atlas has its own pricing model and is not part of AWS free tier
 - The MongoDB Atlas module is configured to use auto-scaling to optimize costs
+
+### ECS Fargate
+- Smaller task sizes (256 CPU units, 512 MB memory) are used in dev environment
+- Auto-scaling with appropriate minimum and maximum service values
+- CloudWatch Container Insights enabled for enhanced monitoring
+
+### Application Load Balancer
+- One ALB is shared across all microservices to reduce costs
+- Path-based routing is used to direct traffic to appropriate services
 
 ## Key Variables
 
@@ -366,7 +450,41 @@ mongodb_disk_size_gb = {
   dev  = 10
   prod = 30
 }
-# MongoDB Atlas credentials are sensitive and should be set via environment variables or secure methods
+
+# ECR Repository URLs
+user_service_repository_url = "123456789012.dkr.ecr.us-east-1.amazonaws.com/user-service"
+music_catalog_service_repository_url = "123456789012.dkr.ecr.us-east-1.amazonaws.com/music-catalog-service"
+music_interaction_service_repository_url = "123456789012.dkr.ecr.us-east-1.amazonaws.com/music-interaction-service"
+
+# ECS Configuration
+user_service_cpu = 256
+user_service_memory = 512
+user_service_desired_count = 1
+user_service_min_capacity = 1
+user_service_max_capacity = 3
+
+music_catalog_service_cpu = 256
+music_catalog_service_memory = 512
+music_catalog_service_desired_count = 1
+music_catalog_service_min_capacity = 1
+music_catalog_service_max_capacity = 3
+
+music_interaction_service_cpu = 256
+music_interaction_service_memory = 512
+music_interaction_service_desired_count = 1
+music_interaction_service_min_capacity = 1
+music_interaction_service_max_capacity = 3
+
+# Auth0 Configuration
+auth0_domain = "your-tenant.auth0.com"
+auth0_client_id = "your-client-id"
+auth0_client_secret = "your-client-secret"
+auth0_audience = "your-api-audience"
+auth0_management_api_audience = "https://your-tenant.auth0.com/api/v2/"
+
+# Spotify API Configuration
+spotify_client_id = "your-spotify-client-id"
+spotify_client_secret = "your-spotify-client-secret"
 ```
 
 ## Security Best Practices
@@ -384,6 +502,12 @@ mongodb_disk_size_gb = {
 
 4. **SSM Parameter Store**: All credentials are stored securely in AWS Systems Manager Parameter Store.
 
+5. **ECS Task Execution Role**: Principle of least privilege is applied to the ECS task execution role, allowing only the minimum permissions required.
+
+6. **HTTPS Enforcement**: All traffic is encrypted with HTTPS, and HTTP is automatically redirected to HTTPS.
+
+7. **Private Subnets**: All application and database resources are deployed in private subnets with no direct internet access.
+
 ## Next Steps
 
 After successful deployment, you should:
@@ -395,6 +519,8 @@ After successful deployment, you should:
 5. Configure your application to use the RDS, Redis, and MongoDB services
 6. Implement a CI/CD pipeline for automated deployments
 7. Set up monitoring and alerting for all resources
+8. Configure WAF and Shield for enhanced security (especially in production)
+9. Implement additional observability tools for comprehensive application monitoring
 
 ## Troubleshooting
 
@@ -434,3 +560,22 @@ If you encounter issues with MongoDB Atlas:
 2. Check that the MongoDB Atlas provider is correctly installed
 3. Ensure your AWS VPC has connectivity to the MongoDB Atlas PrivateLink endpoint
 4. Verify that the security group allows traffic on port 27017 from your application
+
+### ECS Service Deployment Failures
+
+If ECS services fail to deploy properly:
+
+1. Check CloudWatch Logs for task startup errors
+2. Verify that the container image exists in the specified ECR repository
+3. Ensure the ECS task execution role has permission to pull images and get parameters
+4. Validate the health check configuration and make sure the endpoint is responding correctly
+5. Check if the task is exceeding CPU or memory limits during startup
+
+### Parameter Store Access Issues
+
+If ECS tasks cannot access parameters:
+
+1. Verify that the ECS task execution role has the appropriate permissions
+2. Check that the parameter ARNs in the task definition are correct
+3. Ensure parameters exist in the correct region and with the correct names
+4. Validate that the parameter type (String, SecureString) is correctly configured
