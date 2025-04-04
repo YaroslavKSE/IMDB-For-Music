@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
     Music,
@@ -19,6 +19,7 @@ import {
 import CatalogService, { AlbumDetail } from '../api/catalog';
 import { formatDuration, formatDate } from '../utils/formatters';
 import EmptyState from '../components/common/EmptyState';
+import { getPreviewUrl } from '../utils/preview-extractor';
 
 const Album = () => {
     const { id } = useParams<{ id: string }>();
@@ -28,6 +29,8 @@ const Album = () => {
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'tracks' | 'reviews' | 'lists' | 'my-history'>('tracks');
     const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
+    const [, setCurrentPreview] = useState<string | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
         const fetchAlbumDetails = async () => {
@@ -50,14 +53,37 @@ const Album = () => {
         fetchAlbumDetails();
     }, [id]);
 
+    useEffect(() => {
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
+        };
+    }, []);
+
+    const handlePreviewToggle = async (trackId: string) => {
+        const previewUrl = await getPreviewUrl(trackId);
+        if (!previewUrl) return;
+
+        if (audioRef.current?.src === previewUrl && !audioRef.current.paused) {
+            audioRef.current.pause();
+            setCurrentPreview(null);
+        } else {
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
+            audioRef.current = new Audio(previewUrl);
+            audioRef.current.play();
+            setCurrentPreview(previewUrl);
+        }
+    };
+
     const handleAlbumInteraction = () => {
-        // This will be implemented later when we add the interaction functionality
         console.log('Log interaction for album:', album?.spotifyId);
         alert('Album interaction logged!');
     };
 
     const handleTrackInteraction = (trackId: string, trackName: string) => {
-        // This will be implemented later when we add the interaction functionality
         console.log('Log interaction for track:', trackId, trackName);
         alert(`Track interaction logged for: ${trackName}`);
     };
@@ -269,15 +295,13 @@ const Album = () => {
                                     onMouseLeave={() => setHoveredTrack(null)}
                                 >
                                     {hoveredTrack === track.spotifyId ? (
-                                        <a
-                                            href={`https://open.spotify.com/track/${track.spotifyId}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                        <button
+                                            onClick={() => handlePreviewToggle(track.spotifyId)}
                                             className="absolute inset-0 flex items-center justify-center text-primary-600 hover:text-primary-800"
-                                            title="Play on Spotify"
+                                            title="Play preview"
                                         >
                                             <Play className="h-5 w-5 fill-current" />
-                                        </a>
+                                        </button>
                                     ) : (
                                         <span className="text-gray-500 font-medium">
                                             {track.trackNumber || index + 1}
