@@ -72,8 +72,10 @@ jobs:
         run: |
           # Create date-based tag for dev
           DATE_TAG="dev-$(date +'%Y%m%d-%H%M')"
+          # Convert organization name to lowercase for Docker compatibility
+          ORG_LOWER=$(echo "${{ env.ORGANIZATION }}" | tr '[:upper:]' '[:lower:]')
           echo "Using dev tags: dev, latest, $DATE_TAG"
-          echo "tags=${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:dev,${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:latest,${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:$DATE_TAG" >> $GITHUB_OUTPUT
+          echo "tags=${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:dev,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:latest,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:$DATE_TAG" >> $GITHUB_OUTPUT
 
       # For main branch
       - name: Calculate New Version for Production
