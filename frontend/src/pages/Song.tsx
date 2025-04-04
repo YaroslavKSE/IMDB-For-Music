@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
     Music,
@@ -12,11 +12,14 @@ import {
     Clock,
     MessageSquare,
     History,
-    ListMusic
+    ListMusic,
+    Play,
+    Pause
 } from 'lucide-react';
 import CatalogService, { TrackDetail } from '../api/catalog';
 import { formatDuration, formatDate } from '../utils/formatters';
 import EmptyState from '../components/common/EmptyState';
+import { getPreviewUrl } from '../utils/preview-extractor';
 
 const Song = () => {
     const { id } = useParams<{ id: string }>();
@@ -25,6 +28,8 @@ const Song = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'reviews' | 'lists' | 'my-history'>('reviews');
+    const [isPlaying, setIsPlaying] = useState(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
         const fetchTrackDetails = async () => {
@@ -47,11 +52,61 @@ const Song = () => {
         fetchTrackDetails();
     }, [id]);
 
+    // Clean up audio when component unmounts
+    useEffect(() => {
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
+        };
+    }, []);
+
+    const handlePreviewToggle = async () => {
+        if (!track) return;
+
+        if (isPlaying) {
+            // Pause the current track
+            if (audioRef.current) {
+                audioRef.current.pause();
+                setIsPlaying(false);
+            }
+        } else {
+            // Start playing the track
+            try {
+                const previewUrl = await getPreviewUrl(track.spotifyId);
+                if (!previewUrl) {
+                    console.error('No preview URL available for this track');
+                    return;
+                }
+
+                // If there's already an audio element, pause it
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                }
+
+                // Create a new audio element
+                audioRef.current = new Audio(previewUrl);
+
+                // Set up ended event to clear the playing state
+                audioRef.current.addEventListener('ended', () => {
+                    setIsPlaying(false);
+                });
+
+                audioRef.current.play();
+                setIsPlaying(true);
+            } catch (error) {
+                console.error('Error playing preview:', error);
+            }
+        }
+    };
+
     const handleTrackInteraction = () => {
         // This will be implemented later when we add the interaction functionality
         console.log('Log interaction for track:', track?.spotifyId);
         alert('Track interaction logged!');
     };
+
+
 
     if (loading) {
         return (
@@ -104,8 +159,10 @@ const Song = () => {
                         />
                     </div>
 
+
+
                     {/* Primary Track Action Button */}
-                    <div className="mt-4">
+                    <div className="mt-3">
                         <button
                             onClick={handleTrackInteraction}
                             className="w-full flex items-center justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none"
@@ -144,6 +201,8 @@ const Song = () => {
                             <Clock className="h-3.5 w-3.5 mr-1" />
                             {formatDuration(track.durationMs)}
                         </span>
+
+
                     </div>
 
                     <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{track.name}</h1>
@@ -212,17 +271,23 @@ const Song = () => {
                             </a>
                         )}
 
-                        {track.previewUrl && (
-                            <a
-                                href={track.previewUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center text-sm text-gray-600 hover:text-primary-600"
-                            >
-                                <Music className="h-4 w-4 mr-1" />
-                                Play Preview
-                            </a>
-                        )}
+                        {/* Preview Play Button */}
+                        <button
+                            onClick={handlePreviewToggle}
+                            className="inline-flex items-center text-sm text-gray-600 hover:text-primary-600"
+                        >
+                            {isPlaying ? (
+                                <>
+                                    <Pause className="h-4 w-4 mr-1" />
+                                    Stop Preview
+                                </>
+                            ) : (
+                                <>
+                                    <Play className="h-4 w-4 mr-1 fill-current" />
+                                    Play Preview
+                                </>
+                            )}
+                        </button>
                     </div>
                 </div>
             </div>
