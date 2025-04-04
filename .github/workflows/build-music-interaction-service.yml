@@ -64,50 +64,50 @@ jobs:
             echo "current_version=0.1.0" >> $GITHUB_OUTPUT
           fi
 
-      # For dev branch
-      - name: Set Dev Tags
-        if: github.ref == 'refs/heads/dev'
-        id: dev_tags
+      # Determine branch type and set appropriate tags
+      - name: Set Tags
+        id: set_tags
         run: |
-          # Create date-based tag for dev
-          DATE_TAG="dev-$(date +'%Y%m%d-%H%M')"
-          echo "Using dev tags: dev, latest, $DATE_TAG"
-          echo "tags=${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:dev,${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:latest,${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:$DATE_TAG" >> $GITHUB_OUTPUT
-
-      # For main branch
-      - name: Calculate New Version for Production
-        if: github.ref == 'refs/heads/main'
-        id: calc_version
-        run: |
-          # Parse current version
-          IFS='.' read -r major minor patch <<< "${{ steps.read_version.outputs.current_version }}"
+          # Convert organization name to lowercase for Docker compatibility
+          ORG_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           
-          # Determine increment type
-          INCREMENT_TYPE="${{ github.event.inputs.version_increment }}"
+          if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            # Dev branch tagging
+            DATE_TAG="dev-$(date +'%Y%m%d-%H%M')"
+            TAGS="${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:dev,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:latest,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:$DATE_TAG"
+          else
+            # Parse current version
+            IFS='.' read -r major minor patch <<< "${{ steps.read_version.outputs.current_version }}"
+            
+            # Determine increment type
+            INCREMENT_TYPE="${{ github.event.inputs.version_increment }}"
+            
+            # Increment version according to semantic versioning
+            case "$INCREMENT_TYPE" in
+              major)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+              minor)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+              patch)
+                patch=$((patch + 1))
+                ;;
+            esac
+            
+            NEW_VERSION="${major}.${minor}.${patch}"
+            echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+            
+            TAGS="${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:v$NEW_VERSION,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:latest"
+            
+            # Update version file
+            echo "$NEW_VERSION" > ${{ env.VERSION_FILE }}
+          fi
           
-          # Increment version according to semantic versioning
-          case "$INCREMENT_TYPE" in
-            major)
-              major=$((major + 1))
-              minor=0
-              patch=0
-              ;;
-            minor)
-              minor=$((minor + 1))
-              patch=0
-              ;;
-            patch)
-              patch=$((patch + 1))
-              ;;
-          esac
-          
-          NEW_VERSION="${major}.${minor}.${patch}"
-          echo "New version: $NEW_VERSION"
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "tags=${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:v$NEW_VERSION,${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:latest" >> $GITHUB_OUTPUT
-          
-          # Update version file
-          echo "$NEW_VERSION" > ${{ env.VERSION_FILE }}
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
       # Build and push Docker image
       - name: Build and Push Docker Image
@@ -115,7 +115,7 @@ jobs:
         with:
           context: ${{ env.SERVICE_DIR }}
           push: true
-          tags: ${{ github.ref == 'refs/heads/main' && steps.calc_version.outputs.tags || steps.dev_tags.outputs.tags }}
+          tags: ${{ steps.set_tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -127,11 +127,11 @@ jobs:
           git config --local user.name "github-actions[bot]"
           
           git add ${{ env.VERSION_FILE }}
-          git commit -m "Bump ${{ env.SERVICE_NAME }} version to ${{ steps.calc_version.outputs.new_version }}"
+          git commit -m "Bump ${{ env.SERVICE_NAME }} version to ${{ steps.set_tags.outputs.new_version }}"
           
           # Create annotated tag
-          git tag -a "${{ env.SERVICE_NAME }}-v${{ steps.calc_version.outputs.new_version }}" -m "Release ${{ env.SERVICE_NAME }} v${{ steps.calc_version.outputs.new_version }}"
+          git tag -a "${{ env.SERVICE_NAME }}-v${{ steps.set_tags.outputs.new_version }}" -m "Release ${{ env.SERVICE_NAME }} v${{ steps.set_tags.outputs.new_version }}"
           
           # Push both commit and tag
           git push origin HEAD:${{ github.ref_name }}
-          git push origin "${{ env.SERVICE_NAME }}-v${{ steps.calc_version.outputs.new_version }}"
+          git push origin "${{ env.SERVICE_NAME }}-v${{ steps.set_tags.outputs.new_version }}"

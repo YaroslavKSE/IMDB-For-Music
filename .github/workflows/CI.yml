@@ -95,9 +95,9 @@ jobs:
         run: |
           # Start SonarScanner with appropriate configuration
           if ("${{ github.event_name }}" -eq "pull_request") {
-            .\.sonar\scanner\dotnet-sonarscanner begin /k:"YaroslavKSE_IMDB-For-Music" /o:"yaroslavkse" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.pullrequest.key=${{ github.event.pull_request.number }} /d:sonar.pullrequest.branch="${{ github.head_ref }}" /d:sonar.pullrequest.base="${{ github.base_ref }}"
+            .\.sonar\scanner\dotnet-sonarscanner begin /k:"YaroslavKSE_IMDB-For-Music" /o:"yaroslavkse" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.pullrequest.key=${{ github.event.pull_request.number }} /d:sonar.pullrequest.branch="${{ github.head_ref }}" /d:sonar.pullrequest.base="${{ github.base_ref }}" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
           } else {
-            .\.sonar\scanner\dotnet-sonarscanner begin /k:"YaroslavKSE_IMDB-For-Music" /o:"yaroslavkse" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.branch.name="${{ github.ref_name }}"
+            .\.sonar\scanner\dotnet-sonarscanner begin /k:"YaroslavKSE_IMDB-For-Music" /o:"yaroslavkse" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.branch.name="${{ github.ref_name }}" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
           }
           
           # Build only the changed projects using direct paths
