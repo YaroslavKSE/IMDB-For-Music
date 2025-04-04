@@ -40,17 +40,21 @@ jobs:
 
       # Run SonarQube Analysis
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5.1.0
+        uses: sonarsource/sonarqube-scan-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           projectBaseDir: ./backend
           args: >
             -Dsonar.projectKey=${{ github.repository_owner }}_music-catalog
             -Dsonar.projectName=music-catalog
 
-      # Check for Quality Gate status (only for main and dev branches or PRs)
+      # Check for Quality Gate status
       - name: SonarQube Quality Gate Check
-        uses: SonarSource/sonarqube-quality-gate-action@v2.0.0
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        with:
+          pollingTimeoutSec: 120  # Added timeout as in the example
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
