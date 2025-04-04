@@ -1,11 +1,15 @@
-name: Build Music Interaction Service
+name: Build Frontend Application
 
 on:
   push:
     branches: [ main, development ]
     paths:
-      - 'backend/MusicInteraction/**'
-      - '.github/workflows/build-music-interaction-service.yml'
+      - 'frontend/**'
+      - '.github/workflows/build-frontend.yml'
+  pull_request:
+    branches: [ main, development ]
+    paths:
+      - 'frontend/**'
   workflow_dispatch:
     inputs:
       version_increment:
@@ -21,13 +25,13 @@ on:
 env:
   REGISTRY: ghcr.io
   ORGANIZATION: ${{ github.repository_owner }}
-  SERVICE_NAME: music-interaction-service
-  SERVICE_DIR: backend/MusicInteraction
-  VERSION_FILE: backend/MusicInteraction/VERSION
+  APP_NAME: music-app-frontend
+  APP_DIR: frontend
+  VERSION_FILE: frontend/VERSION
 
 jobs:
   build-and-publish:
-    name: Build and Publish Music Interaction Service
+    name: Build and Publish Frontend
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -38,6 +42,25 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      # Install Node.js for testing before Docker build
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '21'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      # Install dependencies for running tests
+      - name: Install Dependencies
+        working-directory: ${{ env.APP_DIR }}
+        run: npm ci
+
+      # Run linting check
+      - name: Run Linting
+        working-directory: ${{ env.APP_DIR }}
+        run: npm run lint
+        continue-on-error: true  # Don't fail the build for linting errors
 
       # Login to GitHub Container Registry
       - name: Login to GitHub Container Registry
@@ -74,8 +97,8 @@ jobs:
           if [[ "${{ github.ref }}" == "refs/heads/development" ]]; then
             # development branch tagging
             DATE_TAG="development-$(date +'%Y%m%d-%H%M')"
-            TAGS="${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:development,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:latest,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:$DATE_TAG"
-          else
+            TAGS="${{ env.REGISTRY }}/$ORG_LOWER/${{ env.APP_NAME }}:development,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.APP_NAME }}:$DATE_TAG"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             # Parse current version
             IFS='.' read -r major minor patch <<< "${{ steps.read_version.outputs.current_version }}"
             
@@ -101,10 +124,14 @@ jobs:
             NEW_VERSION="${major}.${minor}.${patch}"
             echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
             
-            TAGS="${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:v$NEW_VERSION,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:latest"
+            TAGS="${{ env.REGISTRY }}/$ORG_LOWER/${{ env.APP_NAME }}:v$NEW_VERSION,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.APP_NAME }}:latest"
             
             # Update version file
             echo "$NEW_VERSION" > ${{ env.VERSION_FILE }}
+          else
+            # PR or other branches
+            BRANCH_NAME=$(echo "${{ github.ref_name }}" | tr '/' '-')
+            TAGS="${{ env.REGISTRY }}/$ORG_LOWER/${{ env.APP_NAME }}:$BRANCH_NAME"
           fi
           
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
@@ -113,25 +140,25 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: ${{ env.SERVICE_DIR }}
-          push: true
+          context: ${{ env.APP_DIR }}
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.set_tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       # Commit version file change and create tag for main branch
       - name: Commit Version Change and Create Tag
-        if: github.ref == 'refs/heads/developmentelopment'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
           git add ${{ env.VERSION_FILE }}
-          git commit -m "Bump ${{ env.SERVICE_NAME }} version to ${{ steps.set_tags.outputs.new_version }}"
+          git commit -m "Bump ${{ env.APP_NAME }} version to ${{ steps.set_tags.outputs.new_version }}"
           
           # Create annotated tag
-          git tag -a "${{ env.SERVICE_NAME }}-v${{ steps.set_tags.outputs.new_version }}" -m "Release ${{ env.SERVICE_NAME }} v${{ steps.set_tags.outputs.new_version }}"
+          git tag -a "${{ env.APP_NAME }}-v${{ steps.set_tags.outputs.new_version }}" -m "Release ${{ env.APP_NAME }} v${{ steps.set_tags.outputs.new_version }}"
           
           # Push both commit and tag
           git push origin HEAD:${{ github.ref_name }}
-          git push origin "${{ env.SERVICE_NAME }}-v${{ steps.set_tags.outputs.new_version }}"
+          git push origin "${{ env.APP_NAME }}-v${{ steps.set_tags.outputs.new_version }}"
