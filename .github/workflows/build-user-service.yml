@@ -1,0 +1,138 @@
+name: Build User Service
+
+on:
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'backend/UserService/**'
+      - '.github/workflows/build-user-service.yml'
+  workflow_dispatch:
+    inputs:
+      version_increment:
+        description: 'Semantic version increment (major, minor, patch)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+
+env:
+  REGISTRY: ghcr.io
+  ORGANIZATION: ${{ github.repository_owner }}
+  SERVICE_NAME: user-service
+  SERVICE_DIR: backend/UserService/src
+  VERSION_FILE: backend/UserService/src/VERSION
+
+jobs:
+  build-and-publish:
+    name: Build and Publish User Service
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Login to GitHub Container Registry
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Read or create version file
+      - name: Read Version File
+        id: read_version
+        run: |
+          mkdir -p $(dirname ${{ env.VERSION_FILE }})
+          if [ -f "${{ env.VERSION_FILE }}" ]; then
+            echo "Current version: $(cat ${{ env.VERSION_FILE }})"
+            echo "current_version=$(cat ${{ env.VERSION_FILE }})" >> $GITHUB_OUTPUT
+          else
+            echo "0.1.0" > ${{ env.VERSION_FILE }}
+            echo "Current version: 0.1.0"
+            echo "current_version=0.1.0" >> $GITHUB_OUTPUT
+          fi
+
+      # For dev branch
+      - name: Set Dev Tags
+        if: github.ref == 'refs/heads/dev'
+        id: dev_tags
+        run: |
+          # Create date-based tag for dev
+          DATE_TAG="dev-$(date +'%Y%m%d-%H%M')"
+          echo "Using dev tags: dev, latest, $DATE_TAG"
+          echo "tags=${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:dev,${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:latest,${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:$DATE_TAG" >> $GITHUB_OUTPUT
+
+      # For main branch
+      - name: Calculate New Version for Production
+        if: github.ref == 'refs/heads/main'
+        id: calc_version
+        run: |
+          # Parse current version
+          IFS='.' read -r major minor patch <<< "${{ steps.read_version.outputs.current_version }}"
+          
+          # Determine increment type
+          INCREMENT_TYPE="${{ github.event.inputs.version_increment }}"
+          
+          # Increment version according to semantic versioning
+          case "$INCREMENT_TYPE" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+          
+          NEW_VERSION="${major}.${minor}.${patch}"
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tags=${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:v$NEW_VERSION,${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.SERVICE_NAME }}:latest" >> $GITHUB_OUTPUT
+          
+          # Update version file
+          echo "$NEW_VERSION" > ${{ env.VERSION_FILE }}
+
+      # Build and push Docker image
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.SERVICE_DIR }}
+          push: true
+          tags: ${{ github.ref == 'refs/heads/main' && steps.calc_version.outputs.tags || steps.dev_tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Commit version file change and create tag for main branch
+      - name: Commit Version Change and Create Tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          git add ${{ env.VERSION_FILE }}
+          git commit -m "Bump ${{ env.SERVICE_NAME }} version to ${{ steps.calc_version.outputs.new_version }}"
+          
+          # Create annotated tag
+          git tag -a "${{ env.SERVICE_NAME }}-v${{ steps.calc_version.outputs.new_version }}" -m "Release ${{ env.SERVICE_NAME }} v${{ steps.calc_version.outputs.new_version }}"
+          
+          # Push both commit and tag
+          git push origin HEAD:${{ github.ref_name }}
+          git push origin "${{ env.SERVICE_NAME }}-v${{ steps.calc_version.outputs.new_version }}"

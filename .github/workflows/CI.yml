@@ -1,0 +1,124 @@
+name: Backend Code Analysis Pipeline
+
+on:
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  analyze:
+    name: Analyze Code Quality
+    runs-on: windows-latest
+
+    steps:
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'zulu'
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~\sonar\cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache SonarCloud scanner
+        id: cache-sonar-scanner
+        uses: actions/cache@v4
+        with:
+          path: .\.sonar\scanner
+          key: ${{ runner.os }}-sonar-scanner
+          restore-keys: ${{ runner.os }}-sonar-scanner
+
+      - name: Install SonarCloud scanner
+        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          New-Item -Path .\.sonar\scanner -ItemType Directory
+          dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
+
+      # Identify which projects have changes
+      - name: Identify changed projects
+        id: changed-projects
+        shell: powershell
+        run: |
+          # For pull requests
+          if ("${{ github.event_name }}" -eq "pull_request") {
+            $changedFiles = git diff --name-only origin/${{ github.base_ref }} ${{ github.sha }}
+          } else {
+            # For pushes, compare with previous commit
+            $changedFiles = git diff --name-only HEAD^ HEAD
+          }
+          
+          $musicCatalogChanged = $false
+          $userServiceChanged = $false
+          $musicInteractionChanged = $false
+          
+          foreach ($file in $changedFiles) {
+            if ($file -like "backend/MusicCatalogService/*") { $musicCatalogChanged = $true }
+            if ($file -like "backend/UserService/*") { $userServiceChanged = $true }
+            if ($file -like "backend/MusicInteraction/*") { $musicInteractionChanged = $true }
+          }
+          
+          echo "MusicCatalogService changed: $musicCatalogChanged"
+          echo "UserService changed: $userServiceChanged"
+          echo "MusicInteraction changed: $musicInteractionChanged"
+          
+          echo "music_catalog_changed=$musicCatalogChanged" >> $env:GITHUB_OUTPUT
+          echo "user_service_changed=$userServiceChanged" >> $env:GITHUB_OUTPUT
+          echo "music_interaction_changed=$musicInteractionChanged" >> $env:GITHUB_OUTPUT
+
+      - name: Build and analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        shell: powershell
+        run: |
+          # Start SonarScanner with appropriate configuration
+          if ("${{ github.event_name }}" -eq "pull_request") {
+            .\.sonar\scanner\dotnet-sonarscanner begin /k:"YaroslavKSE_IMDB-For-Music" /o:"yaroslavkse" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.pullrequest.key=${{ github.event.pull_request.number }} /d:sonar.pullrequest.branch="${{ github.head_ref }}" /d:sonar.pullrequest.base="${{ github.base_ref }}"
+          } else {
+            .\.sonar\scanner\dotnet-sonarscanner begin /k:"YaroslavKSE_IMDB-For-Music" /o:"yaroslavkse" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.branch.name="${{ github.ref_name }}"
+          }
+          
+          # Build only the changed projects using direct paths
+          
+          # Check MusicCatalogService
+          if ("${{ steps.changed-projects.outputs.music_catalog_changed }}" -eq "True") {
+            Write-Host "Building MusicCatalogService due to changes..."
+            dotnet build "backend\MusicCatalogService\MusicCatalogService.sln" --configuration Release
+          }
+          
+          # Check UserService
+          if ("${{ steps.changed-projects.outputs.user_service_changed }}" -eq "True") {
+            Write-Host "Building UserService due to changes..."
+            dotnet build "backend\UserService\UserService.sln" --configuration Release
+          }
+          
+          # Check MusicInteraction
+          if ("${{ steps.changed-projects.outputs.music_interaction_changed }}" -eq "True") {
+            Write-Host "Building MusicInteraction due to changes..."
+            dotnet build "backend\MusicInteraction\MusicInteractionService.sln" --configuration Release
+          }
+          
+          # Complete SonarScanner analysis
+          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
