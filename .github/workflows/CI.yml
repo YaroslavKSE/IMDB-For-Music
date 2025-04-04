@@ -63,5 +63,6 @@ jobs:
         shell: powershell
         run: |
           .\.sonar\scanner\dotnet-sonarscanner begin /k:"YaroslavKSE_IMDB-For-Music" /o:"yaroslavkse" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
-          dotnet build ./backend
+          # Find and build all solutions or projects in the backend directory
+          Get-ChildItem -Path ./backend -Include *.sln -Recurse | ForEach-Object { dotnet build $_.FullName }
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
