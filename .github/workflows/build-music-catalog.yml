@@ -70,14 +70,11 @@ jobs:
         run: |
           # Convert organization name to lowercase for Docker compatibility
           ORG_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          echo "Organization: ${{ github.repository_owner }}"
-          echo "Lowercase Organization: $ORG_LOWER"
           
           if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
             # Dev branch tagging
             DATE_TAG="dev-$(date +'%Y%m%d-%H%M')"
             TAGS="${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:dev,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:latest,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:$DATE_TAG"
-            echo "Using dev tags: $TAGS"
           else
             # Parse current version
             IFS='.' read -r major minor patch <<< "${{ steps.read_version.outputs.current_version }}"
@@ -102,26 +99,15 @@ jobs:
             esac
             
             NEW_VERSION="${major}.${minor}.${patch}"
-            echo "New version: $NEW_VERSION"
             echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
             
             TAGS="${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:v$NEW_VERSION,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:latest"
-            echo "Using prod tags: $TAGS"
             
             # Update version file
             echo "$NEW_VERSION" > ${{ env.VERSION_FILE }}
           fi
           
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
-          echo "Final tags being set: $TAGS"
-
-      # Debug output before build
-      - name: Debug Tags
-        run: |
-          echo "Tags that will be used: ${{ steps.set_tags.outputs.tags }}"
-          echo "Current directory: $(pwd)"
-          echo "Service directory: ${{ env.SERVICE_DIR }}"
-          ls -la ${{ env.SERVICE_DIR }}
 
       # Build and push Docker image
       - name: Build and Push Docker Image
