@@ -23,7 +23,7 @@ env:
   ORGANIZATION: ${{ github.repository_owner }}
   SERVICE_NAME: user-service
   SERVICE_DIR: backend/UserService/src
-  VERSION_FILE: backend/UserService/VERSION
+  VERSION_FILE: backend/UserService/src/VERSION
 
 jobs:
   build-and-publish:
