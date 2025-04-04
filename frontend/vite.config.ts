@@ -21,6 +21,11 @@ export default defineConfig({
       '/rating': {
         target: 'http://localhost:5003',
         changeOrigin: true,
+      },
+      '/spotify': {
+        target: 'https://open.spotify.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/spotify/, '')
       }
     },
   },
