@@ -1,0 +1,56 @@
+name: Backend Code Analysis Pipeline
+
+on:
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
+
+env:
+  # Set Docker registry and organization
+  REGISTRY: ghcr.io
+  ORGANIZATION: ${{ github.repository_owner }}
+
+  # SonarQube Configuration
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+jobs:
+  # Job to analyze code quality on PRs and branch pushes
+  analyze:
+    name: Analyze Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for better relevancy of analysis
+
+      # Set up .NET for SonarQube analysis
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # Run SonarQube Analysis
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v5.1.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information
+        with:
+          projectBaseDir: ./backend
+          args: >
+            -Dsonar.projectKey=${{ github.repository_owner }}_music-catalog
+            -Dsonar.projectName=music-catalog
+
+      # Check for Quality Gate status (only for main and dev branches or PRs)
+      - name: SonarQube Quality Gate Check
+        uses: SonarSource/sonarqube-quality-gate-action@v2.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
