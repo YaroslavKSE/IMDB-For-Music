@@ -6,6 +6,10 @@ on:
     paths:
       - 'backend/UserService/**'
       - '.github/workflows/build-user-service.yml'
+    pull_request:
+      branches: [ main, dev ]
+      paths:
+        - 'backend/**'
   workflow_dispatch:
     inputs:
       version_increment:
