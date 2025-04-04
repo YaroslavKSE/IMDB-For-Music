@@ -62,7 +62,21 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         shell: powershell
         run: |
-          .\.sonar\scanner\dotnet-sonarscanner begin /k:"YaroslavKSE_IMDB-For-Music" /o:"yaroslavkse" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
-          # Find and build all solutions or projects in the backend directory
-          Get-ChildItem -Path ./backend -Include *.sln -Recurse | ForEach-Object { dotnet build $_.FullName }
+          .\.sonar\scanner\dotnet-sonarscanner begin /k:"YaroslavKSE_IMDB-For-Music" /o:"yaroslavkse" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.projectBaseDir=backend /d:sonar.sources=. /d:sonar.verbose=true /d:sonar.scm.disabled=false /d:sonar.coverage.exclusions=**/*.js,**/*.html,**/*.css /d:sonar.cs.roslyn.ignoreIssues=false
+          # Find and build all solutions or projects in the backend directory with detailed logging
+          Write-Host "Finding and building all solutions in backend directory..."
+          $solutions = Get-ChildItem -Path ./backend -Include *.sln -Recurse
+          foreach ($solution in $solutions) {
+            Write-Host "Building solution: $($solution.FullName)"
+            dotnet build $solution.FullName --configuration Release
+          }
+          # If no solutions found, try individual projects
+          if ($solutions.Count -eq 0) {
+            Write-Host "No solutions found, looking for project files..."
+            $projects = Get-ChildItem -Path ./backend -Include *.csproj -Recurse
+            foreach ($project in $projects) {
+              Write-Host "Building project: $($project.FullName)"
+              dotnet build $project.FullName --configuration Release
+            }
+          }
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
