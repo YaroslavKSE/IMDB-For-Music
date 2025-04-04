@@ -47,8 +47,8 @@ jobs:
         with:
           projectBaseDir: ./backend
           args: >
-            -Dsonar.projectKey=${{ github.repository_owner }}_music-catalog
-            -Dsonar.projectName=music-catalog
+            -Dsonar.organization=yaroslavkse
+
 
       # Check for Quality Gate status
       - name: SonarQube Quality Gate Check
