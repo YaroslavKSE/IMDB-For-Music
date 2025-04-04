@@ -5,7 +5,6 @@ import {
     Heart,
     Star,
     Share,
-    ExternalLink,
     Disc,
     Calendar,
     Loader,
@@ -56,15 +55,18 @@ const Album = () => {
     }, [id]);
 
     useEffect(() => {
+        const animationFrameId = animationFrameRef.current; // Store the value in a variable
+
         return () => {
             if (audioRef.current) {
                 audioRef.current.pause();
             }
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId); // Use the stored variable
             }
         };
     }, []);
+
 
     const handlePreviewToggle = async (trackId: string) => {
         const previewUrl = await getPreviewUrl(trackId);
@@ -303,7 +305,18 @@ const Album = () => {
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center text-sm text-gray-600 hover:text-primary-600"
                             >
-                                <ExternalLink className="h-4 w-4 mr-1" />
+                                {/* Spotify logo SVG instead of ExternalLink icon */}
+                                <svg
+                                    className="h-5 w-5 mr-1"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                >
+                                    <circle cx="12" cy="12" r="12" fill="#1DB954" />
+                                    <path
+                                        d="M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75C5.8 9.9 5.3 9.6 5.15 9.15C5 8.65 5.3 8.15 5.75 8C9.3 6.95 15.15 7.15 18.85 9.35C19.3 9.6 19.45 10.2 19.2 10.65C18.95 11 18.35 11.15 17.9 10.9ZM17.8 13.9C17.55 14.25 17.1 14.35 16.75 14.1C14.05 12.45 9.95 11.9 6.8 12.85C6.4 12.95 5.95 12.75 5.85 12.35C5.75 11.95 5.95 11.5 6.35 11.4C10 10.35 14.5 10.95 17.6 12.85C17.9 13 18.05 13.5 17.8 13.9ZM16.6 16.8C16.4 17.1 16.05 17.2 15.75 17C13.4 15.55 10.45 15.3 6.95 16.1C6.6 16.2 6.3 15.95 6.2 15.65C6.1 15.3 6.35 15 6.65 14.9C10.45 14.1 13.75 14.35 16.35 16C16.7 16.15 16.75 16.5 16.6 16.8Z"
+                                        fill="white"
+                                    />
+                                </svg>
                                 Listen on Spotify
                             </a>
                         </div>
