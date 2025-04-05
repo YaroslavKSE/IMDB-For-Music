@@ -16,6 +16,7 @@ import Search from './pages/Search';
 import Album from './pages/Album';
 import Song from './pages/Song';
 import NotFound from "./pages/NotFound.tsx";
+import CreateGradingMethod from './pages/CreateGradingMethod'; // Import the new page
 
 // Auth callback handler component
 const AuthCallback = () => {
@@ -87,6 +88,15 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <Profile />
+                            </ProtectedRoute>
+                        }
+                    />
+                    {/* New protected route for grading method creation */}
+                    <Route
+                        path="grading-methods/create"
+                        element={
+                            <ProtectedRoute>
+                                <CreateGradingMethod />
                             </ProtectedRoute>
                         }
                     />

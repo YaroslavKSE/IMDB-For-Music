@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Heart, Star, Share, Disc, Calendar, List, Tag } from 'lucide-react';
+import { Heart, Star, Share, Disc, Calendar } from 'lucide-react';
 import { AlbumDetail } from '../../api/catalog';
 import { formatDate } from '../../utils/formatters';
 
@@ -72,20 +72,6 @@ const AlbumHeader = ({ album, handleAlbumInteraction }: AlbumHeaderProps) => {
                         <div className="flex items-center text-gray-600">
                             <Disc className="h-4 w-4 mr-2" />
                             <span>{album.totalTracks} tracks</span>
-                        </div>
-                    )}
-
-                    {album.label && (
-                        <div className="flex items-center text-gray-600">
-                            <Tag className="h-4 w-4 mr-2" />
-                            <span>Label: {album.label}</span>
-                        </div>
-                    )}
-
-                    {album.genres && album.genres.length > 0 && (
-                        <div className="flex items-center text-gray-600 col-span-2">
-                            <List className="h-4 w-4 mr-2" />
-                            <span>Genres: {album.genres.join(', ')}</span>
                         </div>
                     )}
                 </div>

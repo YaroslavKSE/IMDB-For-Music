@@ -3,7 +3,7 @@ import axios, { AxiosInstance } from 'axios';
 // Base API URLs for different services
 const USER_SERVICE_URL = import.meta.env.VITE_USER_SERVICE_URL || 'http://localhost:5001';
 const CATALOG_API_URL = import.meta.env.VITE_CATALOG_API_URL || 'http://localhost:5010';
-const RATING_API_URL = import.meta.env.VITE_RATING_API_URL || 'http://localhost:5003';
+const RATING_API_URL = import.meta.env.VITE_RATING_API_URL || 'http://localhost:5005';
 
 // Main API instance for user service
 export const api = axios.create({
@@ -23,7 +23,7 @@ export const catalogApi = axios.create({
 
 // Rating API instance
 export const ratingApi = axios.create({
-  baseURL: `${RATING_API_URL}/api/v1`,
+  baseURL: `${RATING_API_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
