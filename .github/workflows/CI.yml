@@ -5,13 +5,10 @@ on:
     branches: [ main, development ]
     paths:
       - 'backend/**'
-      - '.github/workflows/ci.yml'
   pull_request:
     branches: [ main, development ]
     paths:
       - 'backend/**'
-      - '.github/workflows/ci.yml'
-
 jobs:
   analyze:
     name: Analyze Code Quality
