@@ -6,10 +6,10 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/build-frontend.yml'
-  pull_request:
-    branches: [ main, development ]
-    paths:
-      - 'frontend/**'
+    pull_request:
+      branches: [ main, development ]
+      paths:
+        - 'frontend/**'
   workflow_dispatch:
     inputs:
       version_increment:
@@ -28,6 +28,7 @@ env:
   APP_NAME: music-app-frontend
   APP_DIR: frontend
   VERSION_FILE: frontend/VERSION
+  VITE_API_BASE_URL: /api/v1
 
 jobs:
   build-and-publish:
@@ -136,6 +137,19 @@ jobs:
           
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
+      # Create .env.staging file with secrets
+      - name: Create environment file
+        run: |
+          cat > ${{ env.APP_DIR }}/.env.staging << EOF
+          # API Base URL
+          VITE_API_BASE_URL=${{ env.VITE_API_BASE_URL }}
+          
+          # Auth0 Configuration
+          VITE_AUTH0_DOMAIN=${{ secrets.AUTH0_DOMAIN }}
+          VITE_AUTH0_CLIENT_ID=${{ secrets.AUTH0_CLIENT_ID }}
+          VITE_AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }}
+          EOF
+
       # Build and push Docker image
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
@@ -143,6 +157,11 @@ jobs:
           context: ${{ env.APP_DIR }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.set_tags.outputs.tags }}
+          build-args: |
+            VITE_API_BASE_URL=${{ env.VITE_API_BASE_URL }}
+            VITE_AUTH0_DOMAIN=${{ secrets.AUTH0_DOMAIN }}
+            VITE_AUTH0_CLIENT_ID=${{ secrets.AUTH0_CLIENT_ID }}
+            VITE_AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
