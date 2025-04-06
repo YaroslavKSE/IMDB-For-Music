@@ -47,6 +47,10 @@ const GradingMethodsTab = () => {
         }
     };
 
+    const handleViewMethod = (id: string) => {
+        navigate(`/grading-methods/${id}`);
+    };
+
     return (
         <div className="bg-white shadow rounded-lg overflow-hidden">
             <div className="p-6">
@@ -138,14 +142,18 @@ const GradingMethodsTab = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex justify-end space-x-2">
                                             <button
-                                                onClick={() => window.open(`/grading-methods/${method.id}`, '_blank')}
-                                                className="text-primary-600 hover:text-primary-900"
+                                                onClick={() => handleViewMethod(method.id)}
+                                                className="text-primary-600 hover:text-primary-900 transition-colors"
+                                                aria-label={`View ${method.name}`}
+                                                title={`View ${method.name}`}
                                             >
                                                 <Eye className="h-5 w-5" />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteMethod(method.id)}
-                                                className="text-red-600 hover:text-red-900"
+                                                className="text-red-600 hover:text-red-900 transition-colors"
+                                                aria-label={`Delete ${method.name}`}
+                                                title={`Delete ${method.name}`}
                                             >
                                                 <Trash2 className="h-5 w-5" />
                                             </button>

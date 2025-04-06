@@ -36,6 +36,8 @@ export interface BlockComponent {
     name: string;
     subComponents: (GradeComponent | BlockComponent)[];
     actions: number[]; // 0: Add, 1: Subtract, 2: Multiply, 3: Divide
+    minGrade?: number;
+    maxGrade?: number;
 }
 
 export interface GradingMethodCreate {
