@@ -36,7 +36,7 @@ const Header = () => {
               <div className="flex-shrink-0 flex items-center">
                 <Link to="/" className="text-2xl font-bold text-primary-600 flex items-center">
                   <Disc3 className="h-8 w-8 mr-2" />
-                  BrandName
+                  BeatRate
                 </Link>
               </div>
 

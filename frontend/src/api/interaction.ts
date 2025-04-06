@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const INTERACTION_API_URL = import.meta.env.VITE_INTERACTION_API_URL || 'http://localhost:5005';
+const INTERACTION_API_URL = import.meta.env.VITE_INTERACTION_API_URL || 'http://localhost:5003';
 
 // Create a dedicated instance for the interaction service
 export const interactionApi = axios.create({
