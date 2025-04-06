@@ -65,8 +65,8 @@ public class GetGradingMethodByIdUseCase : IRequestHandler<GetGradingMethodByIdC
             return new GradeDetailShowDto()
             {
                 Name = grade.parametrName,
-                MinPossibleGrade = grade.getMin(),
-                MaxPossibleGrade = grade.getMax(),
+                MinGrade = grade.getMin(),
+                MaxGrade = grade.getMax(),
                 StepAmount = grade.stepAmount,
                 Description = grade.Description
             };
@@ -76,15 +76,15 @@ public class GetGradingMethodByIdUseCase : IRequestHandler<GetGradingMethodByIdC
             var blockDto = new BlockDetailShowDto()
             {
                 Name = block.BlockName,
-                MinPossibleGrade = block.getMin(),
-                MaxPossibleGrade = block.getMax(),
-                Components = new List<GradableComponentShowDto>(),
+                MinGrade = block.getMin(),
+                MaxGrade = block.getMax(),
+                SubComponents = new List<GradableComponentShowDto>(),
                 Actions = ConvertActionsToStrings(block.Actions)
             };
 
             for (int i = 0; i < block.Grades.Count; i++)
             {
-                blockDto.Components.Add(ConvertComponentToDto(block.Grades[i]));
+                blockDto.SubComponents.Add(ConvertComponentToDto(block.Grades[i]));
             }
 
             return blockDto;
