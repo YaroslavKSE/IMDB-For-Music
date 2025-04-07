@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import CatalogService, { TrackDetail } from '../api/catalog';
 import { getPreviewUrl } from '../utils/preview-extractor';
 import SongHeader from '../components/Song/SongHeader';
@@ -7,14 +7,20 @@ import SongContentTabs from '../components/Song/SongContentTabs';
 import LoadingState from '../components/Song/LoadingState';
 import ErrorState from '../components/Song/ErrorState';
 import NotFoundState from '../components/Song/NotFoundState';
+import MusicInteractionModal from '../components/common/MusicInteractionModal';
+import useAuthStore from '../store/authStore';
 
 const Song = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const { isAuthenticated } = useAuthStore();
     const [track, setTrack] = useState<TrackDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'reviews' | 'lists' | 'my-history'>('reviews');
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isInteractionModalOpen, setIsInteractionModalOpen] = useState(false);
+    const [interactionSuccess, setInteractionSuccess] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
@@ -87,9 +93,25 @@ const Song = () => {
     };
 
     const handleTrackInteraction = () => {
-        // This will be implemented later when we add the interaction functionality
-        console.log('Log interaction for track:', track?.spotifyId);
-        alert('Track interaction logged!');
+        if (!isAuthenticated) {
+            navigate('/login', { state: { from: `/track/${id}` } });
+            return;
+        }
+        setIsInteractionModalOpen(true);
+    };
+
+    const handleInteractionSuccess = (interactionId: string) => {
+        console.log('Interaction created with ID:', interactionId);
+        setIsInteractionModalOpen(false);
+        setInteractionSuccess(true);
+
+        // After a successful interaction, make sure we're on the reviews tab
+        setActiveTab('reviews');
+
+        // Show success message briefly
+        setTimeout(() => {
+            setInteractionSuccess(false);
+        }, 3000);
     };
 
     if (loading) {
@@ -106,6 +128,12 @@ const Song = () => {
 
     return (
         <div className="max-w-6xl mx-auto pb-12">
+            {interactionSuccess && (
+                <div className="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50 shadow-md">
+                    Your review has been posted successfully!
+                </div>
+            )}
+
             <SongHeader
                 track={track}
                 isPlaying={isPlaying}
@@ -118,6 +146,16 @@ const Song = () => {
                 setActiveTab={setActiveTab}
                 handleTrackInteraction={handleTrackInteraction}
             />
+
+            {track && (
+                <MusicInteractionModal
+                    item={track}
+                    itemType="Track"
+                    isOpen={isInteractionModalOpen}
+                    onClose={() => setIsInteractionModalOpen(false)}
+                    onSuccess={handleInteractionSuccess}
+                />
+            )}
         </div>
     );
 };

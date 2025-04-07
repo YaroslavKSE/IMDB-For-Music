@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Disc } from 'lucide-react';
 import CatalogService, { AlbumDetail } from '../api/catalog';
 import EmptyState from '../components/common/EmptyState';
@@ -7,15 +7,21 @@ import { getPreviewUrl } from '../utils/preview-extractor';
 import AlbumHeader from '../components/Album/AlbumHeader';
 import AlbumContentTabs from '../components/Album/AlbumContentTabs';
 import LoadingState from '../components/Album/LoadingState';
+import MusicInteractionModal from '../components/common/MusicInteractionModal';
+import useAuthStore from '../store/authStore';
 
 const Album = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const { isAuthenticated } = useAuthStore();
     const [album, setAlbum] = useState<AlbumDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'tracks' | 'reviews' | 'lists' | 'my-history'>('tracks');
     const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
     const [playingTrack, setPlayingTrack] = useState<string | null>(null);
+    const [isInteractionModalOpen, setIsInteractionModalOpen] = useState(false);
+    const [interactionSuccess, setInteractionSuccess] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const animationFrameRef = useRef<number | null>(null);
 
@@ -83,13 +89,31 @@ const Album = () => {
     };
 
     const handleAlbumInteraction = () => {
-        console.log('Log interaction for album:', album?.spotifyId);
-        alert('Album interaction logged!');
+        if (!isAuthenticated) {
+            navigate('/login', { state: { from: `/album/${id}` } });
+            return;
+        }
+        setIsInteractionModalOpen(true);
+    };
+
+    const handleInteractionSuccess = (interactionId: string) => {
+        console.log('Interaction created with ID:', interactionId);
+        setIsInteractionModalOpen(false);
+        setInteractionSuccess(true);
+
+        // After a successful interaction, switch to the reviews tab
+        setActiveTab('reviews');
+
+        // Show success message briefly
+        setTimeout(() => {
+            setInteractionSuccess(false);
+        }, 3000);
     };
 
     const handleTrackInteraction = (trackId: string, trackName: string) => {
+        // Implementation for track interaction will be handled separately
         console.log('Log interaction for track:', trackId, trackName);
-        alert(`Track interaction logged for: ${trackName}`);
+        // We'll implement this with a modal later
     };
 
     if (loading) {
@@ -126,6 +150,12 @@ const Album = () => {
 
     return (
         <div className="max-w-6xl mx-auto pb-12">
+            {interactionSuccess && (
+                <div className="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50 shadow-md">
+                    Your review has been posted successfully!
+                </div>
+            )}
+
             <AlbumHeader
                 album={album}
                 handleAlbumInteraction={handleAlbumInteraction}
@@ -142,6 +172,16 @@ const Album = () => {
                 handleTrackInteraction={handleTrackInteraction}
                 handleAlbumInteraction={handleAlbumInteraction}
             />
+
+            {album && (
+                <MusicInteractionModal
+                    item={album}
+                    itemType="Album"
+                    isOpen={isInteractionModalOpen}
+                    onClose={() => setIsInteractionModalOpen(false)}
+                    onSuccess={handleInteractionSuccess}
+                />
+            )}
         </div>
     );
 };

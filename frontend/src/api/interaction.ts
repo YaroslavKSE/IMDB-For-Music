@@ -22,6 +22,7 @@ interactionApi.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+// Grading Method Interfaces
 export interface GradeComponent {
     componentType: 'grade';
     name: string;
@@ -79,39 +80,213 @@ export interface DeleteGradingMethodResponse {
     errorMessage?: string;
 }
 
+// Interaction Interfaces
+export interface GradeInputDTO {
+    componentName: string;
+    value: number;
+}
+
+export interface PostInteractionRequest {
+    userId: string;
+    itemId: string;
+    itemType: string;
+    isLiked?: boolean;
+    reviewText?: string;
+    useComplexGrading?: boolean;
+    basicGrade?: number | null;
+    gradingMethodId?: string | null;
+    gradeInputs?: GradeInputDTO[];
+}
+
+export interface PostInteractionResult {
+    interactionCreated: boolean;
+    liked: boolean;
+    reviewCreated: boolean;
+    graded: boolean;
+    interactionId: string;
+    errorMessage: string | null;
+}
+
+export interface UpdateInteractionRequest {
+    interactionId: string;
+    isLiked?: boolean;
+    reviewText?: string;
+    updateGrading?: boolean;
+    useComplexGrading?: boolean;
+    basicGrade?: number | null;
+    gradingMethodId?: string | null;
+    gradeInputs?: GradeInputDTO[];
+}
+
+export interface UpdateInteractionResult {
+    interactionUpdated: boolean;
+    likeUpdated: boolean;
+    reviewUpdated: boolean;
+    gradingUpdated: boolean;
+    interactionId: string;
+    errorMessage: string | null;
+}
+
+export interface RatingNormalizedDTO {
+    ratingId: string;
+    normalizedGrade: number;
+}
+
+export interface ReviewDTO {
+    reviewId: string;
+    reviewText: string;
+}
+
+export interface InteractionDetailDTO {
+    aggregateId: string;
+    userId: string;
+    itemId: string;
+    itemType: string;
+    createdAt: string;
+    rating?: RatingNormalizedDTO;
+    review?: ReviewDTO;
+    isLiked: boolean;
+}
+
+export interface GetInteractionsResult {
+    interactionsEmpty: boolean;
+    interactions: InteractionDetailDTO[];
+}
+
+export interface GetRatingsResult {
+    ratingsEmpty: boolean;
+    ratings: RatingOverviewDTO[];
+}
+
+export interface RatingOverviewDTO {
+    ratingId: string;
+    grade: number;
+    maxGrade: number;
+    minGrade: number;
+    normalizedGrade: number;
+}
+
+export interface GetRatingDetailResult {
+    success: boolean;
+    errorMessage?: string;
+    rating: RatingDetailDTO;
+}
+
+export interface RatingDetailDTO {
+    ratingId: string;
+    itemId: string;
+    itemType: string;
+    userId: string;
+    createdAt: string;
+    normalizedGrade: number;
+    overallGrade: number;
+    minPossibleGrade: number;
+    maxPossibleGrade: number;
+    gradingMethodId?: string;
+    gradingComponent: GradedComponentDTO;
+}
+
+export interface GradedComponentDTO {
+    name: string;
+    currentGrade: number;
+    minPossibleGrade: number;
+    maxPossibleGrade: number;
+}
+
 export interface ErrorResponse {
     errorMessage: string;
     success: boolean;
 }
 
 const InteractionService = {
-    // Create a new grading method
+    // Grading Method Operations
     createGradingMethod: async (gradingMethod: GradingMethodCreate): Promise<GradingMethodResponse> => {
         const response = await interactionApi.post('/grading-methods/create', gradingMethod);
         return response.data;
     },
 
-    // Get user's grading methods
     getUserGradingMethods: async (userId: string): Promise<GradingMethodSummary[]> => {
         const response = await interactionApi.get(`/grading-methods/by-creator-id/${userId}`);
         return response.data;
     },
 
-    // Get public grading methods
     getPublicGradingMethods: async (): Promise<GradingMethodSummary[]> => {
         const response = await interactionApi.get('/grading-methods/public-all');
         return response.data;
     },
 
-    // Get a specific grading method by ID
     getGradingMethodById: async (id: string): Promise<GradingMethodDetail> => {
         const response = await interactionApi.get(`/grading-methods/by-id/${id}`);
         return response.data;
     },
 
-    // Delete a grading method
     deleteGradingMethod: async (id: string): Promise<DeleteGradingMethodResponse> => {
         const response = await interactionApi.delete(`/grading-methods/by-id/${id}`);
+        return response.data;
+    },
+
+    updateGradingMethod: async (id: string, gradingMethod: Omit<GradingMethodCreate, 'userId' | 'name'>): Promise<GradingMethodResponse> => {
+        const response = await interactionApi.put('/grading-methods', {
+            gradingMethodId: id,
+            ...gradingMethod
+        });
+        return response.data;
+    },
+
+    // Interaction Operations
+    createInteraction: async (interaction: PostInteractionRequest): Promise<PostInteractionResult> => {
+        const response = await interactionApi.post('/interactions/create', interaction);
+        return response.data;
+    },
+
+    updateInteraction: async (interaction: UpdateInteractionRequest): Promise<UpdateInteractionResult> => {
+        const response = await interactionApi.put('/interactions/update', interaction);
+        return response.data;
+    },
+
+    getAllInteractions: async (): Promise<GetInteractionsResult> => {
+        const response = await interactionApi.get('/interactions/all');
+        return response.data;
+    },
+
+    getInteractionById: async (id: string): Promise<InteractionDetailDTO> => {
+        const response = await interactionApi.get(`/interactions/by-id/${id}`);
+        return response.data;
+    },
+
+    deleteInteraction: async (id: string): Promise<{success: boolean, errorMessage?: string}> => {
+        const response = await interactionApi.delete(`/interactions/by-id/${id}`);
+        return response.data;
+    },
+
+    getAllLikes: async () => {
+        const response = await interactionApi.get('/interactions/likes-all');
+        return response.data;
+    },
+
+    getAllReviews: async () => {
+        const response = await interactionApi.get('/interactions/reviews-all');
+        return response.data;
+    },
+
+    getAllRatings: async (): Promise<GetRatingsResult> => {
+        const response = await interactionApi.get('/interactions/ratings-all');
+        return response.data;
+    },
+
+    getRatingById: async (id: string): Promise<GetRatingDetailResult> => {
+        const response = await interactionApi.get(`/interactions/rating-by-id/${id}`);
+        return response.data;
+    },
+
+    // User-specific interactions
+    getUserInteractions: async (userId: string): Promise<GetInteractionsResult> => {
+        const response = await interactionApi.get(`/interactions/user/${userId}`);
+        return response.data;
+    },
+
+    getItemInteractions: async (itemId: string, itemType: string): Promise<GetInteractionsResult> => {
+        const response = await interactionApi.get(`/interactions/item/${itemType}/${itemId}`);
         return response.data;
     }
 };
