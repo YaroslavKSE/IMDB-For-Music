@@ -128,4 +128,55 @@ public class SearchController : BaseApiController
             });
         }
     }
+    [HttpGet("new-releases")]
+    [ProducesResponseType(typeof(NewReleasesResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetNewReleases(
+        [FromQuery] int limit = 20, 
+        [FromQuery] int offset = 0, 
+        [FromQuery] string? market = null)
+    {
+        try
+        {
+            _logger.LogInformation("New releases request: limit={Limit}, offset={Offset}", limit, offset);
+        
+            var newReleasesResults = await _searchService.GetNewReleasesAsync(limit, offset, market);
+        
+            return Ok(newReleasesResults);
+        }
+        catch (SpotifyApiException ex)
+        {
+            _logger.LogError(ex, "Spotify API error during new releases fetch");
+        
+            return StatusCode(StatusCodes.Status502BadGateway, new ErrorResponse
+            {
+                Message = "Error communicating with Spotify API",
+                ErrorCode = ErrorCodes.SpotifyApiError,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (SpotifyRateLimitException ex)
+        {
+            _logger.LogWarning("Spotify rate limit exceeded: {Message}", ex.Message);
+        
+            return StatusCode(StatusCodes.Status429TooManyRequests, new ErrorResponse
+            {
+                Message = "Rate limit exceeded for Spotify API, please try again later",
+                ErrorCode = ErrorCodes.RateLimitExceeded,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching new releases");
+        
+            return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResponse
+            {
+                Message = "An unexpected error occurred while fetching new releases",
+                ErrorCode = ErrorCodes.InternalServerError,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+    }
 }

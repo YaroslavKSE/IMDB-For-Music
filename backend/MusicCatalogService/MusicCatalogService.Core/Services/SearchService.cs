@@ -171,4 +171,94 @@ public class SearchService : ISearchService
 
         return result;
     }
+    public async Task<NewReleasesResultDto> GetNewReleasesAsync(int limit = 20, int offset = 0, string? market = null)
+{
+    // Ensure limit is within acceptable range
+    limit = Math.Clamp(limit, 1, 50);
+
+    // Generate cache key based on parameters
+    var cacheKey = $"new-releases:{limit}:{offset}:{market ?? "none"}";
+
+    // Try to get from cache first
+    var cachedResult = await _cacheService.GetAsync<NewReleasesResultDto>(cacheKey);
+    if (cachedResult != null)
+    {
+        _logger.LogInformation("New releases results retrieved from cache");
+        return cachedResult;
+    }
+
+    // Fetch new releases via Spotify API
+    _logger.LogInformation("Fetching new releases with limit {Limit} and offset {Offset}", limit, offset);
+    var newReleasesResponse = await _spotifyApiClient.GetNewReleasesAsync(limit, offset);
+
+    if (newReleasesResponse == null || newReleasesResponse.Albums == null)
+    {
+        _logger.LogWarning("No new releases found or empty response");
+        return new NewReleasesResultDto
+        {
+            Limit = limit,
+            Offset = offset,
+            TotalResults = 0
+        };
+    }
+
+    // Map the response to our DTO
+    var result = MapToNewReleasesResultDto(newReleasesResponse, limit, offset);
+
+    // Cache the result for a day
+    await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromHours(24));
+
+    return result;
+}
+
+private NewReleasesResultDto MapToNewReleasesResultDto(SpotifyNewReleasesResponse response, int limit, int offset)
+{
+    var result = new NewReleasesResultDto
+    {
+        Limit = limit,
+        Offset = offset,
+        TotalResults = response.Albums?.Total ?? 0,
+        Next = response.Albums?.Next,
+        Previous = response.Albums?.Previous
+    };
+
+    // Helper method to get optimal image
+    string GetOptimalImage(List<SpotifyImage> images)
+    {
+        if (images == null || !images.Any())
+            return null;
+
+        // Try to find a 640x640 image
+        var optimalImage = images.FirstOrDefault(img => img.Width == 640 && img.Height == 640);
+
+        // If no 640x640 image exists, take the largest available
+        if (optimalImage == null) optimalImage = images.OrderByDescending(img => img.Width * img.Height).First();
+
+        return optimalImage.Url;
+    }
+
+    // Map albums
+    if (response.Albums?.Items != null)
+    {
+        result.Albums = response.Albums.Items.Select(album => new AlbumSummaryDto
+        {
+            SpotifyId = album.Id,
+            Name = album.Name,
+            ArtistName = album.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
+            ReleaseDate = album.ReleaseDate,
+            AlbumType = album.AlbumType,
+            TotalTracks = album.TotalTracks,
+            ImageUrl = GetOptimalImage(album.Images),
+            Images = album.Images.Select(img => new ImageDto
+            {
+                Url = img.Url,
+                Height = img.Height,
+                Width = img.Width
+            }).ToList(),
+            ExternalUrls = album.ExternalUrls != null ? new List<string> {album.ExternalUrls.Spotify} : null
+        }).ToList();
+    }
+
+    return result;
+}
 }

@@ -42,11 +42,13 @@ BsonClassMap.RegisterClassMap<CatalogItemBase>(cm =>
 
 BsonClassMap.RegisterClassMap<Album>();
 BsonClassMap.RegisterClassMap<Track>();
+BsonClassMap.RegisterClassMap<Artist>();
 BsonClassMap.RegisterClassMap<SimplifiedArtist>();
 
 // Register services
 builder.Services.AddScoped<ITrackService, TrackService>();
 builder.Services.AddScoped<IAlbumService, AlbumService>();
+builder.Services.AddScoped<IArtistService, ArtistService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 
 // Register Redis Cache
@@ -71,8 +73,8 @@ builder.Services.AddRateLimiter(options =>
             new FixedWindowRateLimiterOptions
             {
                 Window = TimeSpan.FromMinutes(1),
-                PermitLimit = spotifySettings?.RateLimitPerMinute ?? 160,
-                QueueLimit = 10,
+                PermitLimit = spotifySettings?.RateLimitPerMinute ?? 1000,
+                QueueLimit = 100,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst
             });
     });

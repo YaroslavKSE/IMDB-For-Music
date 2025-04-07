@@ -11,6 +11,7 @@ public class MongoCatalogRepository : ICatalogRepository
 {
     private readonly IMongoCollection<Album> _albums;
     private readonly IMongoCollection<Track> _tracks;
+    private readonly IMongoCollection<Artist> _artists;
     private readonly ILogger<MongoCatalogRepository> _logger;
 
     public MongoCatalogRepository(
@@ -20,9 +21,10 @@ public class MongoCatalogRepository : ICatalogRepository
         var mongoClient = new MongoClient(dbSettings.Value.ConnectionString);
         var database = mongoClient.GetDatabase(dbSettings.Value.DatabaseName);
 
-        // Initialize separate collections
+        // Initialize collections
         _albums = database.GetCollection<Album>(dbSettings.Value.AlbumsCollectionName);
         _tracks = database.GetCollection<Track>(dbSettings.Value.TracksCollectionName);
+        _artists = database.GetCollection<Artist>(dbSettings.Value.ArtistsCollectionName);
         _logger = logger;
 
         // Create indexes
@@ -45,7 +47,14 @@ public class MongoCatalogRepository : ICatalogRepository
         await _tracks.Indexes.CreateOneAsync(
             new CreateIndexModel<Track>(trackIndexKeysDefinition, new CreateIndexOptions {Unique = true}));
 
-        // Create index on CacheExpiresAt for both collections to help with cache cleanup
+        // Create index on SpotifyId for Artists collection
+        var artistIndexKeysDefinition = Builders<Artist>.IndexKeys
+            .Ascending(artist => artist.SpotifyId);
+
+        await _artists.Indexes.CreateOneAsync(
+            new CreateIndexModel<Artist>(artistIndexKeysDefinition, new CreateIndexOptions {Unique = true}));
+
+        // Create indexes on CacheExpiresAt for all collections to help with cache cleanup
         await _albums.Indexes.CreateOneAsync(
             new CreateIndexModel<Album>(
                 Builders<Album>.IndexKeys.Ascending(item => item.CacheExpiresAt)));
@@ -53,6 +62,10 @@ public class MongoCatalogRepository : ICatalogRepository
         await _tracks.Indexes.CreateOneAsync(
             new CreateIndexModel<Track>(
                 Builders<Track>.IndexKeys.Ascending(item => item.CacheExpiresAt)));
+                
+        await _artists.Indexes.CreateOneAsync(
+            new CreateIndexModel<Artist>(
+                Builders<Artist>.IndexKeys.Ascending(item => item.CacheExpiresAt)));
 
         // Create index on AlbumId for Tracks to quickly find tracks belonging to an album
         await _tracks.Indexes.CreateOneAsync(
@@ -98,8 +111,8 @@ public class MongoCatalogRepository : ICatalogRepository
     {
         try
         {
-            // For a permanent save, ensure the expiration date for a year and then adjust "hot" data
-            album.CacheExpiresAt = DateTime.UtcNow.AddYears(1);
+            // For a permanent save, set the cache to a day
+            album.CacheExpiresAt = DateTime.UtcNow.AddDays(1);
             
             var filter = Builders<Album>.Filter.Eq(a => a.SpotifyId, album.SpotifyId);
             var options = new ReplaceOptions {IsUpsert = true};
@@ -115,7 +128,6 @@ public class MongoCatalogRepository : ICatalogRepository
         }
     }
 
-    // New method - Get album by catalog ID (Guid)
     public async Task<Album> GetAlbumByIdAsync(Guid catalogId)
     {
         try
@@ -144,7 +156,6 @@ public class MongoCatalogRepository : ICatalogRepository
         }
     }
 
-    // Existing Track methods by Spotify ID
     public async Task<Track> GetTrackBySpotifyIdAsync(string spotifyId)
     {
         try
@@ -182,8 +193,8 @@ public class MongoCatalogRepository : ICatalogRepository
     {
         try
         {
-            // For a permanent save, ensure the expiration date is far in the future
-            track.CacheExpiresAt = DateTime.UtcNow.AddYears(1);
+            // For a permanent save, ensure the result for a day
+            track.CacheExpiresAt = DateTime.UtcNow.AddDays(1);
             
             var filter = Builders<Track>.Filter.Eq(t => t.SpotifyId, track.SpotifyId);
             var options = new ReplaceOptions {IsUpsert = true};
@@ -228,7 +239,89 @@ public class MongoCatalogRepository : ICatalogRepository
         }
     }
 
-    // Generic method implementation for Spotify ID
+    // Artist methods
+    public async Task<Artist> GetArtistBySpotifyIdAsync(string spotifyId)
+    {
+        try
+        {
+            var filter = Builders<Artist>.Filter.Eq(artist => artist.SpotifyId, spotifyId);
+            return await _artists.Find(filter).FirstOrDefaultAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving artist with SpotifyId {SpotifyId}", spotifyId);
+            throw;
+        }
+    }
+
+    public async Task AddOrUpdateArtistAsync(Artist artist)
+    {
+        try
+        {
+            var filter = Builders<Artist>.Filter.Eq(a => a.SpotifyId, artist.SpotifyId);
+            var options = new ReplaceOptions {IsUpsert = true};
+
+            await _artists.ReplaceOneAsync(filter, artist, options);
+
+            _logger.LogInformation("Artist with SpotifyId {SpotifyId} saved successfully", artist.SpotifyId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving artist with SpotifyId {SpotifyId}", artist.SpotifyId);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<Artist>> GetBatchArtistsBySpotifyIdsAsync(IEnumerable<string> spotifyIds)
+    {
+        try
+        {
+            var filter = Builders<Artist>.Filter.In(artist => artist.SpotifyId, spotifyIds);
+            return await _artists.Find(filter).ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving batch of artists");
+            throw;
+        }
+    }
+
+    public async Task<Artist> GetArtistByIdAsync(Guid catalogId)
+    {
+        try
+        {
+            var filter = Builders<Artist>.Filter.Eq(artist => artist.Id, catalogId);
+            return await _artists.Find(filter).FirstOrDefaultAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving artist with catalog ID {CatalogId}", catalogId);
+            throw;
+        }
+    }
+
+    public async Task SaveArtistAsync(Artist artist)
+    {
+        try
+        {
+            // For a permanent save, cache the result for a day 
+            artist.CacheExpiresAt = DateTime.UtcNow.AddDays(1);
+            
+            var filter = Builders<Artist>.Filter.Eq(a => a.SpotifyId, artist.SpotifyId);
+            var options = new ReplaceOptions {IsUpsert = true};
+
+            await _artists.ReplaceOneAsync(filter, artist, options);
+
+            _logger.LogInformation("Artist with SpotifyId {SpotifyId} permanently saved", artist.SpotifyId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error permanently saving artist with SpotifyId {SpotifyId}", artist.SpotifyId);
+            throw;
+        }
+    }
+
+    // Generic method implementation 
     public async Task<T> GetBySpotifyIdAsync<T>(string spotifyId) where T : CatalogItemBase
     {
         if (typeof(T) == typeof(Album))
@@ -241,11 +334,15 @@ public class MongoCatalogRepository : ICatalogRepository
             var track = await GetTrackBySpotifyIdAsync(spotifyId);
             return track as T;
         }
+        else if (typeof(T) == typeof(Artist))
+        {
+            var artist = await GetArtistBySpotifyIdAsync(spotifyId);
+            return artist as T;
+        }
 
         throw new ArgumentException($"Type {typeof(T).Name} is not supported.");
     }
 
-    // New generic method for catalog ID
     public async Task<T> GetByIdAsync<T>(Guid catalogId) where T : CatalogItemBase
     {
         if (typeof(T) == typeof(Album))
@@ -257,6 +354,11 @@ public class MongoCatalogRepository : ICatalogRepository
         {
             var track = await GetTrackByIdAsync(catalogId);
             return track as T;
+        }
+        else if (typeof(T) == typeof(Artist))
+        {
+            var artist = await GetArtistByIdAsync(catalogId);
+            return artist as T;
         }
 
         throw new ArgumentException($"Type {typeof(T).Name} is not supported.");
@@ -276,10 +378,14 @@ public class MongoCatalogRepository : ICatalogRepository
             // Delete expired tracks
             var tracksFilter = Builders<Track>.Filter.Lt(t => t.CacheExpiresAt, currentTime);
             var tracksResult = await _tracks.DeleteManyAsync(tracksFilter);
+            
+            // Delete expired artists
+            var artistsFilter = Builders<Artist>.Filter.Lt(a => a.CacheExpiresAt, currentTime);
+            var artistsResult = await _artists.DeleteManyAsync(artistsFilter);
 
             _logger.LogInformation(
-                "Cleaned up expired items: {AlbumCount} albums and {TrackCount} tracks deleted",
-                albumsResult.DeletedCount, tracksResult.DeletedCount);
+                "Cleaned up expired items: {AlbumCount} albums, {TrackCount} tracks, and {ArtistCount} artists deleted",
+                albumsResult.DeletedCount, tracksResult.DeletedCount, artistsResult.DeletedCount);
         }
         catch (Exception ex)
         {
