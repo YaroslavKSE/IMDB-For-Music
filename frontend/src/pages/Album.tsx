@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Disc } from 'lucide-react';
-import CatalogService, { AlbumDetail } from '../api/catalog';
+import CatalogService, { AlbumDetail, TrackDetail } from '../api/catalog';
 import EmptyState from '../components/common/EmptyState';
 import { getPreviewUrl } from '../utils/preview-extractor';
 import AlbumHeader from '../components/Album/AlbumHeader';
@@ -22,6 +22,8 @@ const Album = () => {
     const [playingTrack, setPlayingTrack] = useState<string | null>(null);
     const [isInteractionModalOpen, setIsInteractionModalOpen] = useState(false);
     const [interactionSuccess, setInteractionSuccess] = useState(false);
+    const [selectedTrack, setSelectedTrack] = useState<TrackDetail | null>(null);
+    const [isAlbumInteraction, setIsAlbumInteraction] = useState(true);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const animationFrameRef = useRef<number | null>(null);
 
@@ -93,7 +95,36 @@ const Album = () => {
             navigate('/login', { state: { from: `/album/${id}` } });
             return;
         }
+        setIsAlbumInteraction(true);
+        setSelectedTrack(null);
         setIsInteractionModalOpen(true);
+    };
+
+    const handleTrackInteraction = async (trackId: string) => {
+        if (!isAuthenticated) {
+            navigate('/login', { state: { from: `/album/${id}` } });
+            return;
+        }
+
+        if (!album) return;
+
+        try {
+            // Need to fetch the full TrackDetail since TrackSummary isn't enough
+            setIsInteractionModalOpen(false); // Close any open modal first
+
+            // Show some loading indicator if needed
+
+            // Fetch the complete track details
+            const trackDetail = await CatalogService.getTrack(trackId);
+
+            // Set the track and open the modal
+            setSelectedTrack(trackDetail);
+            setIsAlbumInteraction(false);
+            setIsInteractionModalOpen(true);
+        } catch (error) {
+            console.error('Error fetching track details:', error);
+            // Optionally show an error message to the user
+        }
     };
 
     const handleInteractionSuccess = (interactionId: string) => {
@@ -101,19 +132,15 @@ const Album = () => {
         setIsInteractionModalOpen(false);
         setInteractionSuccess(true);
 
-        // After a successful interaction, switch to the reviews tab
-        setActiveTab('reviews');
+        // After a successful interaction, make sure we're on the appropriate tab
+        if (isAlbumInteraction) {
+            setActiveTab('reviews');
+        }
 
         // Show success message briefly
         setTimeout(() => {
             setInteractionSuccess(false);
         }, 3000);
-    };
-
-    const handleTrackInteraction = (trackId: string, trackName: string) => {
-        // Implementation for track interaction will be handled separately
-        console.log('Log interaction for track:', trackId, trackName);
-        // We'll implement this with a modal later
     };
 
     if (loading) {
@@ -173,10 +200,22 @@ const Album = () => {
                 handleAlbumInteraction={handleAlbumInteraction}
             />
 
-            {album && (
+            {/* Modal for Album interaction */}
+            {album && isAlbumInteraction && (
                 <MusicInteractionModal
                     item={album}
                     itemType="Album"
+                    isOpen={isInteractionModalOpen}
+                    onClose={() => setIsInteractionModalOpen(false)}
+                    onSuccess={handleInteractionSuccess}
+                />
+            )}
+
+            {/* Modal for Track interaction */}
+            {selectedTrack && !isAlbumInteraction && (
+                <MusicInteractionModal
+                    item={selectedTrack}
+                    itemType="Track"
                     isOpen={isInteractionModalOpen}
                     onClose={() => setIsInteractionModalOpen(false)}
                     onSuccess={handleInteractionSuccess}
