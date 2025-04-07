@@ -146,7 +146,7 @@ const MusicInteractionModal = ({
         }
     };
 
-    // Create star components
+    // Create star components with improved clickable areas
     const renderStars = () => {
         const stars = [];
         const totalStars = 5;
@@ -159,7 +159,7 @@ const MusicInteractionModal = ({
             const isStarFilled = displayRating !== null && displayRating >= starValue;
             const isHalfStarFilled = displayRating !== null && displayRating >= halfStarValue && displayRating < starValue;
 
-            // Create the star container
+            // Create the star container with extended click area
             stars.push(
                 <div key={i} className="relative inline-block w-8 h-8">
                     {/* Full star */}
@@ -196,7 +196,30 @@ const MusicInteractionModal = ({
             );
         }
 
-        return stars;
+        // Create a container that wraps all stars and adds clickable areas between them
+        return (
+            <div className="flex items-center relative">
+                {/* This overlay creates clickable areas across the entire star rating component */}
+                <div className="absolute inset-0 flex space-x-0">
+                    {Array.from({ length: totalStars * 2 }).map((_, index) => {
+                        const value = (index + 1) / 2;
+                        return (
+                            <div
+                                key={`click-${index}`}
+                                className="h-full flex-1 cursor-pointer"
+                                onClick={() => handleRatingClick(value)}
+                                onMouseEnter={() => setHoveredRating(value)}
+                                onMouseLeave={() => setHoveredRating(null)}
+                            />
+                        );
+                    })}
+                </div>
+                {/* The actual stars with no spacing */}
+                <div className="flex space-x-0">
+                    {stars}
+                </div>
+            </div>
+        );
     };
 
     // Handle form submission
