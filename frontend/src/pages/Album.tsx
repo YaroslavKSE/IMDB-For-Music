@@ -1,21 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Disc } from 'lucide-react';
-import CatalogService, { AlbumDetail } from '../api/catalog';
+import CatalogService, { AlbumDetail, TrackDetail } from '../api/catalog';
 import EmptyState from '../components/common/EmptyState';
 import { getPreviewUrl } from '../utils/preview-extractor';
 import AlbumHeader from '../components/Album/AlbumHeader';
 import AlbumContentTabs from '../components/Album/AlbumContentTabs';
 import LoadingState from '../components/Album/LoadingState';
+import MusicInteractionModal from '../components/common/MusicInteractionModal';
+import useAuthStore from '../store/authStore';
 
 const Album = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const { isAuthenticated } = useAuthStore();
     const [album, setAlbum] = useState<AlbumDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'tracks' | 'reviews' | 'lists' | 'my-history'>('tracks');
     const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
     const [playingTrack, setPlayingTrack] = useState<string | null>(null);
+    const [isInteractionModalOpen, setIsInteractionModalOpen] = useState(false);
+    const [interactionSuccess, setInteractionSuccess] = useState(false);
+    const [selectedTrack, setSelectedTrack] = useState<TrackDetail | null>(null);
+    const [isAlbumInteraction, setIsAlbumInteraction] = useState(true);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const animationFrameRef = useRef<number | null>(null);
 
@@ -83,13 +91,60 @@ const Album = () => {
     };
 
     const handleAlbumInteraction = () => {
-        console.log('Log interaction for album:', album?.spotifyId);
-        alert('Album interaction logged!');
+        if (!isAuthenticated) {
+            navigate('/login', { state: { from: `/album/${id}` } });
+            return;
+        }
+        setIsAlbumInteraction(true);
+        setSelectedTrack(null);
+        setIsInteractionModalOpen(true);
     };
 
-    const handleTrackInteraction = (trackId: string, trackName: string) => {
-        console.log('Log interaction for track:', trackId, trackName);
-        alert(`Track interaction logged for: ${trackName}`);
+    const handleTrackInteraction = async (trackId: string) => {
+        if (!isAuthenticated) {
+            navigate('/login', { state: { from: `/album/${id}` } });
+            return;
+        }
+        // Stop any playing preview
+        if (audioRef.current) {
+            audioRef.current.pause();
+            setPlayingTrack(null);
+        }
+
+        if (!album) return;
+        try {
+            // Need to fetch the full TrackDetail since TrackSummary isn't enough
+            setIsInteractionModalOpen(false); // Close any open modal first
+
+            // Show some loading indicator if needed
+
+            // Fetch the complete track details
+            const trackDetail = await CatalogService.getTrack(trackId);
+
+            // Set the track and open the modal
+            setSelectedTrack(trackDetail);
+            setIsAlbumInteraction(false);
+            setIsInteractionModalOpen(true);
+        } catch (error) {
+            console.error('Error fetching track details:', error);
+            // Optionally show an error message to the user
+        }
+    };
+
+    const handleInteractionSuccess = (interactionId: string) => {
+        console.log('Interaction created with ID:', interactionId);
+        setIsInteractionModalOpen(false);
+        setInteractionSuccess(true);
+
+        // After a successful interaction, make sure we're on the appropriate tab
+        if (isAlbumInteraction) {
+            setActiveTab('reviews');
+        }
+
+        // Show success message briefly
+        setTimeout(() => {
+            setInteractionSuccess(false);
+        }, 3000);
     };
 
     if (loading) {
@@ -126,6 +181,12 @@ const Album = () => {
 
     return (
         <div className="max-w-6xl mx-auto pb-12">
+            {interactionSuccess && (
+                <div className="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50 shadow-md">
+                    Your interaction has been posted successfully!
+                </div>
+            )}
+
             <AlbumHeader
                 album={album}
                 handleAlbumInteraction={handleAlbumInteraction}
@@ -142,6 +203,28 @@ const Album = () => {
                 handleTrackInteraction={handleTrackInteraction}
                 handleAlbumInteraction={handleAlbumInteraction}
             />
+
+            {/* Modal for Album interaction */}
+            {album && isAlbumInteraction && (
+                <MusicInteractionModal
+                    item={album}
+                    itemType="Album"
+                    isOpen={isInteractionModalOpen}
+                    onClose={() => setIsInteractionModalOpen(false)}
+                    onSuccess={handleInteractionSuccess}
+                />
+            )}
+
+            {/* Modal for Track interaction */}
+            {selectedTrack && !isAlbumInteraction && (
+                <MusicInteractionModal
+                    item={selectedTrack}
+                    itemType="Track"
+                    isOpen={isInteractionModalOpen}
+                    onClose={() => setIsInteractionModalOpen(false)}
+                    onSuccess={handleInteractionSuccess}
+                />
+            )}
         </div>
     );
 };

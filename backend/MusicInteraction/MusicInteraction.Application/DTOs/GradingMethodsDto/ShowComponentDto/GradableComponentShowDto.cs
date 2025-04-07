@@ -8,6 +8,6 @@ namespace MusicInteraction.Application;
 public abstract class GradableComponentShowDto
 {
     public string Name { get; set; }
-    public float MinPossibleGrade { get; set; }
-    public float MaxPossibleGrade { get; set; }
+    public float MinGrade { get; set; }
+    public float MaxGrade { get; set; }
 }

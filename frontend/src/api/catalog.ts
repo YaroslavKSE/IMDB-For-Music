@@ -59,7 +59,6 @@ export interface AlbumDetail extends AlbumSummary {
   releaseDatePrecision?: string;
   label?: string;
   copyright?: string;
-  genres?: string[];
 }
 
 export interface SearchResult {

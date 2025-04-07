@@ -2,9 +2,9 @@ import axios, { AxiosInstance } from 'axios';
 
 // Get environment variables with fallbacks
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
-const USER_SERVICE_URL = import.meta.env.VITE_USER_SERVICE_URL || '';
-const CATALOG_API_URL = import.meta.env.VITE_CATALOG_API_URL || '';
-const RATING_API_URL = import.meta.env.VITE_RATING_API_URL || '';
+const USER_SERVICE_URL = import.meta.env.VITE_USER_SERVICE_URL || 'http://localhost:5001';
+const CATALOG_API_URL = import.meta.env.VITE_CATALOG_API_URL || 'http://localhost:5002';
+const RATING_API_URL = import.meta.env.VITE_RATING_API_URL || 'http://localhost:5003';
 
 // Determine if we're in local development
 const isLocalDev = import.meta.env.DEV && !import.meta.env.VITE_API_BASE_URL;
@@ -27,13 +27,11 @@ export const catalogApi = axios.create({
 
 // Rating API instance
 export const ratingApi = axios.create({
-  baseURL: isLocalDev ? `http://localhost:5003/api/v1` : `${API_BASE_URL}${RATING_API_URL}`,
+  baseURL: isLocalDev ? `http://localhost:5003/api` : `${API_BASE_URL}${RATING_API_URL}`,
   headers: {
     'Content-Type': 'application/json',
   },
 });
-
-// Rest of your interceptors and export
 
 // Request interceptor for adding auth token - accepts AxiosInstance
 const addAuthTokenInterceptor = (axiosInstance: AxiosInstance) => {
