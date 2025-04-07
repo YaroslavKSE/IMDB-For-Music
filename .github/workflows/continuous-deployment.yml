@@ -1,0 +1,197 @@
+name: Continuous Deployment Pipeline
+
+on:
+  workflow_run:
+    workflows:
+      - Build Frontend Application
+      - Build Music Catalog Service
+      - Build User Service
+      - Build Music Interaction Service
+    types:
+      - completed
+    branches:
+      - development
+  
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy (all, frontend, music-catalog, user-service, music-interaction)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - frontend
+          - music-catalog
+          - user-service
+          - music-interaction
+
+env:
+  EC2_INSTANCE_ID: i-06c5b6c0c7c8e1c22
+  DEPLOY_DIR: /home/ec2-user/deploy
+
+jobs:
+  determine-service:
+    name: Determine Service to Deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'development'
+    outputs:
+      service: ${{ steps.set-service.outputs.service }}
+      
+    steps:
+      - name: Set service based on workflow
+        id: set-service
+        run: |
+          WORKFLOW="${{ github.event.workflow_run.name }}"
+          if [[ "$WORKFLOW" == "Build Frontend Application" ]]; then
+            echo "service=frontend" >> $GITHUB_OUTPUT
+          elif [[ "$WORKFLOW" == "Build Music Catalog Service" ]]; then
+            echo "service=music-catalog-service" >> $GITHUB_OUTPUT
+          elif [[ "$WORKFLOW" == "Build User Service" ]]; then
+            echo "service=user-service" >> $GITHUB_OUTPUT
+          elif [[ "$WORKFLOW" == "Build Music Interaction Service" ]]; then
+            echo "service=music-interaction-service" >> $GITHUB_OUTPUT
+          else
+            echo "service=unknown" >> $GITHUB_OUTPUT
+          fi
+
+  deploy-service:
+    name: Deploy Service to EC2
+    runs-on: ubuntu-latest
+    needs: determine-service
+    if: github.event_name == 'workflow_run' && needs.determine-service.outputs.service != 'unknown'
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Deploy via SSM
+        run: |
+          SERVICE="${{ needs.determine-service.outputs.service }}"
+          
+          # Create deployment script
+          cat > deploy.sh << 'EOL'
+          #!/bin/bash
+          cd $DEPLOY_DIR
+          echo "Stopping service: $SERVICE"
+          docker compose down $SERVICE
+          echo "Pulling latest image for: $SERVICE"
+          docker compose pull $SERVICE
+          echo "Starting service: $SERVICE"
+          docker compose up -d $SERVICE
+          echo "Deployment completed for: $SERVICE"
+          EOL
+          
+          # Make script executable
+          chmod +x deploy.sh
+          
+          # Send script to EC2 instance
+          aws ssm send-command \
+            --instance-ids ${{ env.EC2_INSTANCE_ID }} \
+            --document-name "AWS-RunShellScript" \
+            --parameters commands="$(cat deploy.sh)" \
+            --output text \
+            --query "Command.CommandId" > command-id.txt
+          
+          # Get Command ID
+          COMMAND_ID=$(cat command-id.txt)
+          
+          # Wait for command to complete and get its status
+          echo "Waiting for deployment command to complete..."
+          
+          status="InProgress"
+          while [ "$status" = "InProgress" ]; do
+            sleep 5
+            status=$(aws ssm get-command-invocation --instance-id ${{ env.EC2_INSTANCE_ID }} --command-id $COMMAND_ID --query "Status" --output text)
+            echo "Deployment status: $status"
+          done
+          
+          # Display command output
+          aws ssm get-command-invocation --instance-id ${{ env.EC2_INSTANCE_ID }} --command-id $COMMAND_ID --query "StandardOutputContent" --output text
+
+  manual-deploy:
+    name: Manual Deploy to EC2
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Deploy via SSM
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          
+          if [ "$SERVICE" == "all" ]; then
+            # Create deployment script for all services
+            cat > deploy.sh << 'EOL'
+            #!/bin/bash
+            cd $DEPLOY_DIR
+            echo "Stopping all services"
+            docker compose down
+            echo "Pulling latest images"
+            docker compose pull
+            echo "Starting all services"
+            docker compose up -d
+            echo "Deployment completed for all services"
+            EOL
+          else
+            # Map the service input to actual service name in docker-compose
+            if [ "$SERVICE" == "music-catalog" ]; then
+              ACTUAL_SERVICE="music-catalog-service"
+            elif [ "$SERVICE" == "user-service" ]; then
+              ACTUAL_SERVICE="user-service"
+            elif [ "$SERVICE" == "music-interaction" ]; then
+              ACTUAL_SERVICE="music-interaction-service"
+            else
+              ACTUAL_SERVICE="$SERVICE"
+            fi
+            
+            # Create deployment script for specific service
+            cat > deploy.sh << 'EOL'
+            #!/bin/bash
+            cd $DEPLOY_DIR
+            echo "Stopping service: $ACTUAL_SERVICE"
+            docker compose down $ACTUAL_SERVICE
+            echo "Pulling latest image for: $ACTUAL_SERVICE"
+            docker compose pull $ACTUAL_SERVICE
+            echo "Starting service: $ACTUAL_SERVICE"
+            docker compose up -d $ACTUAL_SERVICE
+            echo "Deployment completed for: $ACTUAL_SERVICE"
+            EOL
+          fi
+          
+          # Make script executable
+          chmod +x deploy.sh
+          
+          # Send script to EC2 instance
+          aws ssm send-command \
+            --instance-ids ${{ env.EC2_INSTANCE_ID }} \
+            --document-name "AWS-RunShellScript" \
+            --parameters commands="$(cat deploy.sh)" \
+            --output text \
+            --query "Command.CommandId" > command-id.txt
+          
+          # Get Command ID
+          COMMAND_ID=$(cat command-id.txt)
+          
+          # Wait for command to complete and get its status
+          echo "Waiting for deployment command to complete..."
+          
+          status="InProgress"
+          while [ "$status" = "InProgress" ]; do
+            sleep 5
+            status=$(aws ssm get-command-invocation --instance-id ${{ env.EC2_INSTANCE_ID }} --command-id $COMMAND_ID --query "Status" --output text)
+            echo "Deployment status: $status"
+          done
+          
+          # Display command output
+          aws ssm get-command-invocation --instance-id ${{ env.EC2_INSTANCE_ID }} --command-id $COMMAND_ID --query "StandardOutputContent" --output text
