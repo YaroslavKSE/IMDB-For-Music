@@ -41,7 +41,7 @@ services:
       - Spotify__ClientId=${SPOTIFY_CLIENT_ID}
       - Spotify__ClientSecret=${SPOTIFY_CLIENT_SECRET}
     ports:
-      - "5010:80"
+      - "5002:80"
     depends_on:
       music-catalog-db:
         condition: service_healthy
