@@ -2,16 +2,23 @@ import axios, { AxiosInstance } from 'axios';
 
 // Get environment variables with fallbacks
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
-const USER_SERVICE_URL = import.meta.env.VITE_USER_SERVICE_URL || 'http://localhost:5001';
-const CATALOG_API_URL = import.meta.env.VITE_CATALOG_API_URL || 'http://localhost:5002';
-const RATING_API_URL = import.meta.env.VITE_RATING_API_URL || 'http://localhost:5003';
+
+// Service paths (not full URLs)
+const USER_SERVICE_PATH = '/users';   // Path segment only, not full URL
+const CATALOG_SERVICE_PATH = '/catalog';
+const RATING_SERVICE_PATH = '/ratings';
+
+// For local development, use complete URLs
+const LOCAL_USER_SERVICE_URL = 'http://localhost:5001/api/v1';
+const LOCAL_CATALOG_API_URL = 'http://localhost:5002/api/v1';
+const LOCAL_RATING_API_URL = 'http://localhost:5003/api';
 
 // Determine if we're in local development
 const isLocalDev = import.meta.env.DEV && !import.meta.env.VITE_API_BASE_URL;
 
 // Main API instance for user service
 export const api = axios.create({
-  baseURL: isLocalDev ? `http://localhost:5001/api/v1` : `${API_BASE_URL}${USER_SERVICE_URL}`,
+  baseURL: isLocalDev ? LOCAL_USER_SERVICE_URL : `${API_BASE_URL}${USER_SERVICE_PATH}`,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -19,7 +26,7 @@ export const api = axios.create({
 
 // Catalog API instance
 export const catalogApi = axios.create({
-  baseURL: isLocalDev ? `http://localhost:5002/api/v1` : `${API_BASE_URL}${CATALOG_API_URL}`,
+  baseURL: isLocalDev ? LOCAL_CATALOG_API_URL : `${API_BASE_URL}${CATALOG_SERVICE_PATH}`,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -27,7 +34,7 @@ export const catalogApi = axios.create({
 
 // Rating API instance
 export const ratingApi = axios.create({
-  baseURL: isLocalDev ? `http://localhost:5003/api` : `${API_BASE_URL}${RATING_API_URL}`,
+  baseURL: isLocalDev ? LOCAL_RATING_API_URL : `${API_BASE_URL}${RATING_SERVICE_PATH}`,
   headers: {
     'Content-Type': 'application/json',
   },
