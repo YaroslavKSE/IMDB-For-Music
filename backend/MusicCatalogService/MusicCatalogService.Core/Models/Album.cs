@@ -20,7 +20,4 @@ public class Album : CatalogItemBase
 
     // List of simplified artists
     public List<SimplifiedArtist> Artists { get; set; } = new();
-
-    // Optional genre information
-    public List<string> Genres { get; set; } = new();
 }

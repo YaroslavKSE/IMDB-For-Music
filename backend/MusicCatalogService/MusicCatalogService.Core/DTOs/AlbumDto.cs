@@ -17,7 +17,4 @@ public class AlbumDetailDto : AlbumSummaryDto
     public string ReleaseDatePrecision { get; set; }
     public string Label { get; set; }
     public string Copyright { get; set; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<string> Genres { get; set; }
 }

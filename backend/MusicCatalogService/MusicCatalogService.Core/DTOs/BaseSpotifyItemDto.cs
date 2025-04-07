@@ -17,5 +17,5 @@ public abstract class BaseSpotifyItemDto
     public int? Popularity { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<string> ExternalUrls { get; set; }
+    public List<string>? ExternalUrls { get; set; }
 }

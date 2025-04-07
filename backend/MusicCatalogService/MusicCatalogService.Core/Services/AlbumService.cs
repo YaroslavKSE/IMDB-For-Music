@@ -110,8 +110,8 @@ public class AlbumService : IAlbumService
                 SpotifyUrl = a.ExternalUrls?.Spotify
             }).ToList(),
 
-            // Genres
-            Genres = spotifyAlbum.Genres?.ToList() ?? new List<string>(),
+            // Genres - Deprecated from Spotify
+            // Genres = spotifyAlbum.Genres?.ToList() ?? new List<string>(),
 
             // Raw data for future flexibility
             RawData = JsonSerializer.Serialize(spotifyAlbum)
@@ -286,7 +286,7 @@ public class AlbumService : IAlbumService
             Copyright = album.Copyright,
             Artists = artistSummaries,
             Tracks = tracks,
-            Genres = album.Genres?.ToList(),
+            // Genres = album.Genres?.ToList(),
             ExternalUrls = album.ExternalUrls?.Spotify != null
                 ? new List<string> {album.ExternalUrls.Spotify}
                 : null

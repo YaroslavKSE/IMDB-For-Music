@@ -41,7 +41,8 @@ public class SpotifyAlbumResponse
 
     [JsonPropertyName("external_urls")] public ExternalUrls ExternalUrls { get; set; }
 
-    [JsonPropertyName("genres")] public List<string> Genres { get; set; }
+    // Note: genres is deprecated and always returns an empty array according to Spotify API documentation
+    // [JsonPropertyName("genres")] public List<string> Genres { get; set; }
 
     // Helper property to get a single copyright statement
     [JsonIgnore] public string Copyright => Copyrights?.FirstOrDefault()?.Text;
@@ -81,6 +82,7 @@ public class SpotifyTrackResponse
     [JsonPropertyName("external_ids")] public ExternalIds ExternalIds { get; set; }
 }
 
+
 public class SpotifyArtistResponse
 {
     [JsonPropertyName("id")] public string Id { get; set; }
@@ -92,6 +94,10 @@ public class SpotifyArtistResponse
     [JsonPropertyName("popularity")] public int Popularity { get; set; }
 
     [JsonPropertyName("followers")] public Followers Followers { get; set; }
+
+    [JsonPropertyName("genres")] public List<string> Genres { get; set; }
+
+    [JsonPropertyName("external_urls")] public ExternalUrls ExternalUrls { get; set; }
 
     // Helper property to simplify access to followers count
     [JsonIgnore] public int FollowersCount => Followers?.Total ?? 0;
