@@ -105,9 +105,13 @@ const Album = () => {
             navigate('/login', { state: { from: `/album/${id}` } });
             return;
         }
+        // Stop any playing preview
+        if (audioRef.current) {
+            audioRef.current.pause();
+            setPlayingTrack(null);
+        }
 
         if (!album) return;
-
         try {
             // Need to fetch the full TrackDetail since TrackSummary isn't enough
             setIsInteractionModalOpen(false); // Close any open modal first
@@ -179,7 +183,7 @@ const Album = () => {
         <div className="max-w-6xl mx-auto pb-12">
             {interactionSuccess && (
                 <div className="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50 shadow-md">
-                    Your review has been posted successfully!
+                    Your interaction has been posted successfully!
                 </div>
             )}
 

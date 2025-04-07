@@ -92,6 +92,15 @@ const MusicInteractionModal = ({
         }
     }, [rating, isLiked, reviewText]);
 
+    // Also stop audio when modal closes
+    useEffect(() => {
+        if (!isOpen && audioRef.current) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+            audioRef.current = null;
+        }
+    }, [isOpen]);
+
     // Calculate the effective rating to display (hovered or selected)
     const displayRating = hoveredRating !== null ? hoveredRating : rating;
 
@@ -454,7 +463,7 @@ const MusicInteractionModal = ({
                   Submitting...
                 </span>
                             ) : (
-                                'Post Interaction'
+                                'Send'
                             )}
                         </button>
                     </div>
