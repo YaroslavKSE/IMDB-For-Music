@@ -2,10 +2,9 @@ name: Build Music Catalog Service
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main, development ]
     paths:
       - 'backend/MusicCatalogService/**'
-      - '.github/workflows/build-music-catalog-service.yml'
   workflow_dispatch:
     inputs:
       version_increment:
@@ -71,10 +70,10 @@ jobs:
           # Convert organization name to lowercase for Docker compatibility
           ORG_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           
-          if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
-            # Dev branch tagging
-            DATE_TAG="dev-$(date +'%Y%m%d-%H%M')"
-            TAGS="${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:dev,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:latest,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:$DATE_TAG"
+          if [[ "${{ github.ref }}" == "refs/heads/development" ]]; then
+            # development branch tagging
+            DATE_TAG="development-$(date +'%Y%m%d-%H%M')"
+            TAGS="${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:development,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:latest,${{ env.REGISTRY }}/$ORG_LOWER/${{ env.SERVICE_NAME }}:$DATE_TAG"
           else
             # Parse current version
             IFS='.' read -r major minor patch <<< "${{ steps.read_version.outputs.current_version }}"

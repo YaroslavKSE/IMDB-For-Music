@@ -13,11 +13,12 @@ RUN npm install
 # Copy the rest of the code
 COPY . .
 
-# Build the app
+# Set up environment variables for staging build
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
-RUN npm run build
+# Use the staging build script instead of the default build
+RUN npm run build:staging
 
 # Production stage
 FROM nginx:alpine AS production
