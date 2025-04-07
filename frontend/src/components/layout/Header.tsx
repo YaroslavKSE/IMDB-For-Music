@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, User, Home, Disc, ListMusic, TrendingUp, LogIn, Star, Disc3, NotebookPen } from 'lucide-react';
+import { Search, Menu, X, User, Home, Disc, ListMusic, TrendingUp, LogIn, Star, NotebookPen } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
 const Header = () => {
@@ -34,9 +34,13 @@ const Header = () => {
             <div className="flex items-center">
               {/* Logo */}
               <div className="flex-shrink-0 flex items-center">
-                <Link to="/" className="text-2xl font-bold text-primary-600 flex items-center">
-                  <Disc3 className="h-8 w-8 mr-2" />
-                  BeatRate
+                <Link to="/" className="text-2xl font-bold flex items-center">
+                  <img
+                      src="/BeatRateLogo.png"
+                      alt="BeatRate Logo"
+                      className="h-8 w-auto mr-2"
+                  />
+                  <span style={{ color: "#53327a" }}>BeatRate</span>
                 </Link>
               </div>
 
