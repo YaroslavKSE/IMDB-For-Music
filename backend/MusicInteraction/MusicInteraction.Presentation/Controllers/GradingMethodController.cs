@@ -5,7 +5,7 @@ using MusicInteraction.Application;
 namespace MusicInteraction.Presentation.Controllers;
 
 [ApiController]
-[Route("api/grading-methods")]
+[Route("api/v1/grading-methods")]
 public class GradingMethodController : ControllerBase
 {
     private readonly IMediator mediator;

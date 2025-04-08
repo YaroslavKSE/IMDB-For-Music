@@ -5,7 +5,7 @@ using MusicInteraction.Application;
 namespace MusicInteraction.Presentation.Controllers;
 
 [ApiController]
-[Route("api/interactions/")]
+[Route("api/v1/interactions/")]
 public class InteractionController : ControllerBase
 {
     private readonly IMediator mediator;

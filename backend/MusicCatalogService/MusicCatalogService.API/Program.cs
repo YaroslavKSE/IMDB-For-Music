@@ -92,11 +92,21 @@ builder.Services.AddRateLimiter(options =>
 // Configure CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("MusicAppPolicy", policy =>
+    options.AddPolicy("CorsPolicy", policy =>
     {
-        policy.WithOrigins(builder.Configuration["AllowedOrigins"]?.Split(',') ?? [])
+        // Get allowed origins from configuration based on environment
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        
+        var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Environment: {Environment}", builder.Environment.EnvironmentName);
+        logger.LogInformation("CORS configured with allowed origins: {Origins}", 
+            allowedOrigins.Length > 0 ? string.Join(", ", allowedOrigins) : "none");
+        
+        policy
+            .WithOrigins(allowedOrigins)
             .AllowAnyMethod()
-            .AllowAnyHeader();
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 

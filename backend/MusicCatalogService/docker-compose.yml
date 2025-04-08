@@ -40,6 +40,7 @@ services:
       - MongoDb__DatabaseName=${MONGO_DATABASE}
       - Spotify__ClientId=${SPOTIFY_CLIENT_ID}
       - Spotify__ClientSecret=${SPOTIFY_CLIENT_SECRET}
+      - Cors__AllowedOrigins__0=${FRONTEND_BASE_URL}
     ports:
       - "5002:80"
     depends_on:
