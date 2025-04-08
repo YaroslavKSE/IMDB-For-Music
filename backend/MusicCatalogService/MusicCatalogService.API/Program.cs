@@ -129,7 +129,7 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseCors("MusicAppPolicy");
+app.UseCors("CorsPolicy");
 app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
