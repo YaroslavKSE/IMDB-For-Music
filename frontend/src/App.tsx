@@ -19,6 +19,7 @@ import Artist from './pages/Artist';
 import NotFound from "./pages/NotFound";
 import CreateGradingMethod from './pages/CreateGradingMethod';
 import ViewGradingMethod from './pages/ViewGradingMethod';
+import Diary from './pages/Diary'; // Import the new Diary component
 
 // Auth callback handler component
 const AuthCallback = () => {
@@ -91,6 +92,15 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <Profile />
+                            </ProtectedRoute>
+                        }
+                    />
+                    {/* Diary route */}
+                    <Route
+                        path="diary"
+                        element={
+                            <ProtectedRoute>
+                                <Diary />
                             </ProtectedRoute>
                         }
                     />

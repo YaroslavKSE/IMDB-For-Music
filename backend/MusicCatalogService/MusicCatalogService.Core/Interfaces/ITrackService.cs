@@ -13,6 +13,6 @@ public interface ITrackService
     // Save track into internal database
     Task<TrackDetailDto> SaveTrackAsync(string spotifyId);
 
-    // New method to get multiple tracks
-    Task<MultipleTracksResultDto> GetMultipleTracksAsync(IEnumerable<string> spotifyIds);
+    // New method to get multiple tracks with simplified overview
+    Task<MultipleTracksOverviewDto> GetMultipleTracksOverviewAsync(IEnumerable<string> spotifyIds);
 }

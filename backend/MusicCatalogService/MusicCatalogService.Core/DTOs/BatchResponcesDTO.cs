@@ -9,8 +9,8 @@ public class MultipleAlbumsOverviewDto
     public int Count => Albums?.Count ?? 0;
 }
 
-public class MultipleTracksResultDto
+public class MultipleTracksOverviewDto
 {
-    public List<TrackDetailDto> Tracks { get; set; } = new();
+    public List<TrackSummaryDto> Tracks { get; set; } = new();
     public int Count => Tracks?.Count ?? 0;
 }

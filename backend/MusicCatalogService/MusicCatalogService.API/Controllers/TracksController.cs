@@ -44,7 +44,7 @@ public class TracksController : BaseApiController
     }
 
     [HttpGet("spotify")]
-    [ProducesResponseType(typeof(MultipleTracksResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MultipleTracksOverviewDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetMultipleTracksBySpotifyIds([FromQuery] string ids)
@@ -84,13 +84,13 @@ public class TracksController : BaseApiController
 
         try
         {
-            _logger.LogInformation("Retrieving batch of {Count} tracks via GET", spotifyIds.Count);
-            var result = await _trackService.GetMultipleTracksAsync(spotifyIds);
+            _logger.LogInformation("Retrieving batch of {Count} track overviews via GET", spotifyIds.Count);
+            var result = await _trackService.GetMultipleTracksOverviewAsync(spotifyIds);
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving multiple tracks via GET");
+            _logger.LogError(ex, "Error retrieving multiple track overviews via GET");
             return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResponse
             {
                 Message = "An unexpected error occurred while retrieving tracks",
