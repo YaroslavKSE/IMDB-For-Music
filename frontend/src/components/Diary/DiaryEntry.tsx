@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Music, Disc, Heart, Star, MessageSquare, SlidersHorizontal } from 'lucide-react';
+import { Music, Disc, Heart, Star, MessageSquare, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { DiaryEntry } from './types';
 
 interface DiaryEntryProps {
     entry: DiaryEntry;
     onReviewClick: (e: React.MouseEvent, entry: DiaryEntry) => void;
+    onDeleteClick?: (e: React.MouseEvent, entry: DiaryEntry) => void;
 }
 
-const DiaryEntryComponent = ({ entry, onReviewClick }: DiaryEntryProps) => {
+const DiaryEntryComponent = ({ entry, onReviewClick, onDeleteClick }: DiaryEntryProps) => {
     const navigate = useNavigate();
     const [isHovered, setIsHovered] = useState(false);
 
     const handleItemClick = () => {
-        navigate(`/interaction/${entry.interaction.aggregateId}`);
+        //navigate(`/interaction/${entry.interaction.aggregateId}`);
     };
 
     const handleAlbumClick = (e: React.MouseEvent) => {
@@ -24,6 +25,13 @@ const DiaryEntryComponent = ({ entry, onReviewClick }: DiaryEntryProps) => {
             navigate(`/album/${entry.catalogItem.spotifyId}`);
         } else if (entry.interaction.itemType === 'Track') {
             navigate(`/track/${entry.catalogItem.spotifyId}`);
+        }
+    };
+
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent triggering the row click
+        if (onDeleteClick) {
+            onDeleteClick(e, entry);
         }
     };
 
@@ -137,10 +145,19 @@ const DiaryEntryComponent = ({ entry, onReviewClick }: DiaryEntryProps) => {
             {/* Album navigation icon */}
             <button
                 onClick={handleAlbumClick}
-                className={`ml-4 p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-full ${isHovered ? 'visible' : ''}`}
+                className={`ml-4 p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-full ${isHovered ? 'visible' : 'invisible'}`}
                 title={`Go to ${entry.interaction.itemType === 'Album' ? 'album' : 'track\'s album'}`}
             >
                 <Disc className="h-5 w-5" />
+            </button>
+
+            {/* Delete button */}
+            <button
+                onClick={handleDelete}
+                className={`ml-2 p-2 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-full transition-colors ${isHovered ? 'visible' : 'invisible'}`}
+                title="Delete this entry"
+            >
+                <Trash2 className="h-5 w-5" />
             </button>
         </div>
     );

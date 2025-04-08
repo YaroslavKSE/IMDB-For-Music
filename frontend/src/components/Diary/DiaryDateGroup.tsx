@@ -5,9 +5,10 @@ import { DiaryEntry, GroupedEntries } from './types';
 interface DiaryDateGroupProps {
     group: GroupedEntries;
     onReviewClick: (e: React.MouseEvent, entry: DiaryEntry) => void;
+    onDeleteClick: (e: React.MouseEvent, entry: DiaryEntry) => void;
 }
 
-const DiaryDateGroup = ({ group, onReviewClick }: DiaryDateGroupProps) => {
+const DiaryDateGroup = ({ group, onReviewClick, onDeleteClick }: DiaryDateGroupProps) => {
     return (
         <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="bg-primary-50 px-6 py-3 border-b border-primary-100">
@@ -23,6 +24,7 @@ const DiaryDateGroup = ({ group, onReviewClick }: DiaryDateGroupProps) => {
                         key={entry.interaction.aggregateId}
                         entry={entry}
                         onReviewClick={onReviewClick}
+                        onDeleteClick={onDeleteClick}
                     />
                 ))}
             </div>
