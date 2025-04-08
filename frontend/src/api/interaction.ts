@@ -2,8 +2,8 @@ import { createApiClient } from '../utils/axios-factory';
 
 // Create the API client specifically for interaction service
 // Note: For grading methods, we need a slightly different API path
-const interactionApi = createApiClient('');
-const gradingApi = createApiClient('');
+const interactionApi = createApiClient('/interactions');
+const gradingApi = createApiClient('/grading-methods');
 
 // Grading Method Interfaces
 export interface GradeComponent {
