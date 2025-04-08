@@ -87,6 +87,58 @@ public class InteractionController : ControllerBase
         return Ok(result.Interaction);
     }
 
+    [HttpGet("by-user-id/{userId}")]
+    public async Task<IActionResult> GetInteractionsByUserId(string userId)
+    {
+        var command = new GetInteractionsByUserIdCommand() { UserId = userId };
+        var result = await mediator.Send(command);
+
+        if (result.InteractionsEmpty)
+        {
+            return NotFound($"No interactions found for user {userId}");
+        }
+
+        return Ok(result.Interactions);
+    }
+
+    [HttpGet("by-item-id/{itemId}")]
+    public async Task<IActionResult> GetInteractionsByItemId(string itemId)
+    {
+        var command = new GetInteractionsByItemIdCommand() { ItemId = itemId };
+        var result = await mediator.Send(command);
+
+        if (result.InteractionsEmpty)
+        {
+            return NotFound($"No interactions found for item {itemId}");
+        }
+
+        return Ok(result.Interactions);
+    }
+
+    [HttpGet("by-user-and-item")]
+    public async Task<IActionResult> GetInteractionsByUserAndItem([FromQuery] string userId, [FromQuery] string itemId)
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(itemId))
+        {
+            return BadRequest("Both userId and itemId are required parameters");
+        }
+
+        var command = new GetInteractionsByUserAndItemCommand()
+        {
+            UserId = userId,
+            ItemId = itemId
+        };
+
+        var result = await mediator.Send(command);
+
+        if (result.InteractionsEmpty)
+        {
+            return NotFound($"No interactions found for user {userId} and item {itemId}");
+        }
+
+        return Ok(result.Interactions);
+    }
+
     [HttpGet("likes-all")]
     public async Task<IActionResult> GetLikes()
     {

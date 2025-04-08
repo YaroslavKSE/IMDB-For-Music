@@ -27,6 +27,21 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                     table.PrimaryKey("PK_Interactions", x => x.AggregateId);
                 });
 
+            migrationBuilder.CreateIndex(
+                name: "IX_Interactions_UserId",
+                table: "Interactions",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Interactions_ItemId",
+                table: "Interactions",
+                column: "ItemId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Interactions_UserId_ItemId",
+                table: "Interactions",
+                columns: new[] { "UserId", "ItemId" });
+
             // 2. Create Likes table with one-to-one relationship to Interactions
             migrationBuilder.CreateTable(
                 name: "Likes",
