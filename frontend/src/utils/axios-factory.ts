@@ -11,10 +11,11 @@ const getBaseUrl = (path: string): string => {
   if (isLocalDev) {
     // Return the full localhost URL for the specific service
     const servicePorts: Record<string, string> = {
-      '/users': 'http://localhost:5001/api/v1',
-      '/catalog': 'http://localhost:5002/api/v1',
-      '/interactions': 'http://localhost:5003/api/v1',
-      '/grading-methods': 'http://localhost:5003/api/v1',
+      '/auth': 'http://localhost:5001/api/v1/auth',
+      '/users': 'http://localhost:5001/api/v1/users',
+      '/catalog': 'http://localhost:5002/api/v1/catalog',
+      '/interactions': 'http://localhost:5003/api/v1/interactions',
+      '/grading-methods': 'http://localhost:5003/api/v1/grading-methods',
     };
 
     return servicePorts[path] || `http://localhost:5000${path}`;

@@ -77,12 +77,12 @@ export interface SearchResult {
 
 const CatalogService = {
   getTrack: async (spotifyId: string): Promise<TrackDetail> => {
-    const response = await catalogApi.get(`/catalog/tracks/spotify/${spotifyId}`);
+    const response = await catalogApi.get(`/tracks/spotify/${spotifyId}`);
     return response.data;
   },
 
   getAlbum: async (spotifyId: string): Promise<AlbumDetail> => {
-    const response = await catalogApi.get(`/catalog/albums/spotify/${spotifyId}`);
+    const response = await catalogApi.get(`/albums/spotify/${spotifyId}`);
     return response.data;
   },
 
@@ -92,7 +92,7 @@ const CatalogService = {
     limit: number = 20,
     offset: number = 0
   ): Promise<SearchResult> => {
-    const response = await catalogApi.get('/catalog/search', {
+    const response = await catalogApi.get('/search', {
       params: {
         q: query,
         type,

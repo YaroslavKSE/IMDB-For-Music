@@ -1,7 +1,8 @@
 import { createApiClient } from '../utils/axios-factory';
 
 // Create the API client specifically for auth/user service
-const api = createApiClient('/users');
+const authApi = createApiClient('/auth');
+const userApi = createApiClient('/users');
 
 export interface RegisterParams {
   email: string;
@@ -43,12 +44,12 @@ export interface UserProfile {
 
 const AuthService = {
   register: async (params: RegisterParams): Promise<AuthResponse> => {
-    const response = await api.post('/auth/register', params);
+    const response = await authApi.post('/register', params);
     return response.data;
   },
 
   login: async (params: LoginParams): Promise<LoginResponse> => {
-    const response = await api.post('/auth/login', params);
+    const response = await authApi.post('/login', params);
     // Store the token and refresh token in localStorage
     localStorage.setItem('token', response.data.accessToken);
     localStorage.setItem('refreshToken', response.data.refreshToken);
@@ -57,7 +58,7 @@ const AuthService = {
 
   // Handle social login with Auth0 (including Google)
   socialLogin: async (params: SocialLoginParams): Promise<LoginResponse> => {
-    const response = await api.post('/auth/social-login', params);
+    const response = await authApi.post('/social-login', params);
     // Store the token and refresh token in localStorage
     localStorage.setItem('token', response.data.accessToken);
     localStorage.setItem('refreshToken', response.data.refreshToken);
@@ -70,7 +71,7 @@ const AuthService = {
     if (refreshToken) {
       try {
         // Call the logout endpoint to revoke the token on server side
-        await api.post('/auth/logout', { refreshToken });
+        await authApi.post('/auth/logout', { refreshToken });
       } catch (error) {
         console.error('Error during logout:', error);
       }
@@ -83,7 +84,7 @@ const AuthService = {
   },
 
   getCurrentUser: async (): Promise<UserProfile> => {
-    const response = await api.get('/users/me');
+    const response = await userApi.get('/me');
     // Cache user profile
     localStorage.setItem('user', JSON.stringify(response.data));
     return response.data;

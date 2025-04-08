@@ -2,8 +2,8 @@ import { createApiClient } from '../utils/axios-factory';
 
 // Create the API client specifically for interaction service
 // Note: For grading methods, we need a slightly different API path
-const interactionApi = createApiClient('/interactions');
-const gradingApi = createApiClient('/grading-methods');
+const interactionApi = createApiClient('');
+const gradingApi = createApiClient('');
 
 // Grading Method Interfaces
 export interface GradeComponent {
@@ -184,27 +184,27 @@ export interface ErrorResponse {
 const InteractionService = {
   // Grading Method Operations
   createGradingMethod: async (gradingMethod: GradingMethodCreate): Promise<GradingMethodResponse> => {
-    const response = await gradingApi.post('/grading-methods/create', gradingMethod);
+    const response = await gradingApi.post('/create', gradingMethod);
     return response.data;
   },
 
   getUserGradingMethods: async (userId: string): Promise<GradingMethodSummary[]> => {
-    const response = await gradingApi.get(`/grading-methods/by-creator-id/${userId}`);
+    const response = await gradingApi.get(`/by-creator-id/${userId}`);
     return response.data;
   },
 
   getPublicGradingMethods: async (): Promise<GradingMethodSummary[]> => {
-    const response = await gradingApi.get('/grading-methods/public-all');
+    const response = await gradingApi.get('/public-all');
     return response.data;
   },
 
   getGradingMethodById: async (id: string): Promise<GradingMethodDetail> => {
-    const response = await gradingApi.get(`/grading-methods/by-id/${id}`);
+    const response = await gradingApi.get(`/by-id/${id}`);
     return response.data;
   },
 
   deleteGradingMethod: async (id: string): Promise<DeleteGradingMethodResponse> => {
-    const response = await gradingApi.delete(`/grading-methods/by-id/${id}`);
+    const response = await gradingApi.delete(`/by-id/${id}`);
     return response.data;
   },
 
@@ -218,58 +218,58 @@ const InteractionService = {
 
   // Interaction Operations
   createInteraction: async (interaction: PostInteractionRequest): Promise<PostInteractionResult> => {
-    const response = await interactionApi.post('/interactions/create', interaction);
+    const response = await interactionApi.post('/create', interaction);
     return response.data;
   },
 
   updateInteraction: async (interaction: UpdateInteractionRequest): Promise<UpdateInteractionResult> => {
-    const response = await interactionApi.put('/interactions/update', interaction);
+    const response = await interactionApi.put('/update', interaction);
     return response.data;
   },
 
   getAllInteractions: async (): Promise<GetInteractionsResult> => {
-    const response = await interactionApi.get('/interactions/all');
+    const response = await interactionApi.get('/all');
     return response.data;
   },
 
   getInteractionById: async (id: string): Promise<InteractionDetailDTO> => {
-    const response = await interactionApi.get(`/interactions/by-id/${id}`);
+    const response = await interactionApi.get(`/by-id/${id}`);
     return response.data;
   },
 
   deleteInteraction: async (id: string): Promise<{success: boolean, errorMessage?: string}> => {
-    const response = await interactionApi.delete(`/interactions/by-id/${id}`);
+    const response = await interactionApi.delete(`/by-id/${id}`);
     return response.data;
   },
 
   getAllLikes: async () => {
-    const response = await interactionApi.get('/interactions/likes-all');
+    const response = await interactionApi.get('/likes-all');
     return response.data;
   },
 
   getAllReviews: async () => {
-    const response = await interactionApi.get('/interactions/reviews-all');
+    const response = await interactionApi.get('/reviews-all');
     return response.data;
   },
 
   getAllRatings: async (): Promise<GetRatingsResult> => {
-    const response = await interactionApi.get('/interactions/ratings-all');
+    const response = await interactionApi.get('/ratings-all');
     return response.data;
   },
 
   getRatingById: async (id: string): Promise<GetRatingDetailResult> => {
-    const response = await interactionApi.get(`/interactions/rating-by-id/${id}`);
+    const response = await interactionApi.get(`/rating-by-id/${id}`);
     return response.data;
   },
 
   // User-specific interactions
   getUserInteractions: async (userId: string): Promise<GetInteractionsResult> => {
-    const response = await interactionApi.get(`/interactions/user/${userId}`);
+    const response = await interactionApi.get(`/user/${userId}`);
     return response.data;
   },
 
   getItemInteractions: async (itemId: string, itemType: string): Promise<GetInteractionsResult> => {
-    const response = await interactionApi.get(`/interactions/item/${itemType}/${itemId}`);
+    const response = await interactionApi.get(`/item/${itemType}/${itemId}`);
     return response.data;
   }
 };
