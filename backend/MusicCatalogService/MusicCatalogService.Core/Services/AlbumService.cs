@@ -132,6 +132,171 @@ public class AlbumService : IAlbumService
         return result;
     }
 
+    // Implementation for GetMultipleAlbumsOverviewAsync - returns simplified album information
+    public async Task<MultipleAlbumsOverviewDto> GetMultipleAlbumsOverviewAsync(IEnumerable<string> spotifyIds)
+    {
+        if (spotifyIds == null || !spotifyIds.Any())
+        {
+            throw new ArgumentException("Album IDs cannot be null or empty", nameof(spotifyIds));
+        }
+
+        var result = new MultipleAlbumsOverviewDto();
+
+        try
+        {
+            // Deduplicate IDs
+            var uniqueIds = spotifyIds.Distinct().ToList();
+
+            // Handle Spotify's 20 album limit per request by chunking if needed
+            const int spotifyMaxBatchSize = 20;
+            var batches = uniqueIds.Chunk(spotifyMaxBatchSize);
+
+            foreach (var batch in batches)
+            {
+                // Create batch cache key - use a different key prefix to indicate this is overview data
+                var batchCacheKey = $"albums:overview:{string.Join(",", batch)}";
+
+                // Try to get batch from cache
+                var cachedBatch = await _cacheService.GetAsync<List<AlbumSummaryDto>>(batchCacheKey);
+
+                if (cachedBatch != null && cachedBatch.Any())
+                {
+                    _logger.LogInformation("Album overview batch retrieved from cache for {Count} albums", cachedBatch.Count);
+                    result.Albums.AddRange(cachedBatch);
+                    continue;
+                }
+
+                // Try to get from database first
+                var databaseAlbums = await _catalogRepository.GetBatchAlbumsBySpotifyIdsAsync(batch);
+                var validDatabaseAlbums = databaseAlbums
+                    .Where(a => a != null && DateTime.UtcNow < a.CacheExpiresAt)
+                    .ToList();
+
+                if (validDatabaseAlbums.Count == batch.Length)
+                {
+                    _logger.LogInformation("Retrieved all {Count} album overviews from database", batch.Length);
+
+                    // Map database albums to summary DTOs (simplified view)
+                    var albumSummaries = validDatabaseAlbums.Select(album => new AlbumSummaryDto
+                    {
+                        CatalogItemId = album.Id,
+                        SpotifyId = album.SpotifyId,
+                        Name = album.Name,
+                        ArtistName = album.ArtistName,
+                        ImageUrl = album.ThumbnailUrl,
+                        ReleaseDate = album.ReleaseDate,
+                        AlbumType = album.AlbumType,
+                        TotalTracks = album.TotalTracks,
+                        Popularity = album.Popularity,
+                        ExternalUrls = album.SpotifyUrl != null ? new List<string> { album.SpotifyUrl } : null
+                    }).ToList();
+
+                    // Add to result
+                    result.Albums.AddRange(albumSummaries);
+
+                    // Cache this batch
+                    await _cacheService.SetAsync(
+                        batchCacheKey,
+                        albumSummaries,
+                        TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
+
+                    continue;
+                }
+
+                // Fetch missing albums from Spotify API
+                _logger.LogInformation("Fetching batch of {Count} album overviews from Spotify API", batch.Length);
+
+                var spotifyResponse = await _spotifyApiClient.GetMultipleAlbumsAsync(batch);
+
+                if (spotifyResponse?.Albums == null || !spotifyResponse.Albums.Any())
+                {
+                    _logger.LogWarning("No albums returned from Spotify for batch of {Count} ids", batch.Length);
+                    continue;
+                }
+
+                var batchSummaries = new List<AlbumSummaryDto>();
+
+                // Process each album from Spotify - map to simplified summary
+                foreach (var spotifyAlbum in spotifyResponse.Albums)
+                {
+                    if (spotifyAlbum == null) continue;
+
+                    // Get existing album from database or create new entity
+                    var existingAlbum = validDatabaseAlbums.FirstOrDefault(a => a.SpotifyId == spotifyAlbum.Id);
+                    var albumEntity = new Album
+                    {
+                        Id = existingAlbum?.Id ?? Guid.NewGuid(),
+                        SpotifyId = spotifyAlbum.Id,
+                        Name = spotifyAlbum.Name,
+                        ArtistName = spotifyAlbum.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
+                        ThumbnailUrl = GetOptimalImage(spotifyAlbum.Images),
+                        Popularity = spotifyAlbum.Popularity,
+                        LastAccessed = DateTime.UtcNow,
+                        CacheExpiresAt = DateTime.UtcNow.AddMinutes(_spotifySettings.CacheExpirationMinutes),
+                        ReleaseDate = spotifyAlbum.ReleaseDate,
+                        ReleaseDatePrecision = spotifyAlbum.ReleaseDatePrecision,
+                        AlbumType = spotifyAlbum.AlbumType,
+                        TotalTracks = spotifyAlbum.TotalTracks,
+                        Label = spotifyAlbum.Label,
+                        Copyright = spotifyAlbum.Copyright,
+                        SpotifyUrl = spotifyAlbum.ExternalUrls?.Spotify,
+                        Artists = spotifyAlbum.Artists.Select(a => new SimplifiedArtist
+                        {
+                            Id = a.Id,
+                            Name = a.Name,
+                            SpotifyUrl = a.ExternalUrls?.Spotify
+                        }).ToList(),
+                        RawData = JsonSerializer.Serialize(spotifyAlbum)
+                    };
+
+                    // Save to database
+                    await _catalogRepository.AddOrUpdateAlbumAsync(albumEntity);
+
+                    // Map to a simplified summary DTO
+                    var albumSummary = new AlbumSummaryDto
+                    {
+                        CatalogItemId = albumEntity.Id,
+                        SpotifyId = spotifyAlbum.Id,
+                        Name = spotifyAlbum.Name,
+                        ArtistName = spotifyAlbum.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
+                        ImageUrl = GetOptimalImage(spotifyAlbum.Images),
+                        Images = spotifyAlbum.Images?.Select(img => new ImageDto
+                        {
+                            Url = img.Url,
+                            Height = img.Height,
+                            Width = img.Width
+                        }).ToList(),
+                        ReleaseDate = spotifyAlbum.ReleaseDate,
+                        AlbumType = spotifyAlbum.AlbumType,
+                        TotalTracks = spotifyAlbum.TotalTracks,
+                        Popularity = spotifyAlbum.Popularity,
+                        ExternalUrls = spotifyAlbum.ExternalUrls?.Spotify != null
+                            ? new List<string> { spotifyAlbum.ExternalUrls.Spotify }
+                            : null
+                    };
+
+                    batchSummaries.Add(albumSummary);
+                }
+
+                // Add batch results to overall results
+                result.Albums.AddRange(batchSummaries);
+
+                // Cache this batch
+                await _cacheService.SetAsync(
+                    batchCacheKey,
+                    batchSummaries,
+                    TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving multiple album overviews");
+            throw;
+        }
+    }
+
     // Get by catalog ID
     public async Task<AlbumDetailDto> GetAlbumByCatalogIdAsync(Guid catalogId)
     {

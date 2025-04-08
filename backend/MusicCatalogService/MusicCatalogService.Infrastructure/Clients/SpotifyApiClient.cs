@@ -266,6 +266,140 @@ public class SpotifyApiClient : ISpotifyApiClient
         }
     }
 
+    public async Task<SpotifyMultipleAlbumsResponse?> GetMultipleAlbumsAsync(IEnumerable<string> albumIds)
+    {
+        if (albumIds == null || !albumIds.Any())
+        {
+            throw new ArgumentException("Album IDs cannot be null or empty", nameof(albumIds));
+        }
+
+        // Spotify API limit is 20 IDs per request
+        if (albumIds.Count() > 20)
+        {
+            throw new ArgumentException("Maximum number of album IDs per request is 20", nameof(albumIds));
+        }
+
+        try
+        {
+            var token = await _tokenService.GetAccessTokenAsync();
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            // Join album IDs with comma
+            var idsParameter = string.Join(",", albumIds);
+            var response = await _httpClient.GetAsync($"albums?ids={idsParameter}");
+
+            // Handle non-success status codes
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Spotify API error: {StatusCode} when getting multiple albums. Response: {Response}",
+                    response.StatusCode, errorContent);
+
+                // Parse Spotify error response
+                var spotifyError = ParseSpotifyError(errorContent, response.StatusCode);
+
+                throw response.StatusCode switch
+                {
+                    // Throw appropriate exception based on status code
+                    HttpStatusCode.NotFound => new SpotifyResourceNotFoundException(spotifyError.Message, idsParameter),
+                    HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => new SpotifyAuthorizationException(
+                        spotifyError.Message),
+                    HttpStatusCode.TooManyRequests => new SpotifyRateLimitException(spotifyError.Message),
+                    _ => new SpotifyApiException(spotifyError.Message, response.StatusCode)
+                };
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            _logger.LogDebug("Spotify API returned multiple albums response: {Content}", content);
+            return JsonSerializer.Deserialize<SpotifyMultipleAlbumsResponse>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+        }
+        catch (SpotifyException)
+        {
+            // Let the custom exceptions propagate
+            throw;
+        }
+        catch (ArgumentException)
+        {
+            // Let argument exceptions propagate
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching multiple albums from Spotify");
+            throw new SpotifyApiException("An unexpected error occurred while fetching multiple albums", ex);
+        }
+    }
+
+    public async Task<SpotifyMultipleTracksResponse?> GetMultipleTracksAsync(IEnumerable<string> trackIds)
+    {
+        if (trackIds == null || !trackIds.Any())
+        {
+            throw new ArgumentException("Track IDs cannot be null or empty", nameof(trackIds));
+        }
+
+        // Spotify API limit is 50 IDs per request
+        if (trackIds.Count() > 50)
+        {
+            throw new ArgumentException("Maximum number of track IDs per request is 50", nameof(trackIds));
+        }
+
+        try
+        {
+            var token = await _tokenService.GetAccessTokenAsync();
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            // Join track IDs with comma
+            var idsParameter = string.Join(",", trackIds);
+            var response = await _httpClient.GetAsync($"tracks?ids={idsParameter}");
+
+            // Handle non-success status codes
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Spotify API error: {StatusCode} when getting multiple tracks. Response: {Response}",
+                    response.StatusCode, errorContent);
+
+                // Parse Spotify error response
+                var spotifyError = ParseSpotifyError(errorContent, response.StatusCode);
+
+                throw response.StatusCode switch
+                {
+                    // Throw appropriate exception based on status code
+                    HttpStatusCode.NotFound => new SpotifyResourceNotFoundException(spotifyError.Message, idsParameter),
+                    HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => new SpotifyAuthorizationException(
+                        spotifyError.Message),
+                    HttpStatusCode.TooManyRequests => new SpotifyRateLimitException(spotifyError.Message),
+                    _ => new SpotifyApiException(spotifyError.Message, response.StatusCode)
+                };
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            _logger.LogDebug("Spotify API returned multiple tracks response: {Content}", content);
+            return JsonSerializer.Deserialize<SpotifyMultipleTracksResponse>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+        }
+        catch (SpotifyException)
+        {
+            // Let the custom exceptions propagate
+            throw;
+        }
+        catch (ArgumentException)
+        {
+            // Let argument exceptions propagate
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching multiple tracks from Spotify");
+            throw new SpotifyApiException("An unexpected error occurred while fetching multiple tracks", ex);
+        }
+    }
+
     private SpotifyError ParseSpotifyError(string errorContent, HttpStatusCode statusCode)
     {
         try
