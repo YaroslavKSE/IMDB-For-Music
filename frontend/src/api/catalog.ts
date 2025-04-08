@@ -19,6 +19,10 @@ export interface ArtistSummary {
   externalUrls?: string[];
 }
 
+export interface ArtistDetail extends ArtistSummary {
+  followersCount: number;
+}
+
 export interface TrackSummary {
   catalogItemId: string;
   spotifyId: string;
@@ -92,6 +96,11 @@ const CatalogService = {
 
   getAlbum: async (spotifyId: string): Promise<AlbumDetail> => {
     const response = await catalogApi.get(`/albums/spotify/${spotifyId}`);
+    return response.data;
+  },
+
+  getArtist: async (spotifyId: string): Promise<ArtistDetail> => {
+    const response = await catalogApi.get(`/artists/spotify/${spotifyId}`);
     return response.data;
   },
 

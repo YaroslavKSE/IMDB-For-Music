@@ -15,9 +15,10 @@ import Profile from './pages/Profile';
 import Search from './pages/Search';
 import Album from './pages/Album';
 import Song from './pages/Song';
+import Artist from './pages/Artist';
 import NotFound from "./pages/NotFound";
 import CreateGradingMethod from './pages/CreateGradingMethod';
-import ViewGradingMethod from './pages/ViewGradingMethod'; // Import the new page
+import ViewGradingMethod from './pages/ViewGradingMethod';
 
 // Auth callback handler component
 const AuthCallback = () => {
@@ -82,6 +83,7 @@ function App() {
                     <Route path="search" element={<Search />} />
                     <Route path="album/:id" element={<Album />} />
                     <Route path="track/:id" element={<Song />} />
+                    <Route path="artist/:id" element={<Artist />} />
 
                     {/* Protected routes */}
                     <Route
