@@ -6,7 +6,7 @@ public class Grade: IGradable
     public float minGrade { get; private set; }
     public float maxGrade { get; private set; }
     public float stepAmount { get; private set; }
-    public float? grade { get; private set; }
+    public float? grade { get; set; }
     public string? Description { get; private set; }
 
     public Grade(float minGrade = 1, float maxGrade = 10, float stepAmount = 1, string parametrName = "basicRating", string? description = null)

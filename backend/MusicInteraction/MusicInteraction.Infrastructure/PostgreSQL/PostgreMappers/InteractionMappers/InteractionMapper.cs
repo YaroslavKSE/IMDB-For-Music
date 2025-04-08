@@ -55,7 +55,7 @@ public static class InteractionMapper
             {
                 typeof(InteractionsAggregate).GetProperty("Rating")?.SetValue(
                     domain,
-                    await RatingMapper.ToDomainAsync(ratingEntity, dbContext)
+                    await RatingMapper.OverviewToDomainAsyn(ratingEntity, dbContext)
                 );
             }
         }

@@ -72,4 +72,39 @@ public static class RatingMapper
         rating.RatingId = entity.RatingId;
         return rating;
     }
+
+    public static async Task<Rating> OverviewToDomainAsyn(RatingEntity entity, MusicInteractionDbContext dbContext)
+    {
+        // First, reconstruct the gradable component
+        Grade grade;
+
+        if (!entity.IsComplexGrading)
+        {
+            grade = await GradeMapper.GetByRatingIdAsync(entity.RatingId, dbContext);
+        }
+        else
+        {
+            grade = new Grade();
+            grade.grade = await GradingMethodMapper.GetNormalizedByRatingIdAsync(entity.RatingId, dbContext);
+        }
+
+        if (entity.Interaction == null)
+        {
+            entity.Interaction = await dbContext.Interactions
+                .FirstOrDefaultAsync(i => i.AggregateId == entity.AggregateId);
+        }
+
+        // Create the rating with the reconstructed gradable
+        var rating = new Rating(
+            grade,
+            entity.AggregateId,
+            entity.Interaction.ItemId,
+            entity.Interaction.CreatedAt,
+            entity.Interaction.ItemType,
+            entity.Interaction.UserId
+        );
+
+        rating.RatingId = entity.RatingId;
+        return rating;
+    }
 }

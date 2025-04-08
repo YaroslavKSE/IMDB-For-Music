@@ -150,6 +150,16 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
                 .HasForeignKey(a => a.GradingBlockId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<InteractionAggregateEntity>()
+                .HasIndex(i => i.UserId);
+
+            modelBuilder.Entity<InteractionAggregateEntity>()
+                .HasIndex(i => i.ItemId);
+
+            // Add composite index for (UserId, ItemId)
+            modelBuilder.Entity<InteractionAggregateEntity>()
+                .HasIndex(i => new { i.UserId, i.ItemId });
+
             // Set up unique constraints
             modelBuilder.Entity<GradingMethodComponentEntity>()
                 .HasIndex(c => new { c.GradingMethodId, c.ComponentNumber })

@@ -3,23 +3,28 @@ using MusicInteraction.Application.Interfaces;
 
 namespace MusicInteraction.Application;
 
-public class GetInteractionsUseCase : IRequestHandler<GetInteractionsCommand, GetInteractionsResult>
+public class GetInteractionsByUserIdUseCase : IRequestHandler<GetInteractionsByUserIdCommand, GetInteractionsResult>
 {
     private readonly IInteractionStorage interactionStorage;
 
-    public GetInteractionsUseCase(IInteractionStorage interactionStorage)
+    public GetInteractionsByUserIdUseCase(IInteractionStorage interactionStorage)
     {
         this.interactionStorage = interactionStorage;
     }
 
-    public async Task<GetInteractionsResult> Handle(GetInteractionsCommand request, CancellationToken cancellationToken)
+    public async Task<GetInteractionsResult> Handle(GetInteractionsByUserIdCommand request, CancellationToken cancellationToken)
     {
         if (await interactionStorage.IsEmpty())
         {
-            return new GetInteractionsResult() {InteractionsEmpty = true};
+            return new GetInteractionsResult() { InteractionsEmpty = true };
         }
 
-        var interactions = interactionStorage.GetInteractions().Result;
+        var interactions = await interactionStorage.GetInteractionsByUserId(request.UserId);
+        if (interactions.Count == 0)
+        {
+            return new GetInteractionsResult() { InteractionsEmpty = true };
+        }
+
         List<InteractionAggregateShowDto> interactionAggregateDtos = new List<InteractionAggregateShowDto>();
 
         foreach (var interaction in interactions)
@@ -34,7 +39,7 @@ public class GetInteractionsUseCase : IRequestHandler<GetInteractionsCommand, Ge
 
             if (interaction.Rating != null)
             {
-                bool isComplex = interactionStorage.GetGradingTypeByInteractionId(interaction.AggregateId).Result;
+                bool isComplex = await interactionStorage.GetGradingTypeByInteractionId(interaction.AggregateId);
                 interactionShowDto.Rating = new RatingNormalizedDTO()
                     {RatingId = interaction.Rating.RatingId, NormalizedGrade = interaction.Rating.Grade.getNormalizedGrade(), IsComplex = isComplex};
             }
@@ -47,6 +52,7 @@ public class GetInteractionsUseCase : IRequestHandler<GetInteractionsCommand, Ge
 
             interactionAggregateDtos.Add(interactionShowDto);
         }
-        return new GetInteractionsResult() {InteractionsEmpty = false, Interactions = interactionAggregateDtos};
+
+        return new GetInteractionsResult() { InteractionsEmpty = false, Interactions = interactionAggregateDtos };
     }
 }

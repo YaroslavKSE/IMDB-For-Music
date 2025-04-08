@@ -181,7 +181,87 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
                 {
                     return null;
                 }
-                return await InteractionMapper.ToDomain(interactionEntity, _dbContext);
+                InteractionsAggregate interaction = await InteractionMapper.ToDomain(interactionEntity, _dbContext);
+                return interaction;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving interaction with ID {interactionId}: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<List<InteractionsAggregate>> GetInteractionsByUserId(string userId)
+        {
+            var interactionEntities = await _dbContext.Interactions
+                .Where(i => i.UserId == userId)
+                .Include(i => i.Rating)
+                .Include(i => i.Review)
+                .Include(i => i.Like)
+                .ToListAsync();
+
+            List<InteractionsAggregate> result = new List<InteractionsAggregate>();
+
+            foreach (var entity in interactionEntities)
+            {
+                var interaction = await InteractionMapper.ToDomain(entity, _dbContext);
+                result.Add(interaction);
+            }
+
+            return result;
+        }
+
+        public async Task<List<InteractionsAggregate>> GetInteractionsByItemId(string itemId)
+        {
+            var interactionEntities = await _dbContext.Interactions
+                .Where(i => i.ItemId == itemId)
+                .Include(i => i.Rating)
+                .Include(i => i.Review)
+                .Include(i => i.Like)
+                .ToListAsync();
+
+            List<InteractionsAggregate> result = new List<InteractionsAggregate>();
+
+            foreach (var entity in interactionEntities)
+            {
+                var interaction = await InteractionMapper.ToDomain(entity, _dbContext);
+                result.Add(interaction);
+            }
+
+            return result;
+        }
+
+        public async Task<List<InteractionsAggregate>> GetInteractionsByUserAndItem(string userId, string itemId)
+        {
+            var interactionEntities = await _dbContext.Interactions
+                .Where(i => i.UserId == userId && i.ItemId == itemId)
+                .Include(i => i.Rating)
+                .Include(i => i.Review)
+                .Include(i => i.Like)
+                .ToListAsync();
+
+            List<InteractionsAggregate> result = new List<InteractionsAggregate>();
+
+            foreach (var entity in interactionEntities)
+            {
+                var interaction = await InteractionMapper.ToDomain(entity, _dbContext);
+                result.Add(interaction);
+            }
+
+            return result;
+        }
+
+        public async Task<bool> GetGradingTypeByInteractionId(Guid interactionId)
+        {
+            try
+            {
+                var interactionEntity = await _dbContext.Interactions
+                    .Include(i => i.Rating)
+                    .Include(i => i.Review)
+                    .Include(i => i.Like)
+                    .FirstOrDefaultAsync(i => i.AggregateId == interactionId);
+
+                return interactionEntity.Rating.IsComplexGrading;
             }
             catch (Exception ex)
             {

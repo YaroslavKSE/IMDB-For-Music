@@ -100,6 +100,22 @@ public static class GradingMethodMapper
         return await LoadGradingMethodFromEntityIdAsync(methodEntity.EntityId, dbContext);
     }
 
+    public static async Task<float?> GetNormalizedByRatingIdAsync(Guid ratingId,
+        MusicInteractionDbContext dbContext)
+    {
+        var methodEntity = await dbContext.GradingMethodInstances
+            .FirstOrDefaultAsync(m => m.RatingId == ratingId);
+
+        if (methodEntity == null)
+        {
+            return 0;
+        }
+        else
+        {
+            return methodEntity.NormalizedGrade;
+        }
+    }
+
     public static async Task<GradingMethod> LoadGradingMethodFromEntityIdAsync(Guid entityId, MusicInteractionDbContext dbContext)
     {
         var methodEntity = await dbContext.GradingMethodInstances
