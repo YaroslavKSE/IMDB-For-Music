@@ -75,6 +75,15 @@ export interface SearchResult {
   artists?: ArtistSummary[];
 }
 
+export interface NewReleasesResult {
+  limit: number;
+  offset: number;
+  totalResults: number;
+  next: string | null;
+  previous: string | null;
+  albums: AlbumSummary[];
+}
+
 const CatalogService = {
   getTrack: async (spotifyId: string): Promise<TrackDetail> => {
     const response = await catalogApi.get(`/tracks/spotify/${spotifyId}`);
@@ -87,10 +96,10 @@ const CatalogService = {
   },
 
   search: async (
-    query: string,
-    type: string = 'album,artist,track',
-    limit: number = 20,
-    offset: number = 0
+      query: string,
+      type: string = 'album,artist,track',
+      limit: number = 20,
+      offset: number = 0
   ): Promise<SearchResult> => {
     const response = await catalogApi.get('/search', {
       params: {
@@ -99,6 +108,16 @@ const CatalogService = {
         limit,
         offset,
       },
+    });
+    return response.data;
+  },
+
+  getNewReleases: async (limit: number = 10, offset: number = 0): Promise<NewReleasesResult> => {
+    const response = await catalogApi.get('/search/new-releases', {
+      params: {
+        limit,
+        offset
+      }
     });
     return response.data;
   },
