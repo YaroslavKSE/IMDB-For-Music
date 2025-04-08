@@ -1,4 +1,7 @@
-import { catalogApi } from './axios-config';
+import { createApiClient } from '../utils/axios-factory';
+
+// Create the API client specifically for catalog service
+const catalogApi = createApiClient('/catalog');
 
 export interface Image {
   url: string;

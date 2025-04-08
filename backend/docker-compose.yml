@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL for UserService and MusicInteractionService
   postgres:
@@ -94,14 +92,12 @@ services:
       - ConnectionStrings__Redis=redis:6379,abortConnect=false
       - MongoDb__ConnectionString=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017
       - MongoDb__DatabaseName=${MONGO_DATABASE}
-      - MongoDb__AlbumsCollectionName=Albums
-      - MongoDb__TracksCollectionName=Tracks
       - MongoDb__SpotifyCacheCollectionName=SpotifyCache
       - Spotify__ClientId=${SPOTIFY_CLIENT_ID}
       - Spotify__ClientSecret=${SPOTIFY_CLIENT_SECRET}
       - Spotify__CacheExpirationMinutes=360
       - Spotify__RateLimitPerMinute=160
-      - AllowedOrigins=${FRONTEND_BASE_URL}
+      - Cors__AllowedOrigins__0=${FRONTEND_BASE_URL}
     ports:
       - "5002:80"
     depends_on:
@@ -144,32 +140,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-
-  # Frontend Application
-  frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_BASE_URL=${API_BASE_URL}
-    environment:
-      # API Service URLs - now using relative paths
-      - VITE_USER_SERVICE_URL=/api/v1/auth
-      - VITE_CATALOG_API_URL=/api/v1/catalog
-      - VITE_RATING_API_URL=/api/v1/rating
-
-      # Auth0 Configuration
-      - VITE_AUTH0_DOMAIN=${AUTH0_DOMAIN}
-      - VITE_AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
-      - VITE_AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
-    ports:
-      - "5173:80"
-    depends_on:
-      - user-service
-      - music-catalog-service
-      - music-interaction-service
-    networks:
-      - music-app-network
 
 networks:
   music-app-network:

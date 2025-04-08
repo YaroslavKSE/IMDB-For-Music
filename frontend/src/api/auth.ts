@@ -1,4 +1,7 @@
-import { api } from './axios-config';
+import { createApiClient } from '../utils/axios-factory';
+
+// Create the API client specifically for auth/user service
+const api = createApiClient('/users');
 
 export interface RegisterParams {
   email: string;
