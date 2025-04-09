@@ -19,6 +19,10 @@ export interface ArtistSummary {
   externalUrls?: string[];
 }
 
+export interface ArtistDetail extends ArtistSummary {
+  followersCount: number;
+}
+
 export interface TrackSummary {
   catalogItemId: string;
   spotifyId: string;
@@ -75,6 +79,21 @@ export interface SearchResult {
   artists?: ArtistSummary[];
 }
 
+export interface NewReleasesResult {
+  limit: number;
+  offset: number;
+  totalResults: number;
+  next: string | null;
+  previous: string | null;
+  albums: AlbumSummary[];
+}
+
+export interface BatchItemsResponse {
+  tracks?: TrackSummary[];
+  albums?: AlbumSummary[];
+  count: number;
+}
+
 const CatalogService = {
   getTrack: async (spotifyId: string): Promise<TrackDetail> => {
     const response = await catalogApi.get(`/tracks/spotify/${spotifyId}`);
@@ -86,11 +105,16 @@ const CatalogService = {
     return response.data;
   },
 
+  getArtist: async (spotifyId: string): Promise<ArtistDetail> => {
+    const response = await catalogApi.get(`/artists/spotify/${spotifyId}`);
+    return response.data;
+  },
+
   search: async (
-    query: string,
-    type: string = 'album,artist,track',
-    limit: number = 20,
-    offset: number = 0
+      query: string,
+      type: string = 'album,artist,track',
+      limit: number = 20,
+      offset: number = 0
   ): Promise<SearchResult> => {
     const response = await catalogApi.get('/search', {
       params: {
@@ -99,6 +123,46 @@ const CatalogService = {
         limit,
         offset,
       },
+    });
+    return response.data;
+  },
+
+  getNewReleases: async (limit: number = 10, offset: number = 0): Promise<NewReleasesResult> => {
+    const response = await catalogApi.get('/search/new-releases', {
+      params: {
+        limit,
+        offset
+      }
+    });
+    return response.data;
+  },
+
+  getBatchAlbums: async (albumIds: string[]): Promise<BatchItemsResponse> => {
+    if (albumIds.length === 0) return { albums: [], count: 0 };
+
+    // Only process up to 20 IDs at a time
+    const idsToFetch = albumIds.slice(0, 20);
+    const idsParam = idsToFetch.join(',');
+
+    const response = await catalogApi.get('/albums/spotify', {
+      params: {
+        ids: idsParam
+      }
+    });
+    return response.data;
+  },
+
+  getBatchTracks: async (trackIds: string[]): Promise<BatchItemsResponse> => {
+    if (trackIds.length === 0) return { tracks: [], count: 0 };
+
+    // Only process up to 20 IDs at a time
+    const idsToFetch = trackIds.slice(0, 20);
+    const idsParam = idsToFetch.join(',');
+
+    const response = await catalogApi.get('/tracks/spotify', {
+      params: {
+        ids: idsParam
+      }
     });
     return response.data;
   },

@@ -12,4 +12,7 @@ public interface IAlbumService
     
     // Save album into internal database 
     Task<AlbumDetailDto> SaveAlbumAsync(string spotifyId);
+
+    // New method to get multiple albums with simplified overview
+    Task<MultipleAlbumsOverviewDto> GetMultipleAlbumsOverviewAsync(IEnumerable<string> spotifyIds);
 }

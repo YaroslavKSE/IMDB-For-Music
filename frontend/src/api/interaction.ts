@@ -181,6 +181,24 @@ export interface ErrorResponse {
   success: boolean;
 }
 
+export interface UserInteractionDetail {
+  aggregateId: string;
+  userId: string;
+  itemId: string;
+  itemType: string;
+  createdAt: string;
+  rating?: {
+    ratingId: string;
+    normalizedGrade: number;
+    isComplex: boolean;
+  };
+  review?: {
+    reviewId: string;
+    reviewText: string;
+  };
+  isLiked: boolean;
+}
+
 const InteractionService = {
   // Grading Method Operations
   createGradingMethod: async (gradingMethod: GradingMethodCreate): Promise<GradingMethodResponse> => {
@@ -262,9 +280,8 @@ const InteractionService = {
     return response.data;
   },
 
-  // User-specific interactions
-  getUserInteractions: async (userId: string): Promise<GetInteractionsResult> => {
-    const response = await interactionApi.get(`/user/${userId}`);
+  getUserInteractionsByUserId: async (userId: string): Promise<UserInteractionDetail[]> => {
+    const response = await interactionApi.get(`/by-user-id/${userId}`);
     return response.data;
   },
 

@@ -132,6 +132,173 @@ public class TrackService : ITrackService
         return result;
     }
 
+    // Implementation for GetMultipleTracksOverviewAsync - returns simplified track information
+    public async Task<MultipleTracksOverviewDto> GetMultipleTracksOverviewAsync(IEnumerable<string> spotifyIds)
+    {
+        if (spotifyIds == null || !spotifyIds.Any())
+        {
+            throw new ArgumentException("Track IDs cannot be null or empty", nameof(spotifyIds));
+        }
+
+        var result = new MultipleTracksOverviewDto();
+
+        try
+        {
+            // Deduplicate IDs
+            var uniqueIds = spotifyIds.Distinct().ToList();
+
+            // Handle Spotify's 50 track limit per request by chunking if needed
+            const int spotifyMaxBatchSize = 50;
+            var batches = uniqueIds.Chunk(spotifyMaxBatchSize);
+
+            foreach (var batch in batches)
+            {
+                // Create batch cache key - use a different key prefix to indicate this is overview data
+                var batchCacheKey = $"tracks:overview:{string.Join(",", batch)}";
+
+                // Try to get batch from cache
+                var cachedBatch = await _cacheService.GetAsync<List<TrackSummaryDto>>(batchCacheKey);
+
+                if (cachedBatch != null && cachedBatch.Any())
+                {
+                    _logger.LogInformation("Track overview batch retrieved from cache for {Count} tracks", cachedBatch.Count);
+                    result.Tracks.AddRange(cachedBatch);
+                    continue;
+                }
+
+                // Try to get from database first
+                var databaseTracks = await _catalogRepository.GetBatchTracksBySpotifyIdsAsync(batch);
+                var validDatabaseTracks = databaseTracks
+                    .Where(t => t != null && DateTime.UtcNow < t.CacheExpiresAt)
+                    .ToList();
+
+                if (validDatabaseTracks.Count == batch.Length)
+                {
+                    _logger.LogInformation("Retrieved all {Count} track overviews from database", batch.Length);
+
+                    // Map database tracks to summary DTOs (simplified view)
+                    var trackSummaries = validDatabaseTracks.Select(track => new TrackSummaryDto
+                    {
+                        CatalogItemId = track.Id,
+                        SpotifyId = track.SpotifyId,
+                        Name = track.Name,
+                        ArtistName = track.ArtistName,
+                        ImageUrl = track.ThumbnailUrl,
+                        DurationMs = track.DurationMs,
+                        IsExplicit = track.IsExplicit,
+                        AlbumId = track.AlbumId,
+                        Popularity = track.Popularity,
+                        ExternalUrls = track.SpotifyUrl != null ? new List<string> { track.SpotifyUrl } : null
+                    }).ToList();
+
+                    // Add to result
+                    result.Tracks.AddRange(trackSummaries);
+
+                    // Cache this batch
+                    await _cacheService.SetAsync(
+                        batchCacheKey,
+                        trackSummaries,
+                        TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
+
+                    continue;
+                }
+
+                // Fetch missing tracks from Spotify API
+                _logger.LogInformation("Fetching batch of {Count} track overviews from Spotify API", batch.Length);
+
+                var spotifyResponse = await _spotifyApiClient.GetMultipleTracksAsync(batch);
+
+                if (spotifyResponse?.Tracks == null || !spotifyResponse.Tracks.Any())
+                {
+                    _logger.LogWarning("No tracks returned from Spotify for batch of {Count} ids", batch.Length);
+                    continue;
+                }
+
+                var batchSummaries = new List<TrackSummaryDto>();
+
+                // Process each track from Spotify - map to simplified summary
+                foreach (var spotifyTrack in spotifyResponse.Tracks)
+                {
+                    if (spotifyTrack == null) continue;
+
+                    // Get existing track from database or create new entity
+                    var existingTrack = validDatabaseTracks.FirstOrDefault(t => t.SpotifyId == spotifyTrack.Id);
+                    var trackEntity = new Track
+                    {
+                        Id = existingTrack?.Id ?? Guid.NewGuid(),
+                        SpotifyId = spotifyTrack.Id,
+                        Name = spotifyTrack.Name,
+                        ArtistName = spotifyTrack.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
+                        ThumbnailUrl = GetOptimalImage(spotifyTrack.Album.Images),
+                        Popularity = spotifyTrack.Popularity,
+                        LastAccessed = DateTime.UtcNow,
+                        CacheExpiresAt = DateTime.UtcNow.AddMinutes(_spotifySettings.CacheExpirationMinutes),
+                        DurationMs = spotifyTrack.DurationMs,
+                        IsExplicit = spotifyTrack.Explicit,
+                        Isrc = spotifyTrack.ExternalIds?.Isrc,
+                        AlbumId = spotifyTrack.Album.Id,
+                        AlbumName = spotifyTrack.Album.Name,
+                        AlbumType = spotifyTrack.Album.AlbumType,
+                        ReleaseDate = spotifyTrack.Album.ReleaseDate,
+                        SpotifyUrl = spotifyTrack.ExternalUrls?.Spotify,
+                        Artists = spotifyTrack.Artists.Select(a => new SimplifiedArtist
+                        {
+                            Id = a.Id,
+                            Name = a.Name,
+                            SpotifyUrl = a.ExternalUrls?.Spotify
+                        }).ToList(),
+                        RawData = JsonSerializer.Serialize(spotifyTrack)
+                    };
+
+                    // Save to database
+                    await _catalogRepository.AddOrUpdateTrackAsync(trackEntity);
+
+                    // Map to a simplified summary DTO
+                    var trackSummary = new TrackSummaryDto
+                    {
+                        CatalogItemId = trackEntity.Id,
+                        SpotifyId = spotifyTrack.Id,
+                        Name = spotifyTrack.Name,
+                        ArtistName = spotifyTrack.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
+                        ImageUrl = GetOptimalImage(spotifyTrack.Album.Images),
+                        Images = spotifyTrack.Album.Images?.Select(img => new ImageDto
+                        {
+                            Url = img.Url,
+                            Height = img.Height,
+                            Width = img.Width
+                        }).ToList(),
+                        DurationMs = spotifyTrack.DurationMs,
+                        IsExplicit = spotifyTrack.Explicit,
+                        TrackNumber = spotifyTrack.TrackNumber,
+                        AlbumId = spotifyTrack.Album.Id,
+                        Popularity = spotifyTrack.Popularity,
+                        ExternalUrls = spotifyTrack.ExternalUrls?.Spotify != null
+                            ? new List<string> { spotifyTrack.ExternalUrls.Spotify }
+                            : null
+                    };
+
+                    batchSummaries.Add(trackSummary);
+                }
+
+                // Add batch results to overall results
+                result.Tracks.AddRange(batchSummaries);
+
+                // Cache this batch
+                await _cacheService.SetAsync(
+                    batchCacheKey,
+                    batchSummaries,
+                    TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving multiple track overviews");
+            throw;
+        }
+    }
+
     // Get by catalog ID
     public async Task<TrackDetailDto> GetTrackByCatalogIdAsync(Guid catalogId)
     {
