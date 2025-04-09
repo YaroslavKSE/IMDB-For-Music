@@ -50,9 +50,22 @@ public class SocialLoginCommandHandler : IRequestHandler<SocialLoginCommand, Log
             var name = nameParts.Length > 0 ? nameParts[0] : "User";
             var surname = nameParts.Length > 1 ? string.Join(" ", nameParts.Skip(1)) : "";
             
+            // Use the nickname provided by Auth0
+            string username = userInfo.Username;
+            
+            // Ensure username is unique
+            int attempt = 1;
+            string candidateUsername = username;
+            while (await _userRepository.GetByUsernameAsync(candidateUsername) != null)
+            {
+                candidateUsername = $"{username}{attempt++}";
+            }
+            username = candidateUsername;
+            
             // Create new user
             var newUser = User.Create(
                 userInfo.Email,
+                username,
                 name,
                 surname,
                 userInfo.UserId);
@@ -62,8 +75,8 @@ public class SocialLoginCommandHandler : IRequestHandler<SocialLoginCommand, Log
             
             await _auth0Service.AssignDefaultRoleAsync(userInfo.UserId);
             
-            _logger.LogInformation("New user created from social login: {Provider}, Email: {Email}", 
-                request.Provider, userInfo.Email);
+            _logger.LogInformation("New user created from social login: {Provider}, Email: {Email}, Username: {Username}", 
+                request.Provider, userInfo.Email, username);
         }
         else
         {
@@ -82,4 +95,5 @@ public class SocialLoginCommandHandler : IRequestHandler<SocialLoginCommand, Log
             TokenType = authTokenResponse.TokenType
         };
     }
+    
 }

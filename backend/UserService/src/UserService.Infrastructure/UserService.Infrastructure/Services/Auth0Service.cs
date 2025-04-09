@@ -244,12 +244,36 @@ public class Auth0Service : IAuth0Service
 
             var userInfo = await response.Content.ReadFromJsonAsync<Auth0UserInfoResponse>();
 
+            // Use nickname from Auth0 as username
+            string username = userInfo.Nickname;
+            
+            // Fallback options if nickname is empty
+            if (string.IsNullOrEmpty(username))
+            {
+                if (!string.IsNullOrEmpty(userInfo.Email) && userInfo.Email.Contains('@'))
+                {
+                    username = userInfo.Email.Split('@')[0];
+                }
+                else if (!string.IsNullOrEmpty(userInfo.Name))
+                {
+                    username = userInfo.Name.Replace(" ", "").ToLower();
+                }
+                else
+                {
+                    username = "user";
+                }
+            }
+            
+            // Ensure username is valid by removing special characters
+            username = System.Text.RegularExpressions.Regex.Replace(username, "[^a-zA-Z0-9_-]", "");
+
             return new UserInfoDto
             {
                 UserId = userInfo.Sub,
                 Email = userInfo.Email,
+                Username = username,
                 Name = userInfo.Name ?? $"{userInfo.GivenName} {userInfo.FamilyName}".Trim(),
-                Surname = userInfo.FamilyName ?? $"{userInfo.GivenName} {userInfo.FamilyName}".Trim(),
+                Surname = userInfo.FamilyName ?? string.Empty,
                 Picture = userInfo.Picture
             };
         }

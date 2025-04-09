@@ -35,17 +35,20 @@ public class AuthController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Registering new user with email: {Email}", request.Email);
+            _logger.LogInformation("Registering new user with email: {Email} and username: {Username}", 
+                request.Email, request.Username);
 
             var command = new RegisterUserCommand(
                 request.Email,
                 request.Password,
+                request.Username,
                 request.Name,
                 request.Surname);
 
             var result = await _mediator.Send(command);
             
-            _logger.LogInformation("User successfully registered: {Id}", result.UserId);
+            _logger.LogInformation("User successfully registered: {Id}, Username: {Username}", 
+                result.UserId, result.Username);
             
             var response = new RegisterSuccessResponse
             {
@@ -81,6 +84,17 @@ public class AuthController : ControllerBase
                 TraceId = HttpContext.TraceIdentifier
             });
         }
+        catch (UsernameAlreadyTakenException ex)
+        {
+            _logger.LogWarning("Registration failed - username already taken: {Message}", ex.Message);
+            
+            return Conflict(new ErrorResponse
+            {
+                Code = "UsernameAlreadyTaken",
+                Message = ex.Message,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
         catch (Auth0Exception ex)
         {
             _logger.LogError(ex, "Auth0 error during registration");
@@ -105,7 +119,7 @@ public class AuthController : ControllerBase
                     TraceId = HttpContext.TraceIdentifier
                 });
         }
-    }    
+    }
     
     [HttpPost("login")]
     [AllowAnonymous]

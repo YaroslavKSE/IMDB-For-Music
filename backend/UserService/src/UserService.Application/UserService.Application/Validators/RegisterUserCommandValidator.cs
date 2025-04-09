@@ -18,6 +18,13 @@ public class RegisterUserCommandValidator : AbstractValidator<RegisterUserComman
             .Matches("[0-9]").WithMessage("Password must contain at least one number")
             .Matches("[^a-zA-Z0-9]").WithMessage("Password must contain at least one special character");
 
+        RuleFor(x => x.Username)
+            .NotEmpty()
+            .MinimumLength(3)
+            .MaximumLength(50)
+            .Matches("^[a-zA-Z0-9_-]+$").WithMessage("Username can only contain letters, numbers, underscores and hyphens")
+            .WithMessage("Username must be between 3 and 50 characters and can only contain letters, numbers, underscores and hyphens");
+
         RuleFor(x => x.Name)
             .NotEmpty()
             .MaximumLength(100);
