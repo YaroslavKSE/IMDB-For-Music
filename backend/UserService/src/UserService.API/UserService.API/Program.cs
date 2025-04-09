@@ -56,54 +56,32 @@ builder.Services.Configure<Auth0Settings>(
 builder.Services.AddHttpClient<IAuth0Service, Auth0Service>();
 
 // JWT Authentication
-builder.Services.AddAuthentication(options =>
-{
+builder.Services.AddAuthentication(options => {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
-{
+}).AddJwtBearer(options => {
     options.Authority = $"https://{builder.Configuration["Auth0:Domain"]}/";
     options.Audience = builder.Configuration["Auth0:Audience"];
-
-    // Add token validation parameters if needed
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
+    
+    options.TokenValidationParameters = new TokenValidationParameters {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
         NameClaimType = ClaimTypes.NameIdentifier,
         RoleClaimType = "permissions"
     };
-    options.Events = new JwtBearerEvents
-    {
-        OnTokenValidated = context =>
-        {
-            // Log all claims for debugging
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogInformation("Token validated successfully");
-
-            // Ensure the Auth0 user ID is added as a "sub" claim if it doesn't exist
-            var auth0UserId = context.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(auth0UserId) && context.Principal.FindFirst("sub") == null)
-            {
-                var identity = context.Principal.Identity as ClaimsIdentity;
-                identity?.AddClaim(new Claim("sub", auth0UserId));
-                logger.LogInformation("Added 'sub' claim with value: {Value}", auth0UserId);
+    
+    // Simplified event handling
+    options.Events = new JwtBearerEvents {
+        OnTokenValidated = context => {
+            // We only need this logic if the sub   claim is missing but required
+            var identity = context.Principal.Identity as ClaimsIdentity;
+            var nameIdClaim = context.Principal.FindFirst(ClaimTypes.NameIdentifier);
+            
+            if (nameIdClaim != null && !context.Principal.HasClaim(c => c.Type == "sub")) {
+                identity?.AddClaim(new Claim("sub", nameIdClaim.Value));
             }
-
-            return Task.CompletedTask;
-        },
-        OnAuthenticationFailed = context =>
-        {
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogError(context.Exception, "Authentication failed");
-            return Task.CompletedTask;
-        },
-        OnChallenge = context =>
-        {
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogWarning("Authentication challenge issued: {Error}", context.Error);
+            
             return Task.CompletedTask;
         }
     };
