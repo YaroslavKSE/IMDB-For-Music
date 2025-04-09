@@ -1,9 +1,13 @@
 ﻿using System.Security.Claims;
+using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UserService.API.Models.Requests;
 using UserService.API.Models.Responses;
+using UserService.Application.Commands;
 using UserService.Application.Queries;
+using UserService.Domain.Exceptions;
 
 namespace UserService.API.Controllers;
 
@@ -75,6 +79,7 @@ public class UserController : ControllerBase
                 Id = userProfile.Id,
                 Email = userProfile.Email,
                 Name = userProfile.Name,
+                Username = userProfile.Username,
                 Surname = userProfile.Surname
             };
 
@@ -90,6 +95,102 @@ public class UserController : ControllerBase
                 {
                     Code = "InternalServerError",
                     Message = "An unexpected error occurred while fetching user profile",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+        }
+    }
+
+    [HttpPut("me")]
+    [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpdateUserProfile(UpdateUserProfileRequest request)
+    {
+        try
+        {
+            // Extract the Auth0 user ID from claims
+            var auth0UserId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value 
+                ?? User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(auth0UserId))
+            {
+                _logger.LogWarning("Auth0 user ID not found in token claims during profile update");
+                
+                return Unauthorized(new ErrorResponse
+                {
+                    Code = "InvalidToken",
+                    Message = "User identifier not found in token",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+            }
+
+            _logger.LogInformation("Updating profile for Auth0 user: {Auth0UserId}", auth0UserId);
+            
+            var command = new UpdateUserProfileCommand(
+                auth0UserId,
+                request.Username,
+                request.Name,
+                request.Surname);
+                
+            var updatedProfile = await _mediator.Send(command);
+
+            if (updatedProfile == null)
+            {
+                return NotFound(new ErrorResponse
+                {
+                    Code = "UserNotFound",
+                    Message = "User profile not found",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+            }
+
+            var response = new UserProfileResponse
+            {
+                Id = updatedProfile.Id,
+                Email = updatedProfile.Email,
+                Name = updatedProfile.Name,
+                Surname = updatedProfile.Surname,
+                Username = updatedProfile.Username
+            };
+
+            return Ok(response);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning("Validation failed during profile update: {Errors}", 
+                string.Join(", ", ex.Errors.Select(e => e.ErrorMessage)));
+            
+            return BadRequest(new ErrorResponse
+            {
+                Code = "ValidationError",
+                Message = string.Join("; ", ex.Errors.Select(e => e.ErrorMessage)),
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (UsernameAlreadyTakenException ex)
+        {
+            _logger.LogWarning("Profile update failed - username already taken: {Message}", ex.Message);
+            
+            return Conflict(new ErrorResponse
+            {
+                Code = "UsernameAlreadyTaken",
+                Message = ex.Message,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user profile");
+            
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponse
+                {
+                    Code = "InternalServerError",
+                    Message = "An unexpected error occurred while updating profile",
                     TraceId = HttpContext.TraceIdentifier
                 });
         }
