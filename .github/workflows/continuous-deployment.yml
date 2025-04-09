@@ -65,20 +65,23 @@ jobs:
       github.event_name == 'workflow_run' &&
       needs.determine-service.outputs.service != 'unknown'
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-      
+
       - name: Deploy via SSM (CI deploy)
         run: |
           # Set the SERVICE variable from the previous job output
           SERVICE="${{ needs.determine-service.outputs.service }}"
           
           # Substitute variables in the external script and write out deploy.sh
-          envsubst < workflows/scripts/dev_env/deploy.sh > deploy.sh
+          envsubst < .github/workflows/scripts/dev_env/deploy.sh > deploy.sh
           
           # Make the deployment script executable
           chmod +x deploy.sh
@@ -109,20 +112,23 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-      
+
       - name: Deploy via SSM (Manual deploy)
         run: |
           SERVICE="${{ github.event.inputs.service }}"
           
           if [ "$SERVICE" == "all" ]; then
             # Use the external script for deploying all services
-            envsubst < workflows/scripts/dev_env/deploy-all-services.sh > deploy.sh
+            envsubst < .github/workflows/scripts/dev_env/deploy-all-services.sh > deploy.sh
           else
             # Map the input service to the actual docker-compose service name
             if [ "$SERVICE" == "music-catalog" ]; then
@@ -136,7 +142,7 @@ jobs:
             fi
             export ACTUAL_SERVICE
             # Use the external script for deploying a specific service
-            envsubst < workflows/scripts/dev_env/deploy-specific-service.sh > deploy.sh
+            envsubst < .github/workflows/scripts/dev_env/deploy-specific-service.sh > deploy.sh
           fi
           
           # Make the deployment script executable
