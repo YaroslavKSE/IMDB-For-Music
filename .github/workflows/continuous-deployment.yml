@@ -78,11 +78,14 @@ jobs:
           # Set the SERVICE variable from the previous job output
           SERVICE="${{ needs.determine-service.outputs.service }}"
           
+          # Create the command with expanded variables
+          COMMAND="cd ${SCRIPTS_DIR} && ./deploy-service.sh ${SERVICE} ${DEPLOY_DIR}"
+          
           # Execute the remote deploy script with the appropriate service name
           aws ssm send-command \
             --instance-id ${EC2_INSTANCE_ID} \
             --document-name "AWS-RunShellScript" \
-            --parameters '{"commands":["cd ${SCRIPTS_DIR} && ./deploy-service.sh ${SERVICE} ${DEPLOY_DIR}"]}' \
+            --parameters "{\"commands\":[\"${COMMAND}\"]}" \
             --output text \
             --query "Command.CommandId" > command-id.txt
           
