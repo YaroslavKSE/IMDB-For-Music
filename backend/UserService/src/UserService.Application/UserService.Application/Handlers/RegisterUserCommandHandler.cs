@@ -9,6 +9,7 @@ using UserService.Domain.Exceptions;
 using UserService.Domain.Interfaces;
 
 namespace UserService.Application.Handlers;
+
 public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, RegisterUserResponse>
 {
     private readonly IUserRepository _userRepository;
@@ -32,35 +33,27 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, R
     {
         // Validate the command
         var validationResult = await _validator.ValidateAsync(command, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            throw new ValidationException(validationResult.Errors);
-        }
+        if (!validationResult.IsValid) throw new ValidationException(validationResult.Errors);
 
         // Check if user exists by email
         var existingUserByEmail = await _userRepository.GetByEmailAsync(command.Email);
-        if (existingUserByEmail != null)
-        {
-            throw new UserAlreadyExistsException(command.Email);
-        }
-        
+        if (existingUserByEmail != null) throw new UserAlreadyExistsException(command.Email);
+
         // Check if username is already taken
         var existingUserByUsername = await _userRepository.GetByUsernameAsync(command.Username);
-        if (existingUserByUsername != null)
-        {
-            throw new UsernameAlreadyTakenException(command.Username);
-        }
+        if (existingUserByUsername != null) throw new UsernameAlreadyTakenException(command.Username);
 
         // Create user in Auth0
         var auth0Id = await _auth0Service.CreateUserAsync(command.Email, command.Password);
 
         // Create user in our database
         var user = User.Create(command.Email, command.Username, command.Name, command.Surname, auth0Id);
-        
+
         await _userRepository.AddAsync(user);
         await _userRepository.SaveChangesAsync();
 
-        _logger.LogInformation("User {Email} registered successfully with username {Username}", command.Email, command.Username);
+        _logger.LogInformation("User {Email} registered successfully with username {Username}", command.Email,
+            command.Username);
 
         return new RegisterUserResponse
         {

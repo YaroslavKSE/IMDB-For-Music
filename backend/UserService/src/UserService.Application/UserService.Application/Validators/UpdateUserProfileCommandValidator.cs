@@ -9,21 +9,26 @@ public class UpdateUserProfileCommandValidator : AbstractValidator<UpdateUserPro
     {
         RuleFor(x => x.Auth0UserId)
             .NotEmpty();
-            
-        When(x => !string.IsNullOrEmpty(x.Username), () => {
+
+        When(x => !string.IsNullOrEmpty(x.Username), () =>
+        {
             RuleFor(x => x.Username)
                 .MinimumLength(3)
                 .MaximumLength(50)
-                .Matches("^[a-zA-Z0-9_-]+$").WithMessage("Username can only contain letters, numbers, underscores and hyphens")
-                .WithMessage("Username must be between 3 and 50 characters and can only contain letters, numbers, underscores and hyphens");
+                .Matches("^[a-zA-Z0-9_-]+$")
+                .WithMessage("Username can only contain letters, numbers, underscores and hyphens")
+                .WithMessage(
+                    "Username must be between 3 and 50 characters and can only contain letters, numbers, underscores and hyphens");
         });
 
-        When(x => !string.IsNullOrEmpty(x.Name), () => {
+        When(x => !string.IsNullOrEmpty(x.Name), () =>
+        {
             RuleFor(x => x.Name)
                 .MaximumLength(100);
         });
-        
-        When(x => !string.IsNullOrEmpty(x.Surname), () => {
+
+        When(x => !string.IsNullOrEmpty(x.Surname), () =>
+        {
             RuleFor(x => x.Surname)
                 .MaximumLength(100);
         });

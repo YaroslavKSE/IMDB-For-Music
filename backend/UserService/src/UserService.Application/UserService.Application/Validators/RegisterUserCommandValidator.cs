@@ -22,13 +22,15 @@ public class RegisterUserCommandValidator : AbstractValidator<RegisterUserComman
             .NotEmpty()
             .MinimumLength(3)
             .MaximumLength(50)
-            .Matches("^[a-zA-Z0-9_-]+$").WithMessage("Username can only contain letters, numbers, underscores and hyphens")
-            .WithMessage("Username must be between 3 and 50 characters and can only contain letters, numbers, underscores and hyphens");
+            .Matches("^[a-zA-Z0-9_-]+$")
+            .WithMessage("Username can only contain letters, numbers, underscores and hyphens")
+            .WithMessage(
+                "Username must be between 3 and 50 characters and can only contain letters, numbers, underscores and hyphens");
 
         RuleFor(x => x.Name)
             .NotEmpty()
             .MaximumLength(100);
-        
+
         RuleFor(x => x.Surname)
             .NotEmpty()
             .MaximumLength(100);

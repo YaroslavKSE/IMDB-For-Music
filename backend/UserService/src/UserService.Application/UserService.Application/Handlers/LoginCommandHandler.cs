@@ -27,14 +27,11 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponseDt
     {
         // Validate the request
         var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            throw new ValidationException(validationResult.Errors);
-        }
+        if (!validationResult.IsValid) throw new ValidationException(validationResult.Errors);
 
         // Attempt to login via Auth0
         var authTokenResponse = await _auth0Service.LoginAsync(request.Email, request.Password);
-        
+
         _logger.LogInformation("User {Email} logged in successfully", request.Email);
 
         // Map the auth token response to our response DTO

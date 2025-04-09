@@ -32,36 +32,31 @@ public class SocialLoginCommandHandler : IRequestHandler<SocialLoginCommand, Log
     {
         // Validate the request
         var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            throw new ValidationException(validationResult.Errors);
-        }
+        if (!validationResult.IsValid) throw new ValidationException(validationResult.Errors);
 
         // Verify token with Auth0 and get user info
         var userInfo = await _auth0Service.GetUserInfoAsync(request.AccessToken);
-        
+
         // Check if the user already exists in our database
         var existingUser = await _userRepository.GetByAuth0IdAsync(userInfo.UserId);
-        
+
         if (existingUser == null)
         {
             // Extract name and surname from user info
             var nameParts = userInfo.Name?.Split(' ') ?? Array.Empty<string>();
             var name = nameParts.Length > 0 ? nameParts[0] : "User";
             var surname = nameParts.Length > 1 ? string.Join(" ", nameParts.Skip(1)) : "";
-            
+
             // Use the nickname provided by Auth0
-            string username = userInfo.Username;
-            
+            var username = userInfo.Username;
+
             // Ensure username is unique
-            int attempt = 1;
-            string candidateUsername = username;
+            var attempt = 1;
+            var candidateUsername = username;
             while (await _userRepository.GetByUsernameAsync(candidateUsername) != null)
-            {
                 candidateUsername = $"{username}{attempt++}";
-            }
             username = candidateUsername;
-            
+
             // Create new user
             var newUser = User.Create(
                 userInfo.Email,
@@ -69,24 +64,25 @@ public class SocialLoginCommandHandler : IRequestHandler<SocialLoginCommand, Log
                 name,
                 surname,
                 userInfo.UserId);
-            
+
             await _userRepository.AddAsync(newUser);
             await _userRepository.SaveChangesAsync();
-            
+
             await _auth0Service.AssignDefaultRoleAsync(userInfo.UserId);
-            
-            _logger.LogInformation("New user created from social login: {Provider}, Email: {Email}, Username: {Username}", 
+
+            _logger.LogInformation(
+                "New user created from social login: {Provider}, Email: {Email}, Username: {Username}",
                 request.Provider, userInfo.Email, username);
         }
         else
         {
-            _logger.LogInformation("Existing user logged in via social login: {Provider}, Email: {Email}", 
+            _logger.LogInformation("Existing user logged in via social login: {Provider}, Email: {Email}",
                 request.Provider, userInfo.Email);
         }
-        
+
         // Get Auth0 tokens
         var authTokenResponse = await _auth0Service.GetTokensForSocialUserAsync(request.AccessToken);
-        
+
         return new LoginResponseDto
         {
             AccessToken = authTokenResponse.AccessToken,
@@ -95,5 +91,4 @@ public class SocialLoginCommandHandler : IRequestHandler<SocialLoginCommand, Log
             TokenType = authTokenResponse.TokenType
         };
     }
-    
 }

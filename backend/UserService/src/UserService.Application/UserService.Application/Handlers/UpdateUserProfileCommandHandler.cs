@@ -28,10 +28,7 @@ public class UpdateUserProfileCommandHandler : IRequestHandler<UpdateUserProfile
     {
         // Validate the command
         var validationResult = await _validator.ValidateAsync(command, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            throw new ValidationException(validationResult.Errors);
-        }
+        if (!validationResult.IsValid) throw new ValidationException(validationResult.Errors);
 
         // Get the user by Auth0 ID
         var user = await _userRepository.GetByAuth0IdAsync(command.Auth0UserId);
@@ -46,22 +43,20 @@ public class UpdateUserProfileCommandHandler : IRequestHandler<UpdateUserProfile
         {
             var existingUserWithUsername = await _userRepository.GetByUsernameAsync(command.Username);
             if (existingUserWithUsername != null && existingUserWithUsername.Id != user.Id)
-            {
                 throw new UsernameAlreadyTakenException(command.Username);
-            }
         }
 
         // Determine which fields to update
-        string usernameToUpdate = !string.IsNullOrEmpty(command.Username) ? command.Username : user.Username;
-        string nameToUpdate = !string.IsNullOrEmpty(command.Name) ? command.Name : user.Name;
-        string surnameToUpdate = !string.IsNullOrEmpty(command.Surname) ? command.Surname : user.Surname;
+        var usernameToUpdate = !string.IsNullOrEmpty(command.Username) ? command.Username : user.Username;
+        var nameToUpdate = !string.IsNullOrEmpty(command.Name) ? command.Name : user.Name;
+        var surnameToUpdate = !string.IsNullOrEmpty(command.Surname) ? command.Surname : user.Surname;
 
         // Update the user
         user.Update(usernameToUpdate, nameToUpdate, surnameToUpdate);
-        
+
         await _userRepository.SaveChangesAsync();
-        
-        _logger.LogInformation("Updated profile for user ID: {UserId}, Auth0 ID: {Auth0UserId}", 
+
+        _logger.LogInformation("Updated profile for user ID: {UserId}, Auth0 ID: {Auth0UserId}",
             user.Id, command.Auth0UserId);
 
         // Return the updated user profile

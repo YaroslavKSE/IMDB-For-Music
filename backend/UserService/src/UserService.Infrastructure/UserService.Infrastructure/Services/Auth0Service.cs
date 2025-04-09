@@ -59,7 +59,7 @@ public class Auth0Service : IAuth0Service
             }
 
             var result = await response.Content.ReadFromJsonAsync<Auth0UserResponse>();
-            
+
             await AssignRoleToUserAsync(result.UserId);
             return result.UserId;
         }
@@ -69,17 +69,17 @@ public class Auth0Service : IAuth0Service
             throw new Auth0Exception("Failed to create Auth0 user", ex);
         }
     }
-    
+
     private async Task AssignRoleToUserAsync(string userId)
     {
         try
         {
             // The role ID for your default user role - use the one from your screenshot
             var defaultRoleId = "rol_ELrBo6tr0kx7blQ9";
-        
+
             var roleAssignmentRequest = new
             {
-                roles = new[] { defaultRoleId }
+                roles = new[] {defaultRoleId}
             };
 
             _httpClient.DefaultRequestHeaders.Authorization =
@@ -94,7 +94,7 @@ public class Auth0Service : IAuth0Service
                 var error = await response.Content.ReadAsStringAsync();
                 _logger.LogError("Failed to assign role to user. Status: {Status}, Error: {Error}",
                     response.StatusCode, error);
-            
+
                 // Log but don't throw - user is created but role assignment failed
                 _logger.LogWarning("User created but role assignment failed for userId: {UserId}", userId);
             }
@@ -157,10 +157,7 @@ public class Auth0Service : IAuth0Service
 
     private async Task EnsureManagementApiToken()
     {
-        if (_managementApiToken != null && DateTime.UtcNow < _tokenExpirationTime)
-        {
-            return;
-        }
+        if (_managementApiToken != null && DateTime.UtcNow < _tokenExpirationTime) return;
 
         var tokenRequest = new Auth0TokenRequest
         {
@@ -245,25 +242,19 @@ public class Auth0Service : IAuth0Service
             var userInfo = await response.Content.ReadFromJsonAsync<Auth0UserInfoResponse>();
 
             // Use nickname from Auth0 as username
-            string username = userInfo.Nickname;
-            
+            var username = userInfo.Nickname;
+
             // Fallback options if nickname is empty
             if (string.IsNullOrEmpty(username))
             {
                 if (!string.IsNullOrEmpty(userInfo.Email) && userInfo.Email.Contains('@'))
-                {
                     username = userInfo.Email.Split('@')[0];
-                }
                 else if (!string.IsNullOrEmpty(userInfo.Name))
-                {
                     username = userInfo.Name.Replace(" ", "").ToLower();
-                }
                 else
-                {
                     username = "user";
-                }
             }
-            
+
             // Ensure username is valid by removing special characters
             username = System.Text.RegularExpressions.Regex.Replace(username, "[^a-zA-Z0-9_-]", "");
 
@@ -290,7 +281,7 @@ public class Auth0Service : IAuth0Service
         {
             // Verify that the token is valid by calling userinfo
             var userInfo = await GetUserInfoAsync(accessToken);
-        
+
             // We  wrap it in our response object
             return new AuthTokenResponse
             {

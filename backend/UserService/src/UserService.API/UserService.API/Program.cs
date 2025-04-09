@@ -32,13 +32,15 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserCommandValidator>();
 
 // MediatR
-builder.Services.AddMediatR(cfg => {
+builder.Services.AddMediatR(cfg =>
+{
     cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommand).Assembly);
     // Add behaviors if needed (validation, logging, etc.)
 });
 
 // Database
-builder.Services.AddDbContext<AppDbContext>(options => {
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(3)
@@ -54,13 +56,15 @@ builder.Services.Configure<Auth0Settings>(
 builder.Services.AddHttpClient<IAuth0Service, Auth0Service>();
 
 // JWT Authentication
-builder.Services.AddAuthentication(options => {
+builder.Services.AddAuthentication(options =>
+{
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options => {
+}).AddJwtBearer(options =>
+{
     options.Authority = $"https://{builder.Configuration["Auth0:Domain"]}/";
     options.Audience = builder.Configuration["Auth0:Audience"];
-    
+
     // Add token validation parameters if needed
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -70,7 +74,6 @@ builder.Services.AddAuthentication(options => {
         ValidateIssuerSigningKey = true,
         NameClaimType = ClaimTypes.NameIdentifier,
         RoleClaimType = "permissions"
-        
     };
     options.Events = new JwtBearerEvents
     {
@@ -79,12 +82,7 @@ builder.Services.AddAuthentication(options => {
             // Log all claims for debugging
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             logger.LogInformation("Token validated successfully");
-            
-            foreach (var claim in context.Principal.Claims)
-            {
-                logger.LogInformation("Claim: {Type} = {Value}", claim.Type, claim.Value);
-            }
-            
+
             // Ensure the Auth0 user ID is added as a "sub" claim if it doesn't exist
             var auth0UserId = context.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!string.IsNullOrEmpty(auth0UserId) && context.Principal.FindFirst("sub") == null)
@@ -93,7 +91,7 @@ builder.Services.AddAuthentication(options => {
                 identity?.AddClaim(new Claim("sub", auth0UserId));
                 logger.LogInformation("Added 'sub' claim with value: {Value}", auth0UserId);
             }
-            
+
             return Task.CompletedTask;
         },
         OnAuthenticationFailed = context =>
@@ -113,13 +111,15 @@ builder.Services.AddAuthentication(options => {
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c => {
-    c.SwaggerDoc("v1", new OpenApiInfo { 
-        Title = "User Service API", 
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "User Service API",
         Version = "v1",
         Description = "API for managing user authentication and profiles"
     });
-    
+
     // Add JWT authentication to Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -130,7 +130,7 @@ builder.Services.AddSwaggerGen(c => {
         In = ParameterLocation.Header,
         Description = "JWT Authorization header using the Bearer scheme."
     });
-    
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -157,12 +157,12 @@ builder.Services.AddCors(options =>
     {
         // Get allowed origins from configuration based on environment
         var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-        
+
         var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
         logger.LogInformation("Environment: {Environment}", builder.Environment.EnvironmentName);
-        logger.LogInformation("CORS configured with allowed origins: {Origins}", 
+        logger.LogInformation("CORS configured with allowed origins: {Origins}",
             allowedOrigins.Length > 0 ? string.Join(", ", allowedOrigins) : "none");
-        
+
         policy
             .WithOrigins(allowedOrigins)
             .AllowAnyMethod()
@@ -178,60 +178,54 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var logger = services.GetRequiredService<ILogger<Program>>();
-    
+
     logger.LogInformation("Attempting to apply database migrations...");
-    
+
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
-        
+
         // Wait strategy with retry logic
         const int maxRetries = 3;
         var retryCount = 0;
-        
+
         while (retryCount < maxRetries)
-        {
             try
             {
                 logger.LogInformation($"Migration attempt {retryCount + 1}/{maxRetries}...");
-                
+
                 // This will create the database if it doesn't exist and apply any pending migrations
                 context.Database.Migrate();
-                
+
                 logger.LogInformation("Database migrations applied successfully");
                 break; // Success - exit the retry loop
             }
             catch (Exception ex)
             {
                 retryCount++;
-                
+
                 if (retryCount >= maxRetries)
                 {
                     logger.LogError(ex, $"Failed to apply migrations after {maxRetries} attempts");
                     throw; // Re-throw if we've exhausted retries
                 }
-                
+
                 logger.LogWarning($"Database not ready, retrying in 5 seconds... (Attempt {retryCount}/{maxRetries})");
                 logger.LogDebug(ex, "Migration failure details");
-                
+
                 // Wait before retrying
                 Thread.Sleep(5000);
             }
-        }
     }
     catch (Exception ex)
     {
         logger.LogError(ex, "An error occurred while applying migrations");
-        
+
         // In production, you might want to continue application startup even if migrations fail
         if (app.Environment.IsProduction())
-        {
             logger.LogWarning("Application continuing despite migration failure - manual intervention may be required");
-        }
         else
-        {
             throw; // In development, fail fast to make issues obvious
-        }
     }
 }
 
@@ -239,9 +233,7 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c => {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "User Service API v1");
-    });
+    app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "User Service API v1"); });
     app.UseDeveloperExceptionPage();
 }
 else
