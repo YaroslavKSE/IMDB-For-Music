@@ -39,7 +39,7 @@ const Diary = () => {
         }
 
         loadDiaryEntries();
-    }, );
+    }, [isAuthenticated, user, currentPage, navigate]);
 
     // Group entries by date whenever diary entries change
     useEffect(() => {
