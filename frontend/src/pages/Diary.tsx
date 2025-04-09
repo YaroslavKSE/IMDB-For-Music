@@ -29,6 +29,7 @@ const Diary = () => {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [entryToDelete, setEntryToDelete] = useState<DiaryEntry | null>(null);
     const [deleteSuccess, setDeleteSuccess] = useState(false);
+    const [noInteractions, setNoInteractions] = useState(false);
     const itemsPerPage = 20;
 
     // Load diary entries
@@ -39,7 +40,7 @@ const Diary = () => {
         }
 
         loadDiaryEntries();
-    }, [isAuthenticated, user, currentPage, navigate]);
+    }, [isAuthenticated, user, navigate]);
 
     // Group entries by date whenever diary entries change
     useEffect(() => {
@@ -89,6 +90,7 @@ const Diary = () => {
 
         setLoading(true);
         setError(null);
+        setNoInteractions(false);
 
         try {
             // Fetch all interactions for the user
@@ -147,9 +149,15 @@ const Diary = () => {
             });
 
             setDiaryEntries(entries);
-        } catch (err) {
+        } catch (err: unknown) {
             console.error('Error loading diary entries:', err);
-            setError('Failed to load your diary entries. Please try again later.');
+            if (err && typeof err === 'object' && 'response' in err &&
+                err.response && typeof err.response === 'object' && 'status' in err.response &&
+                err.response.status === 404) {
+                setNoInteractions(true);
+            } else {
+                setError('Failed to load your diary entries. Please try again later.');
+            }
         } finally {
             setLoading(false);
         }
@@ -198,7 +206,7 @@ const Diary = () => {
 
             // Show success message
             setDeleteSuccess(true);
-        } catch (err) {
+        } catch (err: unknown) {
             console.error('Error deleting entry:', err);
             setError('Failed to delete the entry. Please try again.');
         } finally {
@@ -233,7 +241,7 @@ const Diary = () => {
                 </div>
             )}
 
-            {groupedEntries.length === 0 && !loading && !error ? (
+            {(groupedEntries.length === 0 && !loading && !error) || noInteractions ? (
                 <DiaryEmptyState />
             ) : (
                 <>
