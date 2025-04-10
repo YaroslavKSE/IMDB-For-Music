@@ -12,7 +12,7 @@ interface AuthState {
   // Actions
   login: (email: string, password: string) => Promise<void>;
   socialLogin: (accessToken: string, provider: string) => Promise<void>;
-  register: (email: string, password: string, name: string, surname: string) => Promise<void>;
+  register: (email: string, password: string, name: string, surname: string, username: string) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
   setUser: (user: UserProfile | null) => void;
@@ -57,10 +57,10 @@ const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  register: async (email: string, password: string, name: string, surname: string) => {
+  register: async (email: string, password: string, name: string, surname: string, username: string) => {
     try {
       set({ isLoading: true, error: null });
-      await AuthService.register({ email, password, name, surname });
+      await AuthService.register({ email, password, name, surname, username });
       set({ isLoading: false });
     } catch (error) {
       console.error('Registration error:', error);

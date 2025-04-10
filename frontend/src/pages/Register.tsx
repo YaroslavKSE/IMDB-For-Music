@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, Mail, Lock, User, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, UserPlus, AtSign } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { handleAuth0Login } from '../utils/auth0-config';
 
 interface RegisterFormData {
   name: string;
   surname: string;
+  username: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -41,7 +42,7 @@ const Register = () => {
       clearError(); // Clear any previous auth errors
       setError(null); // Clear any previous form errors
 
-      await registerUser(data.email, data.password, data.name, data.surname);
+      await registerUser(data.email, data.password, data.name, data.surname, data.username);
 
       setSuccess('Registration successful! You can now log in.');
       setTimeout(() => navigate('/login'), 2000); // Redirect after 2 seconds
@@ -74,7 +75,7 @@ const Register = () => {
           className="min-h-screen bg-gradient-to-b from-primary-100 to-white flex flex-col justify-center px-4 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900">MusicEval</h2>
+            <h2 className="text-3xl font-extrabold text-gray-900">BeatRate</h2>
             <p className="mt-2 text-sm text-gray-600">
               Your personal music discovery & review platform
             </p>
@@ -162,7 +163,48 @@ const Register = () => {
                 )}
               </div>
 
-              {/* Other form fields... */}
+              {/* Username Field - New! */}
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                  Username
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <AtSign className="h-5 w-5 text-gray-400"/>
+                  </div>
+                  <input
+                      id="username"
+                      {...register('username', {
+                        required: 'Username is required',
+                        minLength: {
+                          value: 3,
+                          message: 'Username must be at least 3 characters',
+                        },
+                        maxLength: {
+                          value: 50,
+                          message: 'Username is too long',
+                        },
+                        pattern: {
+                          value: /^[a-zA-Z0-9_\-\.]+$/,
+                          message: 'Username can only contain letters, numbers, underscores, hyphens, and periods',
+                        },
+                      })}
+                      type="text"
+                      className={`block w-full pl-10 pr-3 py-2 border ${
+                          errors.username ? 'border-red-300' : 'border-gray-300'
+                      } rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
+                      placeholder="johndoe"
+                  />
+                </div>
+                {errors.username ? (
+                    <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
+                ) : (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Choose a unique username for your profile. This will be your public identifier.
+                    </p>
+                )}
+              </div>
+
               {/* Email Field */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -311,7 +353,7 @@ const Register = () => {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-primary-400"
+                    className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-primary-400 disabled:cursor-not-allowed"
                 >
                 <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                   <UserPlus className="h-5 w-5 text-primary-500 group-hover:text-primary-400"/>

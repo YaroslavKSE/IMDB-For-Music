@@ -9,6 +9,7 @@ export interface RegisterParams {
   password: string;
   name: string;
   surname: string;
+  username: string;
 }
 
 export interface LoginParams {
@@ -38,6 +39,7 @@ export interface UserProfile {
   email: string;
   name: string;
   surname: string;
+  username: string;
   createdAt?: string;
   updatedAt?: string;
 }
