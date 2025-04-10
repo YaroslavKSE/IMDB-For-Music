@@ -1,6 +1,10 @@
 import { ReactNode } from 'react';
 import { Eye, EyeOff, Lock } from 'lucide-react';
-import { UseFormRegister, FieldErrors } from 'react-hook-form';
+import {
+  UseFormRegister,
+  FieldErrors,
+  RegisterOptions
+} from 'react-hook-form';
 
 type RegisterFormValues = {
   name: string;
@@ -44,7 +48,7 @@ interface TextInputProps {
   id: string;
   label: string;
   register: UseFormRegister<RegisterFormValues>;
-  registerOptions?: never;
+  registerOptions?: RegisterOptions<RegisterFormValues>;
   errors: FieldErrors<RegisterFormValues>;
   icon: ReactNode;
   type?: string;
@@ -161,7 +165,7 @@ interface CheckboxInputProps {
   id: string;
   label: ReactNode;
   register: UseFormRegister<RegisterFormValues>;
-  registerOptions?: never;
+  registerOptions?: RegisterOptions<RegisterFormValues>;
   errors: FieldErrors<RegisterFormValues>;
 }
 

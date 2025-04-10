@@ -1,3 +1,15 @@
+import {RegisterOptions, ValidateResult} from "react-hook-form";
+
+type RegisterFormValues = {
+  name: string;
+  surname: string;
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  acceptTerms: boolean;
+};
+
 export const nameValidation = {
   required: 'First name is required',
   maxLength: {
@@ -25,7 +37,7 @@ export const usernameValidation = {
     message: 'Username is too long',
   },
   pattern: {
-    value: /^[a-zA-Z0-9_\-\.]+$/,
+    value: /^[a-zA-Z0-9_\-.]+$/,
     message: 'Username can only contain letters, numbers, underscores, hyphens, and periods',
   }
 };
@@ -50,7 +62,10 @@ export const passwordValidation = {
   }
 };
 
-export const createConfirmPasswordValidation = (password: string) => ({
+
+
+export const createConfirmPasswordValidation = (password: string): RegisterOptions<RegisterFormValues, 'confirmPassword'> => ({
   required: 'Please confirm your password',
-  validate: (value: string) => value === password || 'Passwords do not match'
+  validate: (value: string): ValidateResult =>
+    value === password || 'Passwords do not match'
 });

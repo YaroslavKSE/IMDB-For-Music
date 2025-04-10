@@ -22,6 +22,12 @@ export interface SocialLoginParams {
   provider: string;
 }
 
+export interface UpdateProfileParams {
+  name?: string;
+  surname?: string;
+  username?: string;
+}
+
 export interface AuthResponse {
   userId: string;
   message: string;
@@ -39,20 +45,15 @@ export interface UserProfile {
   email: string;
   name: string;
   surname: string;
-  username: string;
+  username?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
 const AuthService = {
   register: async (params: RegisterParams): Promise<AuthResponse> => {
-    try {
-      const response = await authApi.post('/register', params);
-      return response.data;
-    } catch (error) {
-      // Important: Don't transform the error here, let the caller handle it
-      throw error;
-    }
+    const response = await authApi.post('/register', params);
+    return response.data;
   },
 
   login: async (params: LoginParams): Promise<LoginResponse> => {
@@ -93,6 +94,13 @@ const AuthService = {
   getCurrentUser: async (): Promise<UserProfile> => {
     const response = await userApi.get('/me');
     // Cache user profile
+    localStorage.setItem('user', JSON.stringify(response.data));
+    return response.data;
+  },
+
+  updateProfile: async (params: UpdateProfileParams): Promise<UserProfile> => {
+    const response = await userApi.put('/me', params);
+    // Update cached user profile
     localStorage.setItem('user', JSON.stringify(response.data));
     return response.data;
   },

@@ -14,8 +14,7 @@ import {
   surnameValidation,
   usernameValidation,
   emailValidation,
-  passwordValidation,
-  createConfirmPasswordValidation
+  passwordValidation
 } from './RegisterFormValidation.ts';
 import useAuthStore from '../../store/authStore';
 import { handleAuth0Login } from '../../utils/auth0-config';
@@ -47,7 +46,7 @@ const RegisterForm = () => {
   const {
     register,
     handleSubmit,
-    watch,
+    // watch,
     formState: { errors }
   } = useForm<RegisterFormValues>({
     defaultValues: {
@@ -61,9 +60,15 @@ const RegisterForm = () => {
     }
   });
 
-  const password = watch('password');
+  // const password = watch('password');
 
   const onSubmit = async (data: RegisterFormValues) => {
+    // Check password match first
+    if (data.password !== data.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
     try {
       clearError();
       setError(null);
@@ -205,7 +210,7 @@ const RegisterForm = () => {
               id="confirmPassword"
               label="Confirm Password"
               register={register}
-              registerOptions={createConfirmPasswordValidation(password)}
+              registerOptions={{ required: 'Please confirm your password' }}
               errors={errors}
               showPassword={showConfirmPassword}
               onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
