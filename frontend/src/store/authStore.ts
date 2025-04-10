@@ -1,7 +1,8 @@
-// authStore.ts
+// src/store/authStore.ts
 import { create } from 'zustand';
 import AuthService, { UserProfile } from '../api/auth';
 import { handleAuth0Logout } from '../utils/auth0-config';
+import { getErrorMessage } from '../utils/error-handler';
 
 interface AuthState {
   user: UserProfile | null;
@@ -35,7 +36,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
       console.error('Login error:', error);
       set({
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to login. Please try again.'
+        error: getErrorMessage(error, 'Failed to login. Please try again.')
       });
       throw error;
     }
@@ -51,7 +52,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
       console.error('Social login error:', error);
       set({
         isLoading: false,
-        error: error instanceof Error ? error.message : `Failed to login with ${provider}. Please try again.`
+        error: getErrorMessage(error, `Failed to login with ${provider}. Please try again.`)
       });
       throw error;
     }
@@ -64,10 +65,12 @@ const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: false });
     } catch (error) {
       console.error('Registration error:', error);
-      set({
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to register. Please try again.'
-      });
+
+      // Don't set the error in the store here
+      // We'll let the component handle displaying specific error types
+      set({ isLoading: false });
+
+      // Re-throw the error to be handled by the Register component
       throw error;
     }
   },

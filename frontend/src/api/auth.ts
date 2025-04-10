@@ -46,8 +46,13 @@ export interface UserProfile {
 
 const AuthService = {
   register: async (params: RegisterParams): Promise<AuthResponse> => {
-    const response = await authApi.post('/register', params);
-    return response.data;
+    try {
+      const response = await authApi.post('/register', params);
+      return response.data;
+    } catch (error) {
+      // Important: Don't transform the error here, let the caller handle it
+      throw error;
+    }
   },
 
   login: async (params: LoginParams): Promise<LoginResponse> => {
