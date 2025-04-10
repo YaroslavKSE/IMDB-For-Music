@@ -35,7 +35,7 @@ public class AuthController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Registering new user with email: {Email} and username: {Username}", 
+            _logger.LogInformation("Registering new user with email: {Email} and username: {Username}",
                 request.Email, request.Username);
 
             var command = new RegisterUserCommand(
@@ -46,10 +46,10 @@ public class AuthController : ControllerBase
                 request.Surname);
 
             var result = await _mediator.Send(command);
-            
-            _logger.LogInformation("User successfully registered: {Id}, Username: {Username}", 
+
+            _logger.LogInformation("User successfully registered: {Id}, Username: {Username}",
                 result.UserId, result.Username);
-            
+
             var response = new RegisterSuccessResponse
             {
                 UserId = result.UserId,
@@ -57,15 +57,15 @@ public class AuthController : ControllerBase
             };
 
             return CreatedAtAction(
-                nameof(Register), 
-                new { id = result.UserId }, 
+                nameof(Register),
+                new {id = result.UserId},
                 response);
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning("Validation failed during registration: {Errors}", 
+            _logger.LogWarning("Validation failed during registration: {Errors}",
                 string.Join(", ", ex.Errors.Select(e => e.ErrorMessage)));
-            
+
             return BadRequest(new ErrorResponse
             {
                 Code = "ValidationError",
@@ -76,7 +76,7 @@ public class AuthController : ControllerBase
         catch (UserAlreadyExistsException ex)
         {
             _logger.LogWarning("Registration failed - user already exists: {Message}", ex.Message);
-            
+
             return Conflict(new ErrorResponse
             {
                 Code = "UserAlreadyExists",
@@ -87,7 +87,7 @@ public class AuthController : ControllerBase
         catch (UsernameAlreadyTakenException ex)
         {
             _logger.LogWarning("Registration failed - username already taken: {Message}", ex.Message);
-            
+
             return Conflict(new ErrorResponse
             {
                 Code = "UsernameAlreadyTaken",
@@ -98,7 +98,7 @@ public class AuthController : ControllerBase
         catch (Auth0Exception ex)
         {
             _logger.LogError(ex, "Auth0 error during registration");
-            
+
             return BadRequest(new ErrorResponse
             {
                 Code = ex.Error.Code ?? "Auth0Error",
@@ -109,9 +109,9 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during user registration");
-            
+
             return StatusCode(
-                StatusCodes.Status500InternalServerError, 
+                StatusCodes.Status500InternalServerError,
                 new ErrorResponse
                 {
                     Code = "InternalServerError",
@@ -120,7 +120,7 @@ public class AuthController : ControllerBase
                 });
         }
     }
-    
+
     [HttpPost("login")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
@@ -138,9 +138,9 @@ public class AuthController : ControllerBase
                 request.Password);
 
             var result = await _mediator.Send(command);
-            
+
             _logger.LogInformation("User successfully logged in: {Email}", request.Email);
-            
+
             var response = new LoginResponse
             {
                 AccessToken = result.AccessToken,
@@ -148,14 +148,14 @@ public class AuthController : ControllerBase
                 ExpiresIn = result.ExpiresIn,
                 TokenType = result.TokenType
             };
-            
+
             return Ok(response);
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning("Validation failed during login: {Errors}", 
+            _logger.LogWarning("Validation failed during login: {Errors}",
                 string.Join(", ", ex.Errors.Select(e => e.ErrorMessage)));
-            
+
             return BadRequest(new ErrorResponse
             {
                 Code = "ValidationError",
@@ -166,7 +166,7 @@ public class AuthController : ControllerBase
         catch (Auth0Exception ex)
         {
             _logger.LogWarning("Auth0 error during login: {Error}", ex.Error.Message);
-            
+
             return Unauthorized(new ErrorResponse
             {
                 Code = "AuthenticationError",
@@ -177,9 +177,9 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during login");
-            
+
             return StatusCode(
-                StatusCodes.Status500InternalServerError, 
+                StatusCodes.Status500InternalServerError,
                 new ErrorResponse
                 {
                     Code = "InternalServerError",
@@ -188,6 +188,7 @@ public class AuthController : ControllerBase
                 });
         }
     }
+
     [HttpPost("logout")]
     [ProducesResponseType(typeof(LogoutResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
@@ -200,20 +201,20 @@ public class AuthController : ControllerBase
 
             var command = new LogoutCommand(request.RefreshToken);
             var result = await _mediator.Send(command);
-        
+
             var response = new LogoutResponse
             {
                 Success = result,
                 Message = "Logout successful"
             };
-        
+
             return Ok(response);
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning("Validation failed during logout: {Errors}", 
+            _logger.LogWarning("Validation failed during logout: {Errors}",
                 string.Join(", ", ex.Errors.Select(e => e.ErrorMessage)));
-        
+
             return BadRequest(new ErrorResponse
             {
                 Code = "ValidationError",
@@ -224,9 +225,9 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during logout");
-        
+
             return StatusCode(
-                StatusCodes.Status500InternalServerError, 
+                StatusCodes.Status500InternalServerError,
                 new ErrorResponse
                 {
                     Code = "InternalServerError",

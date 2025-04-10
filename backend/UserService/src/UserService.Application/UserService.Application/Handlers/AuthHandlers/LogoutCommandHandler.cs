@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using UserService.Application.Commands;
 using UserService.Application.Interfaces;
 
-namespace UserService.Application.Handlers;
+namespace UserService.Application.Handlers.AuthHandlers;
 
 public class LogoutCommandHandler : IRequestHandler<LogoutCommand, bool>
 {
@@ -26,25 +26,18 @@ public class LogoutCommandHandler : IRequestHandler<LogoutCommand, bool>
     {
         // Validate the request
         var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            throw new ValidationException(validationResult.Errors);
-        }
-        
+        if (!validationResult.IsValid) throw new ValidationException(validationResult.Errors);
+
         _logger.LogInformation("Processing logout request");
-        
+
         // Call Auth0 service to revoke the refresh token
         var result = await _auth0Service.LogoutAsync(request.RefreshToken);
-        
+
         if (result)
-        {
             _logger.LogInformation("User logged out successfully");
-        }
         else
-        {
             _logger.LogWarning("Logout completed with warnings");
-        }
-        
+
         return result;
     }
 }

@@ -8,33 +8,33 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\UserService.Application\UserService.Application\UserService.Application.csproj" />
-      <ProjectReference Include="..\..\UserService.Infrastructure\UserService.Infrastructure\UserService.Infrastructure.csproj" />
+        <ProjectReference Include="..\..\UserService.Application\UserService.Application\UserService.Application.csproj"/>
+        <ProjectReference Include="..\..\UserService.Infrastructure\UserService.Infrastructure\UserService.Infrastructure.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
-      <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
-      <PackageReference Include="FluentValidation" Version="11.11.0" />
-      <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
-      <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
-      <PackageReference Include="MediatR" Version="12.4.1" />
-      <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.13" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.2">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
-      <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="8.0.13">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
-      <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="7.2.0" />
-      <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.2.0" />
-      <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.2.0" />
+        <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0"/>
+        <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0"/>
+        <PackageReference Include="FluentValidation" Version="11.11.0"/>
+        <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0"/>
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0"/>
+        <PackageReference Include="MediatR" Version="12.4.1"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.13"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.2">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="8.0.13">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="7.2.0"/>
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.2.0"/>
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.2.0"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Remove="Models\Requests\Auth0RevokeTokenRequest.cs" />
+        <Compile Remove="Models\Requests\Auth0RevokeTokenRequest.cs"/>
     </ItemGroup>
 
 </Project>

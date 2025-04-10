@@ -80,7 +80,7 @@ const Login = () => {
     <div className="min-h-screen bg-gradient-to-b from-primary-100 to-white flex flex-col justify-center px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-gray-900">MusicEval</h2>
+          <h2 className="text-3xl font-extrabold text-gray-900">BeatRate</h2>
           <p className="mt-2 text-sm text-gray-600">
             Your personal music discovery & review platform
           </p>

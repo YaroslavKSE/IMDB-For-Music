@@ -23,12 +23,12 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users.FindAsync(id);
     }
-    
+
     public async Task<User> GetByUsernameAsync(string username)
     {
         return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
     }
-    
+
     public async Task<User> GetByAuth0IdAsync(string auth0Id)
     {
         return await _context.Users.FirstOrDefaultAsync(u => u.Auth0Id == auth0Id);
@@ -42,5 +42,34 @@ public class UserRepository : IUserRepository
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<(List<User> Users, int TotalCount)> GetPaginatedUsersAsync(int page, int pageSize,
+        string searchTerm = null, CancellationToken cancellationToken = default)
+    {
+        // Start with the base query
+        IQueryable<User> query = _context.Users;
+
+        // Apply search if search term is provided
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            searchTerm = searchTerm.ToLower().Trim();
+            query = query.Where(u =>
+                u.Username.ToLower().Contains(searchTerm) ||
+                u.Name.ToLower().Contains(searchTerm) ||
+                u.Surname.ToLower().Contains(searchTerm));
+        }
+
+        // Get total count for pagination info
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // Apply pagination and project to include only necessary properties
+        var users = await query
+            .OrderBy(u => u.Username) // Default ordering by username
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (users, totalCount);
     }
 }
