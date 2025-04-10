@@ -11,11 +11,11 @@ public class Auth0Exception : Exception
         Error = Auth0Error.Parse(message);
     }
 
-    public Auth0Exception(string message, Exception innerException) 
+    public Auth0Exception(string message, Exception innerException)
         : base(message, innerException)
     {
         Error = Auth0Error.Parse(message);
     }
-    
+
     public override string Message => Error.Message ?? base.Message;
 }

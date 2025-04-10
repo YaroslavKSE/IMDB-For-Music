@@ -7,7 +7,7 @@ public class RegisterUserCommand : IRequest<RegisterUserResponse>
 {
     public string Email { get; }
     public string Password { get; }
-    public string Username { get; } 
+    public string Username { get; }
     public string Name { get; }
     public string Surname { get; }
 
