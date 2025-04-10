@@ -40,7 +40,7 @@ const Header = () => {
                       alt="BeatRate Logo"
                       className="h-8 w-auto mr-2"
                   />
-                  <span style={{ color: "#53327a" }}>BeatRate</span>
+                  <span style={{ color: "#7a24ec" }}>BeatRate</span>
                 </Link>
               </div>
 
