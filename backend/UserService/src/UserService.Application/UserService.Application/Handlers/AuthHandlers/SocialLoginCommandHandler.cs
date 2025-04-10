@@ -7,7 +7,7 @@ using UserService.Application.Interfaces;
 using UserService.Domain.Entities;
 using UserService.Domain.Interfaces;
 
-namespace UserService.Application.Handlers;
+namespace UserService.Application.Handlers.AuthHandlers;
 
 public class SocialLoginCommandHandler : IRequestHandler<SocialLoginCommand, LoginResponseDto>
 {

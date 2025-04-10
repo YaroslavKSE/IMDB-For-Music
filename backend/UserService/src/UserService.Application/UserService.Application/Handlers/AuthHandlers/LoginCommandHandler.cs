@@ -5,7 +5,7 @@ using UserService.Application.Commands;
 using UserService.Application.DTOs;
 using UserService.Application.Interfaces;
 
-namespace UserService.Application.Handlers;
+namespace UserService.Application.Handlers.AuthHandlers;
 
 public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponseDto>
 {

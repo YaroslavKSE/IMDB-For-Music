@@ -4,7 +4,7 @@ using UserService.Application.DTOs;
 using UserService.Application.Queries;
 using UserService.Domain.Interfaces;
 
-namespace UserService.Application.Handlers;
+namespace UserService.Application.Handlers.QueryHandlers;
 
 public class GetUserByIdQueryHandler : BaseUserQueryHandler, IRequestHandler<GetUserByIdQuery, UserResponse>
 {

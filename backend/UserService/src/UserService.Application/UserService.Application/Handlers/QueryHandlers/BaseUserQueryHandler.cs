@@ -3,7 +3,7 @@ using UserService.Application.DTOs;
 using UserService.Domain.Entities;
 using UserService.Domain.Interfaces;
 
-namespace UserService.Application.Handlers;
+namespace UserService.Application.Handlers.QueryHandlers;
 
 public abstract class BaseUserQueryHandler
 {

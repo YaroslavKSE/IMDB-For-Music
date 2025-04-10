@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
-using Microsoft.Extensions.Logging;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using UserService.Application.Commands;
 using UserService.Application.DTOs;
 using UserService.Application.Interfaces;
@@ -8,7 +8,7 @@ using UserService.Domain.Entities;
 using UserService.Domain.Exceptions;
 using UserService.Domain.Interfaces;
 
-namespace UserService.Application.Handlers;
+namespace UserService.Application.Handlers.AuthHandlers;
 
 public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, RegisterUserResponse>
 {

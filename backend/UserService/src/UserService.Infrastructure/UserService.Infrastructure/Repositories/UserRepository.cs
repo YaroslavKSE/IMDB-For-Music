@@ -43,7 +43,9 @@ public class UserRepository : IUserRepository
     {
         await _context.SaveChangesAsync();
     }
-    public async Task<(List<User> Users, int TotalCount)> GetPaginatedUsersAsync(int page, int pageSize, string searchTerm = null, CancellationToken cancellationToken = default)
+
+    public async Task<(List<User> Users, int TotalCount)> GetPaginatedUsersAsync(int page, int pageSize,
+        string searchTerm = null, CancellationToken cancellationToken = default)
     {
         // Start with the base query
         IQueryable<User> query = _context.Users;
@@ -52,9 +54,9 @@ public class UserRepository : IUserRepository
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             searchTerm = searchTerm.ToLower().Trim();
-            query = query.Where(u => 
-                u.Username.ToLower().Contains(searchTerm) || 
-                u.Name.ToLower().Contains(searchTerm) || 
+            query = query.Where(u =>
+                u.Username.ToLower().Contains(searchTerm) ||
+                u.Name.ToLower().Contains(searchTerm) ||
                 u.Surname.ToLower().Contains(searchTerm));
         }
 

@@ -1,4 +1,6 @@
-﻿namespace UserService.Domain.Entities;
+﻿using System.Collections.ObjectModel;
+
+namespace UserService.Domain.Entities;
 
 public class User
 {
@@ -10,6 +12,15 @@ public class User
     public string Auth0Id { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
+
+    private readonly List<UserSubscription> _followers = new();
+    private readonly List<UserSubscription> _following = new();
+
+    public virtual IReadOnlyCollection<UserSubscription> Followers =>
+        new ReadOnlyCollection<UserSubscription>(_followers);
+
+    public virtual IReadOnlyCollection<UserSubscription> Following =>
+        new ReadOnlyCollection<UserSubscription>(_following);
 
     private User()
     {

@@ -5,7 +5,7 @@ using UserService.Application.DTOs;
 using UserService.Application.Queries;
 using UserService.Domain.Interfaces;
 
-namespace UserService.Application.Handlers;
+namespace UserService.Application.Handlers.QueryHandlers;
 
 public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PaginatedUsersResponse>
 {
@@ -41,7 +41,7 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PaginatedUser
             cancellationToken);
 
         // Calculate total pages
-        var totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);
+        var totalPages = (int) Math.Ceiling(totalCount / (double) request.PageSize);
 
         // Map to response
         var response = new PaginatedUsersResponse

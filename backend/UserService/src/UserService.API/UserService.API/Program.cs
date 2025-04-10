@@ -49,6 +49,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
+
 
 // Auth0
 builder.Services.Configure<Auth0Settings>(
@@ -56,32 +58,36 @@ builder.Services.Configure<Auth0Settings>(
 builder.Services.AddHttpClient<IAuth0Service, Auth0Service>();
 
 // JWT Authentication
-builder.Services.AddAuthentication(options => {
+builder.Services.AddAuthentication(options =>
+{
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options => {
+}).AddJwtBearer(options =>
+{
     options.Authority = $"https://{builder.Configuration["Auth0:Domain"]}/";
     options.Audience = builder.Configuration["Auth0:Audience"];
-    
-    options.TokenValidationParameters = new TokenValidationParameters {
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         NameClaimType = ClaimTypes.NameIdentifier,
         RoleClaimType = "permissions"
     };
-    
+
     // Simplified event handling
-    options.Events = new JwtBearerEvents {
-        OnTokenValidated = context => {
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = context =>
+        {
             // We only need this logic if the sub   claim is missing but required
             var identity = context.Principal.Identity as ClaimsIdentity;
             var nameIdClaim = context.Principal.FindFirst(ClaimTypes.NameIdentifier);
-            
-            if (nameIdClaim != null && !context.Principal.HasClaim(c => c.Type == "sub")) {
+
+            if (nameIdClaim != null && !context.Principal.HasClaim(c => c.Type == "sub"))
                 identity?.AddClaim(new Claim("sub", nameIdClaim.Value));
-            }
-            
+
             return Task.CompletedTask;
         }
     };

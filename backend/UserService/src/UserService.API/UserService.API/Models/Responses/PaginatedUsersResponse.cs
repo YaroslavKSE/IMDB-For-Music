@@ -2,7 +2,7 @@
 
 public class PaginatedUsersResponse
 {
-    public List<UserSummaryResponse> Items { get; set; } = new List<UserSummaryResponse>();
+    public List<UserSummaryResponse> Items { get; set; } = new();
     public int Page { get; set; }
     public int PageSize { get; set; }
     public int TotalCount { get; set; }

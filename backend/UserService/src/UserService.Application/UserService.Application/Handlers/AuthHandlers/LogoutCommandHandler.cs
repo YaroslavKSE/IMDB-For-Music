@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using UserService.Application.Commands;
 using UserService.Application.Interfaces;
 
-namespace UserService.Application.Handlers;
+namespace UserService.Application.Handlers.AuthHandlers;
 
 public class LogoutCommandHandler : IRequestHandler<LogoutCommand, bool>
 {
