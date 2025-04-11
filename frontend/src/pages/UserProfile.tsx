@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { User, Calendar, UserPlus, UserCheck, Loader, AlertTriangle, ListMusic, MessageSquare, FileText } from 'lucide-react';
-import { UserProfile as AuthUserProfile } from '../api/auth';
-import UsersService from '../api/users';
+import UsersService, { PublicUserProfile, UserSubscriptionResponse } from '../api/users';
 import InteractionService, { GradingMethodSummary } from '../api/interaction';
 import useAuthStore from '../store/authStore';
 import { formatDate } from '../utils/formatters';
@@ -14,13 +13,16 @@ const UserProfile = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { isAuthenticated, user: currentUser } = useAuthStore();
-    const [userProfile, setUserProfile] = useState<AuthUserProfile | null>(null);
+    const [userProfile, setUserProfile] = useState<PublicUserProfile | null>(null);
     const [isFollowing, setIsFollowing] = useState(false);
     const [gradingMethods, setGradingMethods] = useState<GradingMethodSummary[]>([]);
     const [activeTab, setActiveTab] = useState<ProfileTab>('interactions');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [followLoading, setFollowLoading] = useState(false);
+    const [followersData, setFollowersData] = useState<UserSubscriptionResponse[]>([]);
+    const [followingData, setFollowingData] = useState<UserSubscriptionResponse[]>([]);
+    const [socialLoading, setSocialLoading] = useState(false);
 
     // Check if viewing own profile
     const isOwnProfile = currentUser?.id === id;
@@ -34,21 +36,9 @@ const UserProfile = () => {
                 setLoading(true);
                 setError(null);
 
-                // In a real implementation, we would have an API endpoint to get a user by ID
-                // For now, we'll use a placeholder implementation
-
-                // This would be replaced with: const userData = await UsersService.getUserById(id);
-                const mockUserData: AuthUserProfile = {
-                    id: id,
-                    email: 'user@example.com', // This would normally be private/filtered for non-self profiles
-                    name: 'John',
-                    surname: 'Doe',
-                    username: 'johndoe',
-                    createdAt: '2024-01-15T12:00:00Z',
-                    updatedAt: '2024-03-20T14:30:00Z'
-                };
-
-                setUserProfile(mockUserData);
+                // Fetch public user profile by ID
+                const userData = await UsersService.getUserProfileById(id);
+                setUserProfile(userData);
 
                 // Check if the current user is following this user
                 if (isAuthenticated && !isOwnProfile) {
@@ -81,6 +71,36 @@ const UserProfile = () => {
         fetchUserProfile();
     }, [id, isAuthenticated, isOwnProfile]);
 
+    // Load followers and following data when those tabs are selected
+    useEffect(() => {
+        const loadSocialData = async () => {
+            if (!id || !userProfile) return;
+
+            // Only load when viewing followers or following tab
+            if (activeTab === 'followers' || activeTab === 'following') {
+                setSocialLoading(true);
+
+                try {
+                    if (activeTab === 'followers') {
+                        // Call the new public endpoint for followers
+                        const response = await UsersService.getPublicUserFollowers(id);
+                        setFollowersData(response.items);
+                    } else {
+                        // Call the new public endpoint for following
+                        const response = await UsersService.getPublicUserFollowing(id);
+                        setFollowingData(response.items);
+                    }
+                } catch (err) {
+                    console.error(`Error loading ${activeTab} data:`, err);
+                } finally {
+                    setSocialLoading(false);
+                }
+            }
+        };
+
+        loadSocialData();
+    }, [activeTab, id, userProfile]);
+
     const handleFollow = async () => {
         if (!isAuthenticated) {
             navigate('/login', { state: { from: `/people/${id}` } });
@@ -105,6 +125,27 @@ const UserProfile = () => {
             setFollowLoading(false);
         }
     };
+
+    // Helper function to render a user card
+    const renderUserCard = (user: UserSubscriptionResponse) => (
+        <div key={user.userId} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            <div className="p-4 flex flex-col items-center text-center">
+                <div className="h-16 w-16 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xl font-bold mb-3">
+                    {user.name.charAt(0).toUpperCase()}{user.surname.charAt(0).toUpperCase()}
+                </div>
+                <h3 className="font-medium text-gray-900 mb-1">{user.name} {user.surname}</h3>
+                <p className="text-sm text-gray-600 mb-2">@{user.username}</p>
+                <p className="text-xs text-gray-500">Following since {formatDate(user.subscribedAt)}</p>
+
+                <button
+                    onClick={() => navigate(`/people/${user.userId}`)}
+                    className="mt-3 px-3 py-1.5 border border-gray-300 rounded text-sm font-medium bg-white hover:bg-gray-50"
+                >
+                    View Profile
+                </button>
+            </div>
+        </div>
+    );
 
     if (loading) {
         return (
@@ -156,6 +197,20 @@ const UserProfile = () => {
                                     <Calendar className="h-4 w-4 mr-1" />
                                     Member since {formatDate(userProfile.createdAt)}
                                 </div>
+
+                                <button
+                                    onClick={() => setActiveTab('followers')}
+                                    className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm"
+                                >
+                                    <span className="font-medium">{userProfile.followerCount}</span> Followers
+                                </button>
+
+                                <button
+                                    onClick={() => setActiveTab('following')}
+                                    className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm"
+                                >
+                                    <span className="font-medium">{userProfile.followingCount}</span> Following
+                                </button>
 
                                 {!isOwnProfile && isAuthenticated && (
                                     <button
@@ -299,10 +354,32 @@ const UserProfile = () => {
                             <UserPlus className="h-5 w-5 text-gray-500 mr-2" />
                             <h2 className="text-xl font-bold text-gray-900">Following</h2>
                         </div>
-                        <div className="text-center p-8 text-gray-500">
-                            <p>People that this user follows will appear here.</p>
-                            <p className="text-sm mt-2">This feature is coming soon.</p>
-                        </div>
+
+                        {socialLoading ? (
+                            <div className="flex justify-center items-center py-12">
+                                <Loader className="h-8 w-8 text-primary-600 animate-spin mr-3" />
+                                <span className="text-gray-600">Loading...</span>
+                            </div>
+                        ) : followingData.length === 0 ? (
+                            <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg">
+                                <UserPlus className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                                <p className="text-gray-500 mb-2">
+                                    {isOwnProfile ? "You're not following anyone yet." : "This user isn't following anyone yet."}
+                                </p>
+                                {isOwnProfile && (
+                                    <button
+                                        onClick={() => navigate('/people')}
+                                        className="mt-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm"
+                                    >
+                                        Discover People
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                {followingData.map(user => renderUserCard(user))}
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -313,10 +390,39 @@ const UserProfile = () => {
                             <User className="h-5 w-5 text-gray-500 mr-2" />
                             <h2 className="text-xl font-bold text-gray-900">Followers</h2>
                         </div>
-                        <div className="text-center p-8 text-gray-500">
-                            <p>People who follow this user will appear here.</p>
-                            <p className="text-sm mt-2">This feature is coming soon.</p>
-                        </div>
+
+                        {socialLoading ? (
+                            <div className="flex justify-center items-center py-12">
+                                <Loader className="h-8 w-8 text-primary-600 animate-spin mr-3" />
+                                <span className="text-gray-600">Loading...</span>
+                            </div>
+                        ) : followersData.length === 0 ? (
+                            <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg">
+                                <User className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                                <p className="text-gray-500 mb-2">
+                                    {isOwnProfile ? "You don't have any followers yet." : "This user doesn't have any followers yet."}
+                                </p>
+                                {!isOwnProfile && (
+                                    <button
+                                        onClick={handleFollow}
+                                        disabled={followLoading}
+                                        className="mt-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm font-medium"
+                                    >
+                                        {followLoading ? (
+                                            <Loader className="h-4 w-4 mr-1 inline animate-spin" />
+                                        ) : isFollowing ? (
+                                            "Unfollow"
+                                        ) : (
+                                            "Follow"
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                {followersData.map(user => renderUserCard(user))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
