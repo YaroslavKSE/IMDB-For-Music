@@ -9,6 +9,7 @@ export interface RegisterParams {
   password: string;
   name: string;
   surname: string;
+  username: string;
 }
 
 export interface LoginParams {
@@ -19,6 +20,12 @@ export interface LoginParams {
 export interface SocialLoginParams {
   accessToken: string;
   provider: string;
+}
+
+export interface UpdateProfileParams {
+  name?: string;
+  surname?: string;
+  username?: string;
 }
 
 export interface AuthResponse {
@@ -38,6 +45,7 @@ export interface UserProfile {
   email: string;
   name: string;
   surname: string;
+  username?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -71,7 +79,7 @@ const AuthService = {
     if (refreshToken) {
       try {
         // Call the logout endpoint to revoke the token on server side
-        await authApi.post('/auth/logout', { refreshToken });
+        await authApi.post('/logout', { refreshToken });
       } catch (error) {
         console.error('Error during logout:', error);
       }
@@ -86,6 +94,13 @@ const AuthService = {
   getCurrentUser: async (): Promise<UserProfile> => {
     const response = await userApi.get('/me');
     // Cache user profile
+    localStorage.setItem('user', JSON.stringify(response.data));
+    return response.data;
+  },
+
+  updateProfile: async (params: UpdateProfileParams): Promise<UserProfile> => {
+    const response = await userApi.put('/me', params);
+    // Update cached user profile
     localStorage.setItem('user', JSON.stringify(response.data));
     return response.data;
   },
