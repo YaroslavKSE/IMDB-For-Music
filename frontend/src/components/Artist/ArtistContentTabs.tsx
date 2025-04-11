@@ -1,10 +1,11 @@
-import { ReactNode, useEffect, useState, useCallback } from 'react';
-import { Disc, Music, User, ChevronRight, Play, Pause, Disc2 } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Disc, Music, User, ChevronRight} from 'lucide-react';
 import { ArtistDetail, TrackSummary, AlbumSummary } from '../../api/catalog';
 import CatalogService from '../../api/catalog';
-import { formatDuration } from '../../utils/formatters';
 import EmptyState from '../common/EmptyState';
-import { Link } from 'react-router-dom';
+import AlbumCard from "./AlbumCard.tsx";
+import TrackRow from "./TrackRow.tsx";
+import TabButton from "./TabButton.tsx";
 
 interface ArtistContentTabsProps {
     activeTab: 'overview' | 'albums' | 'top-tracks';
@@ -17,6 +18,7 @@ const ArtistContentTabs = ({
                                setActiveTab,
                                artist
                            }: ArtistContentTabsProps) => {
+    const [albumType, setAlbumType] = useState<'album' | 'single'>('album');
     const [topTracks, setTopTracks] = useState<TrackSummary[]>([]);
     const [albums, setAlbums] = useState<AlbumSummary[]>([]);
     const [albumsOffset, setAlbumsOffset] = useState(0);
@@ -47,7 +49,8 @@ const ArtistContentTabs = ({
         setIsLoadingAlbums(true);
         setAlbumsError(null);
         try {
-            const data = await CatalogService.getArtistAlbums(artist.spotifyId, 20, offset);
+            const includeGroups = albumType === 'album' ? 'album' : 'single';
+            const data = await CatalogService.getArtistAlbums(artist.spotifyId, 20, offset, includeGroups);
             if (offset === 0) {
                 setAlbums(data.albums);
             } else {
@@ -61,7 +64,7 @@ const ArtistContentTabs = ({
         } finally {
             setIsLoadingAlbums(false);
         }
-    }, [artist.spotifyId]);
+    }, [artist.spotifyId, albumType]);
 
     // Fetch top tracks and initial albums on component mount
     useEffect(() => {
@@ -70,6 +73,15 @@ const ArtistContentTabs = ({
             fetchAlbums(0);
         }
     }, [artist?.spotifyId, fetchTopTracks, fetchAlbums]);
+
+    const handleAlbumTypeChange = (type: 'album' | 'single') => {
+        if (type !== albumType) {
+            setAlbumType(type);
+            setAlbums([]);
+            setAlbumsOffset(0);
+            // This will trigger a re-fetch due to albumType being in the dependency array of fetchAlbums
+        }
+    };
 
     // Clean up audio player when component unmounts
     useEffect(() => {
@@ -248,10 +260,35 @@ const ArtistContentTabs = ({
             {/* Albums Tab Content */}
             {activeTab === 'albums' && (
                 <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                        <Disc className="h-5 w-5 mr-2 text-primary-600" />
-                        Albums
-                    </h3>
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                            <Disc className="h-5 w-5 mr-2 text-primary-600" />
+                            {albumType === 'album' ? 'Albums' : 'Singles & EPs'}
+                        </h3>
+
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={() => handleAlbumTypeChange('album')}
+                                className={`px-4 py-2 rounded-md font-medium text-sm ${
+                                    albumType === 'album'
+                                        ? 'bg-primary-600 text-white'
+                                        : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                                }`}
+                            >
+                                Albums
+                            </button>
+                            <button
+                                onClick={() => handleAlbumTypeChange('single')}
+                                className={`px-4 py-2 rounded-md font-medium text-sm ${
+                                    albumType === 'single'
+                                        ? 'bg-primary-600 text-white'
+                                        : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                                }`}
+                            >
+                                Singles & EPs
+                            </button>
+                        </div>
+                    </div>
 
                     {isLoadingAlbums && albums.length === 0 ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -267,8 +304,8 @@ const ArtistContentTabs = ({
                         <div className="text-red-500 text-sm p-4">{albumsError}</div>
                     ) : albums.length === 0 ? (
                         <EmptyState
-                            title="No albums found"
-                            message="This artist doesn't have any albums yet."
+                            title={`No ${albumType === 'album' ? 'albums' : 'singles'} found`}
+                            message={`This artist doesn't have any ${albumType === 'album' ? 'albums' : 'singles or EPs'} yet.`}
                             icon={<Disc className="h-12 w-12 text-gray-400" />}
                         />
                     ) : (
@@ -340,139 +377,6 @@ const ArtistContentTabs = ({
                 </div>
             )}
         </div>
-    );
-};
-
-// Helper component for tabs
-interface TabButtonProps {
-    active: boolean;
-    onClick: () => void;
-    icon: ReactNode;
-    label: string;
-}
-
-const TabButton = ({ active, onClick, icon, label }: TabButtonProps) => {
-    return (
-        <button
-            onClick={onClick}
-            className={`mr-8 py-4 px-6 border-b-2 font-medium text-sm flex items-center ${
-                active
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-        >
-            {icon}
-            {label}
-        </button>
-    );
-};
-
-// Track Row Component
-interface TrackRowProps {
-    track: TrackSummary;
-    index: number;
-    isPlaying: boolean;
-    onPlayClick: () => void;
-}
-
-const TrackRow = ({ track, index, isPlaying, onPlayClick }: TrackRowProps) => {
-    const [isHovered, setIsHovered] = useState(false);
-
-    return (
-        <div
-            className={`flex items-center px-6 py-5 ${
-                index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-            } hover:bg-gray-100`}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-        >
-            {/* Track number or play button */}
-            <div className="w-8 flex-shrink-0 flex items-center justify-center mr-2">
-                {isHovered || isPlaying ? (
-                    <button
-                        onClick={onPlayClick}
-                        className="w-8 h-8 flex items-center justify-center text-primary-600"
-                    >
-                        {isPlaying ? (
-                            <Pause className="h-5 w-5" />
-                        ) : (
-                            <Play className="h-5 w-5 fill-current" />
-                        )}
-                    </button>
-                ) : (
-                    <span className="text-gray-500 font-medium">{index + 1}</span>
-                )}
-            </div>
-
-            {/* Track image */}
-            <div className="w-16 h-16 flex-shrink-0 mr-4">
-                <img
-                    src={track.imageUrl || '/placeholder-album.jpg'}
-                    alt={track.name}
-                    className="w-full h-full object-cover shadow"
-                />
-            </div>
-
-            {/* Track info */}
-            <div className="flex-grow min-w-0">
-                <Link to={`/track/${track.spotifyId}`} className="block">
-                    <h4 className={`text-base font-medium truncate flex items-center ${
-                        isHovered ? 'text-primary-600' : 'text-gray-900'
-                    } transition-colors duration-200`}>
-                        {track.name}
-                        {track.isExplicit && (
-                            <span className="ml-2 px-1.5 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">
-                                E
-                            </span>
-                        )}
-                    </h4>
-                </Link>
-                <p className="text-sm text-gray-500 truncate mt-1">{track.artistName}</p>
-            </div>
-
-            {/* Track duration */}
-            <div className="ml-4 flex-shrink-0 flex items-center">
-                <span className="text-sm text-gray-500 mr-4">{formatDuration(track.durationMs)}</span>
-
-                {/* Album button - redirects to album page instead of track page */}
-                <Link
-                    to={`/album/${track.albumId}`}
-                    className="text-gray-400 hover:text-primary-600 focus:outline-none"
-                    title="View Album"
-                >
-                    <Disc2 className="h-6 w-6" />
-                </Link>
-            </div>
-        </div>
-    );
-};
-
-// Album Card Component
-interface AlbumCardProps {
-    album: AlbumSummary;
-}
-
-const AlbumCard = ({ album }: AlbumCardProps) => {
-    return (
-        <Link to={`/album/${album.spotifyId}`} className="block">
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-                <div className="aspect-square w-full overflow-hidden bg-gray-200">
-                    <img
-                        src={album.imageUrl || '/placeholder-album.jpg'}
-                        alt={album.name}
-                        className="w-full h-full object-cover"
-                    />
-                </div>
-                <div className="p-3">
-                    <h3 className="font-medium text-gray-900 truncate">{album.name}</h3>
-                    <div className="flex items-center mt-1 text-xs text-gray-500">
-                        <span>{album.releaseDate?.split('-')[0] || 'Unknown year'}</span>
-                        <span className="mx-1">•</span>
-                        <span className="capitalize">{album.albumType || 'Album'}</span>
-                    </div>
-                </div>
-            </div>
-        </Link>
     );
 };
 
