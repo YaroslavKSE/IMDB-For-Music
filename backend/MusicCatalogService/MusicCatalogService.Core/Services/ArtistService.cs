@@ -160,6 +160,142 @@ public class ArtistService : IArtistService
         }
     }
 
+    public async Task<ArtistAlbumsResultDto> GetArtistAlbumsAsync(string spotifyId, int limit = 20, int offset = 0, string? market = null, string? includeGroups = "album")
+    {
+        try
+        {
+            // Generate cache key for this request
+            var cacheKey = $"artist:{spotifyId}:albums:{limit}:{offset}:{market ?? "none"}:{includeGroups ?? "album"}";
+
+            // Try to get from cache first
+            var cachedResult = await _cacheService.GetAsync<ArtistAlbumsResultDto>(cacheKey);
+            if (cachedResult != null)
+            {
+                _logger.LogInformation("Artist albums for {SpotifyId} retrieved from cache", spotifyId);
+                return cachedResult;
+            }
+
+            // Get the artist to ensure it exists and to get the name
+            var artist = await _catalogRepository.GetArtistBySpotifyIdAsync(spotifyId);
+            string artistName = "Unknown Artist";
+
+            if (artist != null)
+            {
+                artistName = artist.Name;
+            }
+            else
+            {
+                // Try to fetch artist from Spotify
+                var artistResponse = await _spotifyApiClient.GetArtistAsync(spotifyId);
+                if (artistResponse != null)
+                {
+                    artistName = artistResponse.Name;
+                }
+            }
+            _logger.LogInformation("Fetching albums for artist {SpotifyId} from Spotify API with include_groups={IncludeGroups}", spotifyId, includeGroups);
+            var albumsResponse = await _spotifyApiClient.GetArtistAlbumsAsync(spotifyId, limit, offset, market, includeGroups);
+
+            if (albumsResponse == null)
+            {
+                _logger.LogWarning("No albums found for artist {SpotifyId}", spotifyId);
+                return new ArtistAlbumsResultDto
+                {
+                    ArtistId = spotifyId,
+                    ArtistName = artistName,
+                    Limit = limit,
+                    Offset = offset,
+                    TotalResults = 0
+                };
+            }
+
+            // Map the response to our DTO
+            var result = MapToArtistAlbumsResultDto(albumsResponse, spotifyId, artistName, limit, offset);
+
+            // Cache the result
+            await _cacheService.SetAsync(
+                cacheKey,
+                result,
+                TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving albums for artist {SpotifyId}", spotifyId);
+            throw;
+        }
+    }
+
+    public async Task<ArtistTopTracksResultDto> GetArtistTopTracksAsync(string spotifyId, string? market = null)
+    {
+        try
+        {
+            // Use a default market if none provided
+            market = string.IsNullOrEmpty(market) ? "US" : market;
+
+            // Generate cache key for this request
+            var cacheKey = $"artist:{spotifyId}:top-tracks:{market}";
+
+            // Try to get from cache first
+            var cachedResult = await _cacheService.GetAsync<ArtistTopTracksResultDto>(cacheKey);
+            if (cachedResult != null)
+            {
+                _logger.LogInformation("Artist top tracks for {SpotifyId} retrieved from cache", spotifyId);
+                return cachedResult;
+            }
+
+            // Get the artist to ensure it exists and to get the name
+            var artist = await _catalogRepository.GetArtistBySpotifyIdAsync(spotifyId);
+            string artistName = "Unknown Artist";
+
+            if (artist != null)
+            {
+                artistName = artist.Name;
+            }
+            else
+            {
+                // Try to fetch artist from Spotify
+                var artistResponse = await _spotifyApiClient.GetArtistAsync(spotifyId);
+                if (artistResponse != null)
+                {
+                    artistName = artistResponse.Name;
+                }
+            }
+            // Fetch top tracks from Spotify API
+            _logger.LogInformation("Fetching top tracks for artist {SpotifyId} from Spotify API", spotifyId);
+            var topTracksResponse = await _spotifyApiClient.GetArtistTopTracksAsync(spotifyId, market);
+
+            if (topTracksResponse == null || topTracksResponse.Tracks == null || !topTracksResponse.Tracks.Any())
+            {
+                _logger.LogWarning("No top tracks found for artist {SpotifyId}", spotifyId);
+                return new ArtistTopTracksResultDto
+                {
+                    ArtistId = spotifyId,
+                    ArtistName = artistName,
+                    Market = market
+                };
+            }
+
+            // Map the response to our DTO
+            var result = MapToArtistTopTracksResultDto(topTracksResponse, spotifyId, artistName, market);
+
+            // Cache the result
+            await _cacheService.SetAsync(
+                cacheKey,
+                result,
+                TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving top tracks for artist {SpotifyId}", spotifyId);
+            throw;
+        }
+    }
+
+
+
     // Save artist permanently
     public async Task<ArtistDetailDto> SaveArtistAsync(string spotifyId)
     {
@@ -236,5 +372,88 @@ public class ArtistService : IArtistService
                 ? new List<string> {artist.ExternalUrls.Spotify}
                 : null
         };
+    }
+
+    private ArtistAlbumsResultDto MapToArtistAlbumsResultDto(
+        SpotifyArtistAlbumsResponse response,
+        string artistId,
+        string artistName,
+        int limit,
+        int offset)
+    {
+        var result = new ArtistAlbumsResultDto
+        {
+            ArtistId = artistId,
+            ArtistName = artistName,
+            Limit = limit,
+            Offset = offset,
+            TotalResults = response.Total,
+            Next = response.Next,
+            Previous = response.Previous
+        };
+
+        // Map albums
+        if (response.Items != null)
+        {
+            result.Albums = response.Items.Select(album => new AlbumSummaryDto
+            {
+                SpotifyId = album.Id,
+                Name = album.Name,
+                ArtistName = album.Artists.FirstOrDefault()?.Name ?? artistName,
+                ReleaseDate = album.ReleaseDate,
+                AlbumType = album.AlbumType,
+                TotalTracks = album.TotalTracks,
+                ImageUrl = GetOptimalImage(album.Images),
+                Images = album.Images?.Select(img => new ImageDto
+                {
+                    Url = img.Url,
+                    Height = img.Height,
+                    Width = img.Width
+                }).ToList() ?? new List<ImageDto>(),
+                ExternalUrls = album.ExternalUrls?.Spotify != null ? new List<string> { album.ExternalUrls.Spotify } : null
+            }).ToList();
+        }
+
+        return result;
+    }
+
+    private ArtistTopTracksResultDto MapToArtistTopTracksResultDto(
+        SpotifyArtistTopTracksResponse response,
+        string artistId,
+        string artistName,
+        string market)
+    {
+        var result = new ArtistTopTracksResultDto
+        {
+            ArtistId = artistId,
+            ArtistName = artistName,
+            Market = market
+        };
+
+        // Map tracks
+        if (response.Tracks != null)
+        {
+            result.Tracks = response.Tracks.Select(track => new TrackSummaryDto
+            {
+                SpotifyId = track.Id,
+                Name = track.Name,
+                ArtistName = track.Artists.FirstOrDefault()?.Name ?? artistName,
+                DurationMs = track.DurationMs,
+                IsExplicit = track.Explicit,
+                TrackNumber = track.TrackNumber,
+                AlbumId = track.Album?.Id,
+                ImageUrl = GetOptimalImage(track.Album?.Images),
+                Images = track.Album?.Images?.Select(img => new ImageDto
+                {
+                    Url = img.Url,
+                    Height = img.Height,
+                    Width = img.Width
+                }).ToList() ?? new List<ImageDto>(),
+                Popularity = track.Popularity,
+                ExternalUrls = track.ExternalUrls?.Spotify != null ? new List<string> { track.ExternalUrls.Spotify } : null
+            }).ToList();
+        }
+
+        return result;
     }
 }

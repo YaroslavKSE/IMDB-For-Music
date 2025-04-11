@@ -14,4 +14,6 @@ public interface ISpotifyApiClient
     // New batch retrieval methods
     Task<SpotifyMultipleAlbumsResponse?> GetMultipleAlbumsAsync(IEnumerable<string> albumIds);
     Task<SpotifyMultipleTracksResponse?> GetMultipleTracksAsync(IEnumerable<string> trackIds);
+    Task<SpotifyArtistAlbumsResponse?> GetArtistAlbumsAsync(string artistId, int limit = 20, int offset = 0, string? market = null, string? includeGroups = "album");
+    Task<SpotifyArtistTopTracksResponse?> GetArtistTopTracksAsync(string artistId, string? market = null);
 }

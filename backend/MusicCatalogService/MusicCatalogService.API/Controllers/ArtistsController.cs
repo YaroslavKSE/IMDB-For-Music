@@ -42,6 +42,62 @@ public class ArtistsController : BaseApiController
             $"Error retrieving artist with Spotify ID: {spotifyId}",
             spotifyId);
     }
+
+    [HttpGet("spotify/{spotifyId}/albums")]
+    [ProducesResponseType(typeof(ArtistAlbumsResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetArtistAlbums(
+        string spotifyId,
+        [FromQuery] int limit = 20,
+        [FromQuery] int offset = 0,
+        [FromQuery] string? market = null,
+        [FromQuery] string? include_groups = "album")
+    {
+        // Ensure limit is within acceptable range
+        limit = Math.Clamp(limit, 1, 50);
+
+        // Validate include_groups parameter if provided
+        if (!string.IsNullOrEmpty(include_groups))
+        {
+            // Valid groups are album, single, appears_on, compilation
+            var validGroups = new[] { "album", "single", "appears_on", "compilation" };
+            var requestedGroups = include_groups.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var group in requestedGroups)
+            {
+                if (!validGroups.Contains(group.Trim().ToLower()))
+                {
+                    return BadRequest(new ErrorResponse
+                    {
+                        Message = $"Invalid include_groups value: {group}. Valid values: album, single, appears_on, compilation",
+                        ErrorCode = ErrorCodes.ValidationError,
+                        TraceId = HttpContext.TraceIdentifier
+                    });
+                }
+            }
+        }
+
+        return await ExecuteApiActionAsync(
+            () => _artistService.GetArtistAlbumsAsync(spotifyId, limit, offset, market, include_groups),
+            $"Error retrieving albums for artist with Spotify ID: {spotifyId}",
+            spotifyId);
+    }
+
+    [HttpGet("spotify/{spotifyId}/top-tracks")]
+    [ProducesResponseType(typeof(ArtistTopTracksResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetArtistTopTracks(
+        string spotifyId,
+        [FromQuery] string? market = null)
+    {
+        return await ExecuteApiActionAsync(
+            () => _artistService.GetArtistTopTracksAsync(spotifyId, market),
+            $"Error retrieving top tracks for artist with Spotify ID: {spotifyId}",
+            spotifyId);
+    }
     
     [HttpPost]
     [ProducesResponseType(typeof(SaveItemSuccessResponse), StatusCodes.Status201Created)]

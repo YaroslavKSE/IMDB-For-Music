@@ -1,13 +1,15 @@
-import { Heart, Share, Music, Users } from 'lucide-react';
+import { useState } from 'react';
+import { Heart, Share, Music, Users, Bell } from 'lucide-react';
 import { ArtistDetail } from '../../api/catalog';
 import { formatNumberWithCommas } from '../../utils/formatters';
 
 interface ArtistHeaderProps {
     artist: ArtistDetail;
-    handleArtistInteraction?: () => void;
 }
 
 const ArtistHeader = ({ artist }: ArtistHeaderProps) => {
+    const [isFollowing, setIsFollowing] = useState(false);
+
     const formatFollowers = (count: number): string => {
         return formatNumberWithCommas(count);
     };
@@ -15,20 +17,25 @@ const ArtistHeader = ({ artist }: ArtistHeaderProps) => {
     // Function to generate a CSS gradient based on artist popularity
     const getPopularityGradient = (popularity: number) => {
         if (popularity >= 90) {
-            return 'from-purple-500 to-purple-700';
+            return 'from-purple-800 to-purple-900';
         } else if (popularity >= 80) {
-            return 'from-red-500 to-red-700';
+            return 'from-purple-700 to-purple-800';
         } else if (popularity >= 70) {
-            return 'from-orange-500 to-orange-700';
+            return 'from-purple-600 to-purple-700';
         } else if (popularity >= 60) {
-            return 'from-yellow-500 to-yellow-700';
+            return 'from-purple-500 to-purple-600';
         } else if (popularity >= 50) {
-            return 'from-green-500 to-green-700';
+            return 'from-purple-400 to-purple-500';
         } else if (popularity >= 40) {
-            return 'from-teal-500 to-teal-700';
+            return 'from-purple-300 to-purple-400';
         } else {
-            return 'from-blue-500 to-blue-700';
+            return 'from-purple-200 to-purple-300';
         }
+    };
+
+    const handleFollowToggle = () => {
+        setIsFollowing(!isFollowing);
+        // In a real implementation, you would call an API to update the follow status
     };
 
     return (
@@ -45,9 +52,25 @@ const ArtistHeader = ({ artist }: ArtistHeaderProps) => {
 
                 {/* Action Buttons */}
                 <div className="mt-4 flex justify-between space-x-2">
-                    <button className="flex-1 flex items-center justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
-                        <Heart className="h-4 w-4 mr-2" />
-                        Follow
+                    <button
+                        onClick={handleFollowToggle}
+                        className={`flex-1 flex items-center justify-center py-2 px-4 border text-sm font-medium rounded-md focus:outline-none transition-colors ${
+                            isFollowing
+                                ? 'border-primary-300 bg-primary-50 text-primary-700 hover:bg-primary-100'
+                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
+                    >
+                        {isFollowing ? (
+                            <>
+                                <Bell className="h-4 w-4 mr-2" />
+                                Following
+                            </>
+                        ) : (
+                            <>
+                                <Heart className="h-4 w-4 mr-2" />
+                                Follow
+                            </>
+                        )}
                     </button>
 
                     <button className="flex items-center justify-center p-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
@@ -62,6 +85,11 @@ const ArtistHeader = ({ artist }: ArtistHeaderProps) => {
                     <span className="uppercase bg-gray-200 rounded px-2 py-0.5">
                         Artist
                     </span>
+                    {artist.popularity && artist.popularity > 0 && (
+                        <span className={`ml-2 px-2 py-0.5 rounded-full text-white text-xs font-medium bg-gradient-to-r ${getPopularityGradient(artist.popularity)}`}>
+                            Popularity: {artist.popularity}/100
+                        </span>
+                    )}
                 </div>
 
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{artist.name}</h1>
@@ -80,14 +108,15 @@ const ArtistHeader = ({ artist }: ArtistHeaderProps) => {
                         </div>
                     </div>
 
-                    {/* Popularity */}
-                    <div className={`bg-gradient-to-br ${getPopularityGradient(artist.popularity || 0)} p-4 rounded-lg shadow-sm`}>
+                    {/* Monthly Listeners - This would typically come from the API but we're mocking it */}
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg shadow-sm border border-blue-200">
                         <div className="flex items-center">
-                            <Music className="h-6 w-6 text-white mr-3" />
+                            <Music className="h-6 w-6 text-blue-600 mr-3" />
                             <div>
-                                <div className="text-sm font-medium text-white opacity-90">Popularity</div>
-                                <div className="text-2xl font-bold text-white">
-                                    {artist.popularity || 0}/100
+                                <div className="text-sm font-medium text-blue-700">Monthly Listeners</div>
+                                <div className="text-2xl font-bold text-blue-800">
+                                    {/* Mock value - would come from API in real implementation */}
+                                    {formatFollowers(Math.floor(artist.followersCount * 1.5))}
                                 </div>
                             </div>
                         </div>
@@ -119,6 +148,16 @@ const ArtistHeader = ({ artist }: ArtistHeaderProps) => {
                         </a>
                     </div>
                 )}
+
+                {/* Artist genres - If available from API */}
+                <div className="mt-4 flex flex-wrap gap-2">
+                    {/* These would come from API in a real implementation */}
+                    {['Pop', 'R&B', 'Hip-Hop'].map(genre => (
+                        <span key={genre} className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
+                            {genre}
+                        </span>
+                    ))}
+                </div>
             </div>
         </div>
     );

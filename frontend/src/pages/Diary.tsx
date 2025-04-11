@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import InteractionService from '../api/interaction';
@@ -19,6 +19,7 @@ const Diary = () => {
     const [groupedEntries, setGroupedEntries] = useState<GroupedEntries[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [totalInteractions, setTotalInteractions] = useState(0);
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
     const [selectedReview, setSelectedReview] = useState<{
         review: { reviewId: string; reviewText: string };
@@ -32,60 +33,8 @@ const Diary = () => {
     const [noInteractions, setNoInteractions] = useState(false);
     const itemsPerPage = 20;
 
-    // Load diary entries
-    useEffect(() => {
-        if (!isAuthenticated || !user) {
-            navigate('/login', { state: { from: '/diary' } });
-            return;
-        }
-
-        loadDiaryEntries();
-    }, [isAuthenticated, user, navigate]);
-
-    // Group entries by date whenever diary entries change
-    useEffect(() => {
-        if (diaryEntries.length === 0) return;
-
-        // Sort all entries by timestamp first (newest first)
-        const sortedEntries = [...diaryEntries].sort((a, b) =>
-            new Date(b.interaction.createdAt).getTime() - new Date(a.interaction.createdAt).getTime()
-        );
-
-        // Group entries by date
-        const grouped: Record<string, DiaryEntry[]> = {};
-        sortedEntries.forEach(entry => {
-            const date = new Date(entry.interaction.createdAt).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-
-            if (!grouped[date]) {
-                grouped[date] = [];
-            }
-            grouped[date].push(entry);
-        });
-
-        // Convert to array sorted by date (newest first)
-        const result: GroupedEntries[] = Object.keys(grouped)
-            .map(date => ({ date, entries: grouped[date] }))
-            .sort((a, b) => new Date(b.entries[0].interaction.createdAt).getTime() -
-                new Date(a.entries[0].interaction.createdAt).getTime());
-
-        setGroupedEntries(result);
-    }, [diaryEntries]);
-
-    // Show success message briefly
-    useEffect(() => {
-        if (deleteSuccess) {
-            const timer = setTimeout(() => {
-                setDeleteSuccess(false);
-            }, 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [deleteSuccess]);
-
-    const loadDiaryEntries = async () => {
+    // Wrap loadDiaryEntries with useCallback
+    const loadDiaryEntries = useCallback(async () => {
         if (!user) return;
 
         setLoading(true);
@@ -93,17 +42,30 @@ const Diary = () => {
         setNoInteractions(false);
 
         try {
-            // Fetch all interactions for the user
+            // Fetch all interactions for the user to get the total count
             const interactions = await InteractionService.getUserInteractionsByUserId(user.id);
 
-            // Calculate total pages
-            const total = Math.ceil(interactions.length / itemsPerPage);
-            setTotalPages(total || 1);
+            // Calculate total pages and set total interactions
+            const total = interactions.length;
+            setTotalInteractions(total);
+            const pages = Math.ceil(total / itemsPerPage);
+            setTotalPages(pages || 1);
 
-            // Get paginated interactions
+            if (total === 0) {
+                setNoInteractions(true);
+                setLoading(false);
+                return;
+            }
+
+            // Sort interactions by date (newest first)
+            const sortedInteractions = [...interactions].sort((a, b) =>
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+
+            // Get paginated interactions for current page
             const startIdx = (currentPage - 1) * itemsPerPage;
             const endIdx = startIdx + itemsPerPage;
-            const paginatedInteractions = interactions.slice(startIdx, endIdx);
+            const paginatedInteractions = sortedInteractions.slice(startIdx, endIdx);
 
             // Extract album and track ids
             const albumIds: string[] = [];
@@ -161,7 +123,55 @@ const Diary = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user, currentPage, itemsPerPage]);
+
+    // Load diary entries
+    useEffect(() => {
+        if (!isAuthenticated || !user) {
+            navigate('/login', { state: { from: '/diary' } });
+            return;
+        }
+
+        loadDiaryEntries();
+    }, [isAuthenticated, user, navigate, currentPage, loadDiaryEntries]); // Added currentPage as dependency
+
+    // Group entries by date whenever diary entries change
+    useEffect(() => {
+        if (diaryEntries.length === 0) return;
+
+        // Group entries by date
+        const grouped: Record<string, DiaryEntry[]> = {};
+        diaryEntries.forEach(entry => {
+            const date = new Date(entry.interaction.createdAt).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            if (!grouped[date]) {
+                grouped[date] = [];
+            }
+            grouped[date].push(entry);
+        });
+
+        // Convert to array sorted by date (newest first)
+        const result: GroupedEntries[] = Object.keys(grouped)
+            .map(date => ({ date, entries: grouped[date] }))
+            .sort((a, b) => new Date(b.entries[0].interaction.createdAt).getTime() -
+                new Date(a.entries[0].interaction.createdAt).getTime());
+
+        setGroupedEntries(result);
+    }, [diaryEntries]);
+
+    // Show success message briefly
+    useEffect(() => {
+        if (deleteSuccess) {
+            const timer = setTimeout(() => {
+                setDeleteSuccess(false);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [deleteSuccess]);
 
     const handleReviewClick = (e: React.MouseEvent, entry: DiaryEntry) => {
         e.stopPropagation(); // Prevent triggering the row click
@@ -204,6 +214,18 @@ const Diary = () => {
             );
             setDiaryEntries(updatedEntries);
 
+            // Update total interactions count
+            setTotalInteractions(prev => prev - 1);
+
+            // Update total pages
+            const newTotalPages = Math.ceil((totalInteractions - 1) / itemsPerPage);
+            setTotalPages(newTotalPages || 1);
+
+            // Adjust current page if necessary
+            if (currentPage > newTotalPages && newTotalPages > 0) {
+                setCurrentPage(newTotalPages);
+            }
+
             // Show success message
             setDeleteSuccess(true);
         } catch (err: unknown) {
@@ -218,6 +240,8 @@ const Diary = () => {
     const handlePageChange = (page: number) => {
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
+        // When page changes, we'll scroll to top for better UX
+        window.scrollTo(0, 0);
     };
 
     // Show loading state
@@ -245,6 +269,12 @@ const Diary = () => {
                 <DiaryEmptyState />
             ) : (
                 <>
+                    {totalInteractions > 0 && (
+                        <div className="mb-4 text-sm text-gray-600">
+                            Showing {Math.min((currentPage - 1) * itemsPerPage + 1, totalInteractions)} to {Math.min(currentPage * itemsPerPage, totalInteractions)} of {totalInteractions} total entries
+                        </div>
+                    )}
+
                     {/* Diary entries by date */}
                     <div className="space-y-8">
                         {groupedEntries.map((group) => (

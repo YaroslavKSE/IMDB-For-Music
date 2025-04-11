@@ -88,6 +88,24 @@ export interface NewReleasesResult {
   albums: AlbumSummary[];
 }
 
+export interface ArtistTopTracksResult {
+  artistId: string;
+  artistName: string;
+  market: string;
+  tracks: TrackSummary[];
+}
+
+export interface ArtistAlbumsResult {
+  artistId: string;
+  artistName: string;
+  limit: number;
+  offset: number;
+  totalResults: number;
+  next: string | null;
+  previous: string | null;
+  albums: AlbumSummary[];
+}
+
 export interface BatchItemsResponse {
   tracks?: TrackSummary[];
   albums?: AlbumSummary[];
@@ -107,6 +125,27 @@ const CatalogService = {
 
   getArtist: async (spotifyId: string): Promise<ArtistDetail> => {
     const response = await catalogApi.get(`/artists/spotify/${spotifyId}`);
+    return response.data;
+  },
+
+  getArtistTopTracks: async (artistId: string): Promise<ArtistTopTracksResult> => {
+    const response = await catalogApi.get(`/artists/spotify/${artistId}/top-tracks`);
+    return response.data;
+  },
+
+  getArtistAlbums: async (
+      artistId: string,
+      limit: number = 20,
+      offset: number = 0,
+      includeGroups: string = 'album'
+  ): Promise<ArtistAlbumsResult> => {
+    const response = await catalogApi.get(`/artists/spotify/${artistId}/albums`, {
+      params: {
+        limit,
+        offset,
+        include_groups: includeGroups
+      }
+    });
     return response.data;
   },
 
