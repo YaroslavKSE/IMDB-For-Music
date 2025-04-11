@@ -19,7 +19,9 @@ import Artist from './pages/Artist';
 import NotFound from "./pages/NotFound";
 import CreateGradingMethod from './pages/CreateGradingMethod';
 import ViewGradingMethod from './pages/ViewGradingMethod';
-import Diary from './pages/Diary'; // Import the new Diary component
+import Diary from './pages/Diary';
+import PeoplePage from './pages/People';
+import UserProfilePage from './pages/UserProfile';
 
 // Auth callback handler component
 const AuthCallback = () => {
@@ -85,6 +87,10 @@ function App() {
                     <Route path="album/:id" element={<Album />} />
                     <Route path="track/:id" element={<Song />} />
                     <Route path="artist/:id" element={<Artist />} />
+
+                    {/* People Routes */}
+                    <Route path="people" element={<PeoplePage />} />
+                    <Route path="people/:id" element={<UserProfilePage />} />
 
                     {/* Protected routes */}
                     <Route

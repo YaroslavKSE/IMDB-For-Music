@@ -109,11 +109,17 @@ const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+
   logout: async () => {
     try {
       set({ isLoading: true });
-      // First, log out from Auth0
+
+      // First, call our backend logout API to revoke the refresh token
+      await AuthService.logout();
+
+      // Then, log out from Auth0 directly
       await handleAuth0Logout();
+
       // Clear local state
       set({
         user: null,
