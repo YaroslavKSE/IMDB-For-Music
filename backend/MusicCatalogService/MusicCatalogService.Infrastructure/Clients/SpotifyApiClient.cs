@@ -165,7 +165,7 @@ public class SpotifyApiClient : ISpotifyApiClient
         }
     }
 
-    public async Task<SpotifyArtistAlbumsResponse?> GetArtistAlbumsAsync(string artistId, int limit = 20, int offset = 0, string? market = null)
+    public async Task<SpotifyArtistAlbumsResponse?> GetArtistAlbumsAsync(string artistId, int limit = 20, int offset = 0, string? market = null, string? includeGroups = "album")
     {
         try
         {
@@ -181,9 +181,13 @@ public class SpotifyApiClient : ISpotifyApiClient
                 requestUrl += $"&market={market}";
             }
 
-            var response = await _httpClient.GetAsync(requestUrl);
+            // Add include_groups parameter if provided
+            if (!string.IsNullOrEmpty(includeGroups))
+            {
+                requestUrl += $"&include_groups={includeGroups}";
+            }
 
-            // Handle non-success status codes
+            var response = await _httpClient.GetAsync(requestUrl);
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
@@ -203,6 +207,7 @@ public class SpotifyApiClient : ISpotifyApiClient
                     _ => new SpotifyApiException(spotifyError.Message, response.StatusCode)
                 };
             }
+
             var content = await response.Content.ReadAsStringAsync();
             _logger.LogDebug("Spotify API returned artist albums: {Content}", content);
 

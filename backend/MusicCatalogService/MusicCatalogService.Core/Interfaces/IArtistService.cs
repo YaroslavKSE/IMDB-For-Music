@@ -16,8 +16,7 @@ public interface IArtistService
     // Add these to MusicCatalogService.Core.Interfaces.IArtistService
 
     // Get artist albums
-    Task<ArtistAlbumsResultDto> GetArtistAlbumsAsync(string spotifyId, int limit = 20, int offset = 0, string? market = null);
-
+    Task<ArtistAlbumsResultDto> GetArtistAlbumsAsync(string spotifyId, int limit = 20, int offset = 0, string? market = null, string? includeGroups = "album");
     // Get artist top tracks
     Task<ArtistTopTracksResultDto> GetArtistTopTracksAsync(string spotifyId, string? market = null);
 }

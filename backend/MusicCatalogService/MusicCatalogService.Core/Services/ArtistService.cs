@@ -160,12 +160,12 @@ public class ArtistService : IArtistService
         }
     }
 
-    public async Task<ArtistAlbumsResultDto> GetArtistAlbumsAsync(string spotifyId, int limit = 20, int offset = 0, string? market = null)
+    public async Task<ArtistAlbumsResultDto> GetArtistAlbumsAsync(string spotifyId, int limit = 20, int offset = 0, string? market = null, string? includeGroups = "album")
     {
         try
         {
             // Generate cache key for this request
-            var cacheKey = $"artist:{spotifyId}:albums:{limit}:{offset}:{market ?? "none"}";
+            var cacheKey = $"artist:{spotifyId}:albums:{limit}:{offset}:{market ?? "none"}:{includeGroups ?? "album"}";
 
             // Try to get from cache first
             var cachedResult = await _cacheService.GetAsync<ArtistAlbumsResultDto>(cacheKey);
@@ -192,9 +192,8 @@ public class ArtistService : IArtistService
                     artistName = artistResponse.Name;
                 }
             }
-            // Fetch albums from Spotify API
-            _logger.LogInformation("Fetching albums for artist {SpotifyId} from Spotify API", spotifyId);
-            var albumsResponse = await _spotifyApiClient.GetArtistAlbumsAsync(spotifyId, limit, offset, market);
+            _logger.LogInformation("Fetching albums for artist {SpotifyId} from Spotify API with include_groups={IncludeGroups}", spotifyId, includeGroups);
+            var albumsResponse = await _spotifyApiClient.GetArtistAlbumsAsync(spotifyId, limit, offset, market, includeGroups);
 
             if (albumsResponse == null)
             {
