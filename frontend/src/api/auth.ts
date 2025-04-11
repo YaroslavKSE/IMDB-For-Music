@@ -79,7 +79,7 @@ const AuthService = {
     if (refreshToken) {
       try {
         // Call the logout endpoint to revoke the token on server side
-        await authApi.post('/auth/logout', { refreshToken });
+        await authApi.post('/logout', { refreshToken });
       } catch (error) {
         console.error('Error during logout:', error);
       }

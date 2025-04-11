@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, LogOut, Shield, AlertTriangle } from 'lucide-react';
+import { Settings, LogOut } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
 const ProfileSettingsTab = () => {
@@ -51,10 +51,7 @@ const ProfileSettingsTab = () => {
         </div>
 
         <div className="pt-6 border-t border-gray-200">
-          <h4 className="text-base font-medium text-gray-900 mb-4 flex items-center">
-            <Shield className="h-5 w-5 mr-2 text-gray-500" />
-            Privacy Settings
-          </h4>
+          <h4 className="text-base font-medium text-gray-900 mb-4">Privacy Settings</h4>
           <div className="space-y-3">
             <div className="flex items-center">
               <input
@@ -84,46 +81,40 @@ const ProfileSettingsTab = () => {
         </div>
 
         <div className="pt-6 border-t border-gray-200">
-          <h4 className="text-base font-medium text-red-600 flex items-center">
-            <AlertTriangle className="h-5 w-5 mr-2" />
-            Danger Zone
-          </h4>
-          <div className="mt-4 space-y-3">
-            {!showLogoutConfirm ? (
-              <button
-                type="button"
-                onClick={() => setShowLogoutConfirm(true)}
-                className="inline-flex items-center px-4 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout from all devices
-              </button>
-            ) : (
-              <div className="bg-red-50 border border-red-300 rounded-md p-4">
-                <p className="text-sm text-red-600 mb-3">
-                  Are you sure you want to log out from all devices? This will invalidate all active
-                  sessions and require re-login.
-                </p>
-                <div className="flex space-x-3">
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Confirm Logout
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowLogoutConfirm(false)}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-                  >
-                    Cancel
-                  </button>
-                </div>
+          {!showLogoutConfirm ? (
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(true)}
+              className="inline-flex items-center px-4 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout from all devices
+            </button>
+          ) : (
+            <div className="bg-red-50 border border-red-300 rounded-md p-4">
+              <p className="text-sm text-red-600 mb-3">
+                Are you sure you want to log out from all devices? This will invalidate all active
+                sessions and require re-login.
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Confirm Logout
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                >
+                  Cancel
+                </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
