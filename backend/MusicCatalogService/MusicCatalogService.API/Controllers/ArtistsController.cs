@@ -42,6 +42,39 @@ public class ArtistsController : BaseApiController
             $"Error retrieving artist with Spotify ID: {spotifyId}",
             spotifyId);
     }
+
+    [HttpGet("spotify/{spotifyId}/albums")]
+    [ProducesResponseType(typeof(ArtistAlbumsResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetArtistAlbums(
+        string spotifyId,
+        [FromQuery] int limit = 20,
+        [FromQuery] int offset = 0,
+        [FromQuery] string? market = null)
+    {
+        // Ensure limit is within acceptable range
+        limit = Math.Clamp(limit, 1, 50);
+
+        return await ExecuteApiActionAsync(
+            () => _artistService.GetArtistAlbumsAsync(spotifyId, limit, offset, market),
+            $"Error retrieving albums for artist with Spotify ID: {spotifyId}",
+            spotifyId);
+    }
+
+    [HttpGet("spotify/{spotifyId}/top-tracks")]
+    [ProducesResponseType(typeof(ArtistTopTracksResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetArtistTopTracks(
+        string spotifyId,
+        [FromQuery] string? market = null)
+    {
+        return await ExecuteApiActionAsync(
+            () => _artistService.GetArtistTopTracksAsync(spotifyId, market),
+            $"Error retrieving top tracks for artist with Spotify ID: {spotifyId}",
+            spotifyId);
+    }
     
     [HttpPost]
     [ProducesResponseType(typeof(SaveItemSuccessResponse), StatusCodes.Status201Created)]
