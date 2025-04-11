@@ -15,7 +15,14 @@ export default defineConfig({
         target: 'http://localhost:5001',
         changeOrigin: true,
       },
-
+      '/users/subscriptions':{
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+      },
+      '/public/users':{
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+      },
       // Catalog service endpoints
       '/api/v1/catalog': {
         target: 'http://localhost:5002',

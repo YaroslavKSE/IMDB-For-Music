@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, User, Home, Disc, ListMusic, TrendingUp, LogIn, Star, NotebookPen } from 'lucide-react';
+import { Search, Menu, X, User, Home, Disc, ListMusic, TrendingUp, LogIn, Star, NotebookPen, Users } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
 const Header = () => {
@@ -78,6 +78,17 @@ const Header = () => {
                 >
                   <ListMusic className="h-4 w-4 mr-1" />
                   Lists
+                </Link>
+                <Link
+                    to="/people"
+                    className={`inline-flex items-center px-1 pt-1 text-sm font-medium ${
+                        location.pathname === '/people' || location.pathname.startsWith('/people/')
+                            ? 'text-primary-600 border-b-2 border-primary-600'
+                            : 'text-zinc-500 hover:text-zinc-900 border-b-2 border-transparent hover:border-zinc-300'
+                    }`}
+                >
+                  <Users className="h-4 w-4 mr-1" />
+                  People
                 </Link>
               </nav>
             </div>
@@ -230,6 +241,17 @@ const Header = () => {
                 >
                   <ListMusic className="inline h-5 w-5 mr-1" />
                   Lists
+                </Link>
+                <Link
+                    to="/people"
+                    className={`block pl-3 pr-4 py-2 border-l-4 ${
+                        location.pathname === '/people' || location.pathname.startsWith('/people/')
+                            ? 'border-primary-500 text-primary-700 bg-primary-50'
+                            : 'border-transparent text-zinc-600 hover:text-zinc-800 hover:bg-zinc-50 hover:border-zinc-300'
+                    } text-base font-medium`}
+                >
+                  <Users className="inline h-5 w-5 mr-1" />
+                  People
                 </Link>
               </div>
 
