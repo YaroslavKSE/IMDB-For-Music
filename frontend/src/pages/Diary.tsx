@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import InteractionService from '../api/interaction';
@@ -33,55 +33,8 @@ const Diary = () => {
     const [noInteractions, setNoInteractions] = useState(false);
     const itemsPerPage = 20;
 
-    // Load diary entries
-    useEffect(() => {
-        if (!isAuthenticated || !user) {
-            navigate('/login', { state: { from: '/diary' } });
-            return;
-        }
-
-        loadDiaryEntries();
-    }, [isAuthenticated, user, navigate, currentPage]); // Added currentPage as dependency
-
-    // Group entries by date whenever diary entries change
-    useEffect(() => {
-        if (diaryEntries.length === 0) return;
-
-        // Group entries by date
-        const grouped: Record<string, DiaryEntry[]> = {};
-        diaryEntries.forEach(entry => {
-            const date = new Date(entry.interaction.createdAt).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-
-            if (!grouped[date]) {
-                grouped[date] = [];
-            }
-            grouped[date].push(entry);
-        });
-
-        // Convert to array sorted by date (newest first)
-        const result: GroupedEntries[] = Object.keys(grouped)
-            .map(date => ({ date, entries: grouped[date] }))
-            .sort((a, b) => new Date(b.entries[0].interaction.createdAt).getTime() -
-                new Date(a.entries[0].interaction.createdAt).getTime());
-
-        setGroupedEntries(result);
-    }, [diaryEntries]);
-
-    // Show success message briefly
-    useEffect(() => {
-        if (deleteSuccess) {
-            const timer = setTimeout(() => {
-                setDeleteSuccess(false);
-            }, 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [deleteSuccess]);
-
-    const loadDiaryEntries = async () => {
+    // Wrap loadDiaryEntries with useCallback
+    const loadDiaryEntries = useCallback(async () => {
         if (!user) return;
 
         setLoading(true);
@@ -170,7 +123,55 @@ const Diary = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user, currentPage, itemsPerPage]);
+
+    // Load diary entries
+    useEffect(() => {
+        if (!isAuthenticated || !user) {
+            navigate('/login', { state: { from: '/diary' } });
+            return;
+        }
+
+        loadDiaryEntries();
+    }, [isAuthenticated, user, navigate, currentPage, loadDiaryEntries]); // Added currentPage as dependency
+
+    // Group entries by date whenever diary entries change
+    useEffect(() => {
+        if (diaryEntries.length === 0) return;
+
+        // Group entries by date
+        const grouped: Record<string, DiaryEntry[]> = {};
+        diaryEntries.forEach(entry => {
+            const date = new Date(entry.interaction.createdAt).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            if (!grouped[date]) {
+                grouped[date] = [];
+            }
+            grouped[date].push(entry);
+        });
+
+        // Convert to array sorted by date (newest first)
+        const result: GroupedEntries[] = Object.keys(grouped)
+            .map(date => ({ date, entries: grouped[date] }))
+            .sort((a, b) => new Date(b.entries[0].interaction.createdAt).getTime() -
+                new Date(a.entries[0].interaction.createdAt).getTime());
+
+        setGroupedEntries(result);
+    }, [diaryEntries]);
+
+    // Show success message briefly
+    useEffect(() => {
+        if (deleteSuccess) {
+            const timer = setTimeout(() => {
+                setDeleteSuccess(false);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [deleteSuccess]);
 
     const handleReviewClick = (e: React.MouseEvent, entry: DiaryEntry) => {
         e.stopPropagation(); // Prevent triggering the row click

@@ -12,7 +12,7 @@ const Artist = () => {
     const [artist, setArtist] = useState<ArtistDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'overview' | 'albums' | 'top-tracks' | 'reviews'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'albums' | 'top-tracks'>('overview');
 
     useEffect(() => {
         const fetchArtistDetails = async () => {
@@ -54,6 +54,7 @@ const Artist = () => {
             <ArtistContentTabs
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
+                artist={artist}
             />
         </div>
     );
