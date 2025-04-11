@@ -1,4 +1,4 @@
-# Music Evaluation Platform
+# BeatRate
 
 A social platform for music enthusiasts, critics, and artists to rate, review, and discover music while engaging in meaningful discussions.
 
