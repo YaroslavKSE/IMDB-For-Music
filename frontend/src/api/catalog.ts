@@ -16,6 +16,7 @@ export interface ArtistSummary {
   imageUrl?: string;
   images?: Image[];
   popularity?: number;
+  genres : string[];
   externalUrls?: string[];
 }
 

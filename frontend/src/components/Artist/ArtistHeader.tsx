@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, Share, Music, Users, Bell } from 'lucide-react';
+import { Heart, Share, Music, Users } from 'lucide-react';
 import { ArtistDetail } from '../../api/catalog';
 import { formatNumberWithCommas } from '../../utils/formatters';
 
@@ -62,7 +62,7 @@ const ArtistHeader = ({ artist }: ArtistHeaderProps) => {
                     >
                         {isFollowing ? (
                             <>
-                                <Bell className="h-4 w-4 mr-2" />
+                                <Heart className="h-4 w-4 mr-2" />
                                 Following
                             </>
                         ) : (
@@ -85,11 +85,6 @@ const ArtistHeader = ({ artist }: ArtistHeaderProps) => {
                     <span className="uppercase bg-gray-200 rounded px-2 py-0.5">
                         Artist
                     </span>
-                    {artist.popularity && artist.popularity > 0 && (
-                        <span className={`ml-2 px-2 py-0.5 rounded-full text-white text-xs font-medium bg-gradient-to-r ${getPopularityGradient(artist.popularity)}`}>
-                            Popularity: {artist.popularity}/100
-                        </span>
-                    )}
                 </div>
 
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{artist.name}</h1>
@@ -108,20 +103,37 @@ const ArtistHeader = ({ artist }: ArtistHeaderProps) => {
                         </div>
                     </div>
 
-                    {/* Monthly Listeners - This would typically come from the API but we're mocking it */}
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg shadow-sm border border-blue-200">
-                        <div className="flex items-center">
-                            <Music className="h-6 w-6 text-blue-600 mr-3" />
-                            <div>
-                                <div className="text-sm font-medium text-blue-700">Monthly Listeners</div>
-                                <div className="text-2xl font-bold text-blue-800">
-                                    {/* Mock value - would come from API in real implementation */}
-                                    {formatFollowers(Math.floor(artist.followersCount * 1.5))}
+                    {/* Popularity Card with dynamic gradient */}
+                    {artist.popularity && artist.popularity > 0 && (
+                        <div
+                            className={`bg-gradient-to-br ${getPopularityGradient(artist.popularity)} p-4 rounded-lg shadow-sm border`}>
+                            <div className="flex items-center">
+                                <Music className="h-6 w-6 text-white mr-3"/>
+                                <div>
+                                    <div className="text-sm font-medium text-white">Popularity Score</div>
+                                    <div className="text-2xl font-bold text-white">
+                                        {artist.popularity}/100
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
+
+                {/* Artist genres - If available from API */}
+                <div className="mt-4 flex flex-wrap gap-2">
+                    {artist.genres.map((genre) => {
+                        const capitalizedGenre = genre.charAt(0).toUpperCase() + genre.slice(1);
+                        return (
+                            <span
+                                key={genre}
+                                className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
+                                {capitalizedGenre}
+                            </span>
+                        );
+                    })}
+                </div>
+
 
                 {/* External links */}
                 {artist.externalUrls && artist.externalUrls.length > 0 && (
@@ -148,16 +160,6 @@ const ArtistHeader = ({ artist }: ArtistHeaderProps) => {
                         </a>
                     </div>
                 )}
-
-                {/* Artist genres - If available from API */}
-                <div className="mt-4 flex flex-wrap gap-2">
-                    {/* These would come from API in a real implementation */}
-                    {['Pop', 'R&B', 'Hip-Hop'].map(genre => (
-                        <span key={genre} className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
-                            {genre}
-                        </span>
-                    ))}
-                </div>
             </div>
         </div>
     );
