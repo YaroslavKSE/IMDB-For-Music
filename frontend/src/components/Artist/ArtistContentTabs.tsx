@@ -6,6 +6,7 @@ import EmptyState from '../common/EmptyState';
 import AlbumCard from "./AlbumCard.tsx";
 import TrackRow from "./TrackRow.tsx";
 import TabButton from "./TabButton.tsx";
+import {getPreviewUrl} from "../../utils/preview-extractor.ts";
 
 interface ArtistContentTabsProps {
     activeTab: 'overview' | 'albums' | 'top-tracks';
@@ -125,19 +126,6 @@ const ArtistContentTabs = ({
             setPlayingTrack(trackId);
         } catch (error) {
             console.error('Error playing preview:', error);
-        }
-    };
-
-    // Helper function to get preview URL
-    const getPreviewUrl = async (trackId: string): Promise<string | null> => {
-        try {
-            const response = await fetch(`/spotify/embed/track/${trackId}`);
-            const html = await response.text();
-            const matches = html.match(/"audioPreview":\s*{\s*"url":\s*"([^"]+)"/);
-            return matches ? matches[1] : null;
-        } catch (error) {
-            console.error("Failed to fetch Spotify preview URL:", error);
-            return null;
         }
     };
 
