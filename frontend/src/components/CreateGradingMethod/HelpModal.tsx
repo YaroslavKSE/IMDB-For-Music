@@ -1,4 +1,4 @@
-import {X} from "lucide-react";
+import { X, AlertTriangle } from "lucide-react";
 
 const HelpModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
     if (!isOpen) return null;
@@ -48,6 +48,25 @@ const HelpModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }
                             <div>
                                 <h4 className="font-medium text-gray-900 mb-1">Operations</h4>
                                 <p>Choose how components are combined mathematically (addition, subtraction, multiplication, or division).</p>
+                            </div>
+
+                            {/* Validation Requirements Section */}
+                            <div className="pt-2 border-t border-gray-200 mt-4">
+                                <div className="font-medium text-gray-900 mb-2 flex items-center">
+                                    <AlertTriangle className="h-4 w-4 mr-1 text-amber-500" />
+                                    Validation Requirements:
+                                </div>
+                                <ul className="list-disc pl-5 space-y-2">
+                                    <li>
+                                        <strong>Min/Max Values:</strong> Maximum grade must always be greater than the minimum grade.
+                                    </li>
+                                    <li>
+                                        <strong>Step Amounts:</strong> You must be able to reach the maximum value from the minimum value using the step amount. For example, with min=1, max=10, and step=0.5, the valid values are 1, 1.5, 2, ..., 9.5, 10.
+                                    </li>
+                                    <li>
+                                        <strong>Division Operations:</strong> When using division, ensure that the divisor component cannot produce a value of zero, as this would result in division by zero.
+                                    </li>
+                                </ul>
                             </div>
 
                             <div className="pt-2 border-t border-gray-200 mt-4">
