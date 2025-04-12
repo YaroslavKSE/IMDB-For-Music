@@ -49,8 +49,7 @@ const GradeEditor = ({ component, onChange }: GradeEditorProps) => {
                         type="number"
                         value={component.minGrade}
                         onChange={(e) => updateField('minGrade', parseFloat(e.target.value))}
-                        className={`w-full px-3 py-2 border ${minMaxError ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-                        step="0.1"
+                        className={`w-full px-3 py-2 border ${minMaxError ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                         required
                     />
                 </div>
@@ -62,8 +61,7 @@ const GradeEditor = ({ component, onChange }: GradeEditorProps) => {
                         type="number"
                         value={component.maxGrade}
                         onChange={(e) => updateField('maxGrade', parseFloat(e.target.value))}
-                        className={`w-full px-3 py-2 border ${minMaxError ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-                        step="0.1"
+                        className={`w-full px-3 py-2 border ${minMaxError ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                         required
                     />
                 </div>
@@ -75,8 +73,7 @@ const GradeEditor = ({ component, onChange }: GradeEditorProps) => {
                         type="number"
                         value={component.stepAmount}
                         onChange={(e) => updateField('stepAmount', parseFloat(e.target.value))}
-                        className={`w-full px-3 py-2 border ${stepError ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
-                        step="0.1"
+                        className={`w-full px-3 py-2 border ${stepError ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                         required
                     />
                 </div>
