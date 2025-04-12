@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import CatalogService from '../api/catalog';
@@ -46,7 +46,7 @@ const CreateInteractionPage = () => {
     const [gradeValues, setGradeValues] = useState<Record<string, number>>({});
 
     const [isPlaying, setIsPlaying] = useState(false);
-    const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+    const audio = useRef<HTMLAudioElement | null>(null);
 
     const formattedItemType = itemType === 'album' ? 'Album' : 'Track';
 
@@ -84,14 +84,7 @@ const CreateInteractionPage = () => {
         };
 
         fetchData();
-
-        return () => {
-            if (audio) {
-                audio.pause();
-                audio.src = '';
-            }
-        };
-    }, [itemId, itemType, isAuthenticated, user, audio]);
+    }, [itemId, itemType, isAuthenticated, user]);
 
     useEffect(() => {
         if (!selectedMethodId) {
@@ -141,7 +134,7 @@ const CreateInteractionPage = () => {
 
     useEffect(() => {
         if (!isPlaying && audio) {
-            audio.pause();
+            audio.current?.pause();
         }
     }, [isPlaying, audio]);
 
@@ -157,7 +150,7 @@ const CreateInteractionPage = () => {
 
     const handleTogglePreview = async () => {
         if (isPlaying && audio) {
-            audio.pause();
+            audio.current?.pause();
             setIsPlaying(false);
             return;
         }
@@ -172,7 +165,7 @@ const CreateInteractionPage = () => {
             }
 
             if (audio) {
-                audio.pause();
+                audio.current?.pause();
             }
 
             const newAudio = new Audio(previewUrl);
@@ -180,8 +173,8 @@ const CreateInteractionPage = () => {
                 setIsPlaying(false);
             });
 
-            await newAudio.play();
-            setAudio(newAudio);
+            audio.current = newAudio;
+            await audio.current.play();
             setIsPlaying(true);
         } catch (err) {
             console.error('Error playing preview:', err);
@@ -260,7 +253,7 @@ const CreateInteractionPage = () => {
 
     return (
         <div className="max-w-6xl mx-auto pb-12">
-            <InteractionHeader formattedItemType={formattedItemType} navigate={navigate} />
+            <InteractionHeader formattedItemType={formattedItemType} navigate={navigate} audio={audio}/>
             {submitSuccess && <InteractionSuccessMessage />}
 
             <div className="bg-white shadow rounded-lg mb-6">

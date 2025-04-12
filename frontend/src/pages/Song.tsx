@@ -97,6 +97,10 @@ const Song = () => {
             navigate('/login', { state: { from: `/track/${id}` } });
             return;
         }
+        if (audioRef.current) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+        }
         setIsInteractionModalOpen(true);
     };
 
