@@ -361,7 +361,7 @@ const MusicInteractionModal = ({
                             ) : (
                                 <div className="mt-2 text-center">
                                     <button
-                                        onClick={() => navigate(`/create-interaction/${itemType.toLowerCase()}/0KZVsgKj9r6pwqdohzFWy8`)}
+                                        onClick={() => navigate(`/create-interaction/${itemType.toLowerCase()}/${itemId}`)}
                                         className="text-sm text-primary-600 hover:text-primary-700"
                                     >
                                         Use complex grading

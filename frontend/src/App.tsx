@@ -22,6 +22,7 @@ import ViewGradingMethod from './pages/ViewGradingMethod';
 import Diary from './pages/Diary';
 import PeoplePage from './pages/People';
 import UserProfilePage from './pages/UserProfile';
+import CreateInteractionPage from './pages/CreateInteractionPage';
 
 // Auth callback handler component
 const AuthCallback = () => {
@@ -123,6 +124,15 @@ function App() {
                         path="grading-methods/:id"
                         element={
                             <ViewGradingMethod />
+                        }
+                    />
+
+                    <Route
+                        path="create-interaction/:itemType/:itemId"
+                        element={
+                            <ProtectedRoute>
+                                <CreateInteractionPage />
+                            </ProtectedRoute>
                         }
                     />
 
