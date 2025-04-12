@@ -103,7 +103,9 @@ const GradingSelector = ({
                     {selectedMethod && (
                         <div className="mt-4">
                             <div className="text-sm text-gray-600 mb-4">
-                                Grading range: {selectedMethod.minPossibleGrade} - {selectedMethod.maxPossibleGrade}
+                                <div className="flex justify-between">
+                                    <span>Range: {selectedMethod.minPossibleGrade} - {selectedMethod.maxPossibleGrade}</span>
+                                </div>
                             </div>
 
                             <div className="space-y-4">

@@ -61,17 +61,14 @@ const GradeSlider = ({
                 </label>
                 <div className="flex items-center">
                     <input
-                        type="number"
                         min={component.minGrade}
                         max={component.maxGrade}
-                        step={component.stepAmount}
                         value={inputValue}
                         onChange={handleInputChange}
                         onBlur={handleBlur}
                         className="w-16 px-2 py-1 text-right border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm"
                     />
                     <span className="ml-1 text-sm text-gray-600">
-            / {component.maxGrade}
           </span>
                 </div>
             </div>
