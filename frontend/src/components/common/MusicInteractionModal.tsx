@@ -4,6 +4,7 @@ import { AlbumDetail, TrackDetail } from '../../api/catalog';
 import InteractionService, { PostInteractionRequest } from '../../api/interaction';
 import useAuthStore from '../../store/authStore';
 import { getPreviewUrl } from '../../utils/preview-extractor';
+import { useNavigate } from 'react-router-dom';
 
 interface MusicInteractionModalProps {
     item: AlbumDetail | TrackDetail;
@@ -20,6 +21,7 @@ const MusicInteractionModal = ({
                                    onClose,
                                    onSuccess
                                }: MusicInteractionModalProps) => {
+    const navigate = useNavigate();
     const { user } = useAuthStore();
     const [rating, setRating] = useState<number | null>(null);
     const [hoveredRating, setHoveredRating] = useState<number | null>(null);
@@ -344,21 +346,27 @@ const MusicInteractionModal = ({
                     <div className="p-4 border-t border-gray-200">
                         {/* Rating */}
                         <div className="mb-4">
-                            <div className="flex items-center space-x-1">
+                            <div className="flex justify-center items-center">
                                 {renderStars()}
-                                {displayRating !== null && (
-                                    <span className="ml-2 text-yellow-600 font-medium">
-                    {displayRating.toFixed(1)}
-                  </span>
-                                )}
                             </div>
-                            {rating !== null && (
-                                <button
-                                    onClick={() => setRating(null)}
-                                    className="mt-2 text-sm text-gray-500 hover:text-gray-700"
-                                >
-                                    Clear rating
-                                </button>
+                            {rating !== null ? (
+                                <div className="mt-2 text-center">
+                                    <button
+                                        onClick={() => setRating(null)}
+                                        className="text-sm text-gray-500 hover:text-gray-700"
+                                    >
+                                        Clear rating
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="mt-2 text-center">
+                                    <button
+                                        onClick={() => navigate(`/create-interaction/${itemType.toLowerCase()}/0KZVsgKj9r6pwqdohzFWy8`)}
+                                        className="text-sm text-primary-600 hover:text-primary-700"
+                                    >
+                                        Use complex grading
+                                    </button>
+                                </div>
                             )}
                         </div>
 
