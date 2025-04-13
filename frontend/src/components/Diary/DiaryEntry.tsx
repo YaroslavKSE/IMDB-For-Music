@@ -117,9 +117,10 @@ const DiaryEntryComponent = ({ entry, onReviewClick, onDeleteClick }: DiaryEntry
                             );
                         })}
                     </div>
-                    {entry.interaction.rating?.isComplex && (
-                        <SlidersHorizontal className="ml-1 h-4 w-4 text-primary-500"/>
-                    )}
+                    {/* Always render the SlidersHorizontal icon but make it invisible when not complex */}
+                    <SlidersHorizontal
+                        className={`ml-1 h-4 w-4 ${entry.interaction.rating?.isComplex ? 'text-primary-500 visible' : 'invisible'}`}
+                    />
                 </div>
 
                 {/* Review icon - show in gray if no review */}

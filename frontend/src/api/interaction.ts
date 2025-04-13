@@ -1,7 +1,5 @@
 import { createApiClient } from '../utils/axios-factory';
 
-// Create the API client specifically for interaction service
-// Note: For grading methods, we need a slightly different API path
 const interactionApi = createApiClient('/interactions');
 const gradingApi = createApiClient('/grading-methods');
 
@@ -211,11 +209,6 @@ const InteractionService = {
     return response.data;
   },
 
-  getPublicGradingMethods: async (): Promise<GradingMethodSummary[]> => {
-    const response = await gradingApi.get('/public-all');
-    return response.data;
-  },
-
   getGradingMethodById: async (id: string): Promise<GradingMethodDetail> => {
     const response = await gradingApi.get(`/by-id/${id}`);
     return response.data;
@@ -245,11 +238,6 @@ const InteractionService = {
     return response.data;
   },
 
-  getAllInteractions: async (): Promise<GetInteractionsResult> => {
-    const response = await interactionApi.get('/all');
-    return response.data;
-  },
-
   getInteractionById: async (id: string): Promise<InteractionDetailDTO> => {
     const response = await interactionApi.get(`/by-id/${id}`);
     return response.data;
@@ -257,21 +245,6 @@ const InteractionService = {
 
   deleteInteraction: async (id: string): Promise<{success: boolean, errorMessage?: string}> => {
     const response = await interactionApi.delete(`/by-id/${id}`);
-    return response.data;
-  },
-
-  getAllLikes: async () => {
-    const response = await interactionApi.get('/likes-all');
-    return response.data;
-  },
-
-  getAllReviews: async () => {
-    const response = await interactionApi.get('/reviews-all');
-    return response.data;
-  },
-
-  getAllRatings: async (): Promise<GetRatingsResult> => {
-    const response = await interactionApi.get('/ratings-all');
     return response.data;
   },
 

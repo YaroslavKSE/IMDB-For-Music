@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Heart, Star, Headphones, Check, Play, Pause, Scale } from 'lucide-react';
+import {X, Heart, Star, Headphones, Check, Play, Pause, SlidersHorizontal} from 'lucide-react';
 import { AlbumDetail, TrackDetail } from '../../api/catalog';
 import InteractionService, { PostInteractionRequest } from '../../api/interaction';
 import useAuthStore from '../../store/authStore';
@@ -365,7 +365,7 @@ const MusicInteractionModal = ({
                                         onClick={() => navigate(`/create-interaction/${itemType.toLowerCase()}/${itemId}`)}
                                         className="text-sm text-gray-500 hover:text-primary-600 flex items-center"
                                     >
-                                        <Scale className="h-4 w-4 mr-1" />
+                                        <SlidersHorizontal className="h-4 w-4 mr-1" />
                                         <span>Use complex grading</span>
                                     </button>
                                 )}
