@@ -133,7 +133,13 @@ const MusicInteractionModal = ({
             // Only for tracks, or when dealing with a track inside an album
             let previewUrl;
             if (itemType === 'Track') {
-                previewUrl = await getTrackPreviewUrl(itemId);
+                const track = item as TrackDetail;
+                if(track.previewUrl){
+                    previewUrl = track.previewUrl;
+                }
+                else{
+                    previewUrl = await getTrackPreviewUrl(track.spotifyId);
+                }
             }
 
             if (!previewUrl) {
