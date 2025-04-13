@@ -3,6 +3,9 @@ import GradeSlider from "./GradeSlider";
 import BlockGrader from "./BlockGrader";
 import StarRating from "./StarRating";
 import { BlockComponent, GradeComponent, GradingMethodDetail, GradingMethodSummary } from "../../api/interaction";
+import { calculateOverallGrade } from "./DynamicGradingCalculator";
+import { getGradeColorClasses, getGradeGradient } from "../../utils/GradeColorUtils";
+import NormalizedStarDisplay from "./NormalizedStarDisplay";
 
 interface GradingSelectorProps {
     useComplexGrading: boolean;
@@ -33,6 +36,22 @@ const GradingSelector = ({
                              setRating,
                              setHoveredRating
                          }: GradingSelectorProps) => {
+    // Calculate the overall grade if we have a selected method
+    // Pass actions to the calculator - handle both string and number action types
+    const overallGrade = selectedMethod
+        ? calculateOverallGrade(
+            selectedMethod.components,
+            selectedMethod.actions,
+            gradeValues)
+        : null;
+
+    // Calculate color classes based on grade percentage
+    const percentage = overallGrade && overallGrade.maxGrade > 0
+        ? overallGrade.currentGrade / overallGrade.maxGrade
+        : 0;
+    const colorClasses = getGradeColorClasses(percentage);
+    const gradientClasses = getGradeGradient(percentage);
+
     return (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between mb-4">
@@ -102,10 +121,42 @@ const GradingSelector = ({
 
                     {selectedMethod && (
                         <div className="mt-4">
-                            <div className="text-sm text-gray-600 mb-4">
-                                <div className="flex justify-between">
-                                    <span>Range: {selectedMethod.minPossibleGrade} - {selectedMethod.maxPossibleGrade}</span>
+                            <div className="mb-4 p-4 bg-gray-50 rounded-md border border-gray-200">
+                                <div className="flex justify-between items-center">
+                                    {overallGrade && (
+                                        <span className="text-gray-700 font-medium">
+                                            <NormalizedStarDisplay
+                                            currentGrade={overallGrade.currentGrade}
+                                            minGrade={overallGrade.minGrade}
+                                            maxGrade={overallGrade.maxGrade}
+                                            size="md"/>
+                                        </span>
+                                    )}
+
+                                    {overallGrade && (
+                                        <div className="flex flex-col items-end">
+                                            <div className="flex items-center">
+                                                {/* Numeric grade display */}
+                                                <div className={`px-3 py-1 rounded-md font-medium text-center ${colorClasses.background} ${colorClasses.text}`}>
+                                                    <span className="text-lg">{overallGrade.currentGrade.toFixed(1)}</span>
+                                                    <span className="text-sm">/{overallGrade.maxGrade.toFixed(1)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
+
+                                {/* Progress bar with purple gradient */}
+                                {overallGrade && (
+                                    <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
+                                        <div
+                                            className={`h-2.5 rounded-full bg-gradient-to-r ${gradientClasses}`}
+                                            style={{
+                                                width: `${(overallGrade.currentGrade / overallGrade.maxGrade) * 100}%`
+                                            }}
+                                        ></div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-4">

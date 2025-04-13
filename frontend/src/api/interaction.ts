@@ -19,7 +19,7 @@ export interface BlockComponent {
   componentType: 'block';
   name: string;
   subComponents: (GradeComponent | BlockComponent)[];
-  actions: number[]; // 0: Add, 1: Subtract, 2: Multiply, 3: Divide
+  actions: number[] | string[]; // 0: Add, 1: Subtract, 2: Multiply, 3: Divide
   minGrade?: number;
   maxGrade?: number;
 }
@@ -53,7 +53,7 @@ export interface GradingMethodDetail {
   createdAt: string;
   isPublic: boolean;
   components: (GradeComponent | BlockComponent)[];
-  actions: number[];
+  actions: number[] | string[];
   minPossibleGrade?: number;
   maxPossibleGrade?: number;
 }
