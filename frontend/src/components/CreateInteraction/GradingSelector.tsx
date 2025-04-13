@@ -161,27 +161,30 @@ const GradingSelector = ({
                     {selectedMethod && (
                         <div className="mt-4">
                             <div className="mb-4 p-4 bg-gray-50 rounded-md border border-gray-200">
-                                <div className="flex justify-between items-center">
-                                    <NormalizedStarDisplay
-                                        currentGrade={overallGrade!.currentGrade}
-                                        minGrade={overallGrade!.minGrade}
-                                        maxGrade={overallGrade!.maxGrade}
-                                        size="md"
-                                    />
+                                <div className="flex flex-col items-center justify-center">
+                                    {/* Stars display - same style as the basic rating */}
+                                    <div className="flex justify-center mb-2">
+                                        <NormalizedStarDisplay
+                                            currentGrade={overallGrade!.currentGrade}
+                                            minGrade={overallGrade!.minGrade}
+                                            maxGrade={overallGrade!.maxGrade}
+                                            size="lg"
+                                        />
+                                    </div>
 
-                                    <div className="flex flex-col items-end">
-                                        <div className="px-3 py-1 rounded-md font-medium text-center text-sm ${colorClasses.background} ${colorClasses.text}">
+                                    <div className="flex items-center justify-center">
+                                        <div className="px-3 py-1 rounded-md font-medium text-center text-sm">
                                             <span className="text-lg">{overallGrade!.currentGrade.toFixed(1)}</span>
-                                            <span>/{overallGrade!.maxGrade.toFixed(1)}</span>
+                                            <span className="text-gray-500">/{overallGrade!.maxGrade.toFixed(1)}</span>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
-                                    <div
-                                        className={`h-2.5 rounded-full bg-gradient-to-r ${gradientClasses}`}
-                                        style={{ width: `${(overallGrade!.currentGrade / overallGrade!.maxGrade) * 100}%` }}
-                                    ></div>
+                                    <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
+                                        <div
+                                            className={`h-2.5 rounded-full bg-gradient-to-r ${gradientClasses}`}
+                                            style={{ width: `${(overallGrade!.currentGrade / overallGrade!.maxGrade) * 100}%` }}
+                                        ></div>
+                                    </div>
                                 </div>
                             </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Heart, Star, Headphones, Check, Play, Pause } from 'lucide-react';
+import { X, Heart, Star, Headphones, Check, Play, Pause, Scale } from 'lucide-react';
 import { AlbumDetail, TrackDetail } from '../../api/catalog';
 import InteractionService, { PostInteractionRequest } from '../../api/interaction';
 import useAuthStore from '../../store/authStore';
@@ -351,25 +351,25 @@ const MusicInteractionModal = ({
                             <div className="flex justify-center items-center">
                                 {renderStars()}
                             </div>
-                            {rating !== null ? (
-                                <div className="mt-2 text-center">
+                            {/* Fixed height container for the buttons to prevent layout jumps */}
+                            <div className="mt-2 text-center h-6 flex items-center justify-center">
+                                {rating !== null ? (
                                     <button
                                         onClick={() => setRating(null)}
-                                        className="text-sm text-gray-500 hover:text-gray-700"
+                                        className="text-sm text-gray-500 hover:text-gray-700 flex items-center"
                                     >
                                         Clear rating
                                     </button>
-                                </div>
-                            ) : (
-                                <div className="mt-2 text-center">
+                                ) : (
                                     <button
                                         onClick={() => navigate(`/create-interaction/${itemType.toLowerCase()}/${itemId}`)}
-                                        className="text-sm text-primary-600 hover:text-primary-700"
+                                        className="text-sm text-gray-500 hover:text-primary-600 flex items-center"
                                     >
-                                        Use complex grading
+                                        <Scale className="h-4 w-4 mr-1" />
+                                        <span>Use complex grading</span>
                                     </button>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
 
                         {/* Like and Listened buttons side by side */}

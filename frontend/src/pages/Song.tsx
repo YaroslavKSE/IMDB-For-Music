@@ -7,7 +7,7 @@ import SongContentTabs from '../components/Song/SongContentTabs';
 import LoadingState from '../components/Song/LoadingState';
 import ErrorState from '../components/Song/ErrorState';
 import NotFoundState from '../components/Song/NotFoundState';
-import MusicInteractionModal from '../components/common/MusicInteractionModal';
+import MusicInteractionModal from '../components/CreateInteraction/MusicInteractionModal.tsx';
 import useAuthStore from '../store/authStore';
 
 const Song = () => {

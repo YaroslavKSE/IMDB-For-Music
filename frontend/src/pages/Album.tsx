@@ -7,7 +7,7 @@ import {getSeveralPreviewsUrl} from '../utils/preview-extractor';
 import AlbumHeader from '../components/Album/AlbumHeader';
 import AlbumContentTabs from '../components/Album/AlbumContentTabs';
 import LoadingState from '../components/Album/LoadingState';
-import MusicInteractionModal from '../components/common/MusicInteractionModal';
+import MusicInteractionModal from '../components/CreateInteraction/MusicInteractionModal.tsx';
 import useAuthStore from '../store/authStore';
 
 const Album = () => {

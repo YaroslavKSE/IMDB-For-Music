@@ -40,34 +40,40 @@ const NormalizedStarDisplay: React.FC<NormalizedStarDisplayProps> = ({
 
     // Determine star sizes based on the size prop
     const starSizes = {
-        sm: 'h-3 w-3',
-        md: 'h-4 w-4',
-        lg: 'h-5 w-5'
+        sm: 'h-4 w-4',
+        md: 'h-6 w-6',
+        lg: 'h-8 w-8'
     };
 
     const starSize = starSizes[size];
 
     // Render 5 stars
     return (
-        <div className="flex">
+        <div className="flex space-x-0">
             {[1, 2, 3, 4, 5].map((position) => {
+                const starValue = position;
+                const halfStarValue = position - 0.5;
+
                 // Full star
-                if (starRating >= position) {
+                if (starRating >= starValue) {
                     return (
                         <Star
                             key={position}
-                            className={`${starSize} text-yellow-400`}
-                            fill="#FBBF24"
+                            className={`${starSize} text-yellow-400 fill-yellow-400`}
                         />
                     );
                 }
-                // Half star (if rating is between this position - 0.5 and this position)
-                else if (starRating > position - 0.5) {
+                // Half star
+                else if (starRating >= halfStarValue) {
                     return (
-                        <div key={position} className="relative">
-                            <Star className={`${starSize} text-gray-300`} />
+                        <div key={position} className="relative inline-block">
+                            <Star
+                                className={`${starSize} text-gray-300`}
+                            />
                             <div className="absolute inset-0 overflow-hidden w-1/2">
-                                <Star className={`${starSize} text-yellow-400`} fill="#FBBF24" />
+                                <Star
+                                    className={`${starSize} text-yellow-400 fill-yellow-400`}
+                                />
                             </div>
                         </div>
                     );
@@ -78,7 +84,6 @@ const NormalizedStarDisplay: React.FC<NormalizedStarDisplayProps> = ({
                         <Star
                             key={position}
                             className={`${starSize} text-gray-300`}
-                            fill="none"
                         />
                     );
                 }
