@@ -111,6 +111,7 @@ export interface UpdateInteractionResult {
 export interface RatingNormalizedDTO {
   ratingId: string;
   normalizedGrade: number;
+  isComplex: boolean;
 }
 
 export interface ReviewDTO {
@@ -147,12 +148,6 @@ export interface RatingOverviewDTO {
   normalizedGrade: number;
 }
 
-export interface GetRatingDetailResult {
-  success: boolean;
-  errorMessage?: string;
-  rating: RatingDetailDTO;
-}
-
 export interface RatingDetailDTO {
   ratingId: string;
   itemId: string;
@@ -169,9 +164,14 @@ export interface RatingDetailDTO {
 
 export interface GradedComponentDTO {
   name: string;
+  componentType: string;
   currentGrade: number;
   minPossibleGrade: number;
   maxPossibleGrade: number;
+  components?: GradedComponentDTO[];
+  actions?: string[];
+  description?: string;
+  stepAmount?: number;
 }
 
 export interface ErrorResponse {
@@ -248,7 +248,7 @@ const InteractionService = {
     return response.data;
   },
 
-  getRatingById: async (id: string): Promise<GetRatingDetailResult> => {
+  getRatingById: async (id: string): Promise<RatingDetailDTO> => {
     const response = await interactionApi.get(`/rating-by-id/${id}`);
     return response.data;
   },
