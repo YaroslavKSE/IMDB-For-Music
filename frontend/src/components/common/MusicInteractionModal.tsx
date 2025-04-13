@@ -3,7 +3,6 @@ import { X, Heart, Star, Headphones, Check, Play, Pause } from 'lucide-react';
 import { AlbumDetail, TrackDetail } from '../../api/catalog';
 import InteractionService, { PostInteractionRequest } from '../../api/interaction';
 import useAuthStore from '../../store/authStore';
-import { getTrackPreviewUrl } from '../../utils/preview-extractor';
 import { useNavigate } from 'react-router-dom';
 
 interface MusicInteractionModalProps {
@@ -136,9 +135,6 @@ const MusicInteractionModal = ({
                 const track = item as TrackDetail;
                 if(track.previewUrl){
                     previewUrl = track.previewUrl;
-                }
-                else{
-                    previewUrl = await getTrackPreviewUrl(track.spotifyId);
                 }
             }
 

@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Disc, Music, User, ChevronRight} from 'lucide-react';
-import { ArtistDetail, TrackSummary, AlbumSummary } from '../../api/catalog';
+import {ArtistDetail, TrackSummary, AlbumSummary} from '../../api/catalog';
 import CatalogService from '../../api/catalog';
 import EmptyState from '../common/EmptyState';
 import AlbumCard from "./AlbumCard.tsx";
 import TrackRow from "./TrackRow.tsx";
 import TabButton from "./TabButton.tsx";
-import {getTrackPreviewUrl} from "../../utils/preview-extractor.ts";
+import {getSeveralPreviewsUrl} from "../../utils/preview-extractor.ts";
 
 interface ArtistContentTabsProps {
     activeTab: 'overview' | 'albums' | 'top-tracks';
@@ -37,6 +37,7 @@ const ArtistContentTabs = ({
         setTracksError(null);
         try {
             const data = await CatalogService.getArtistTopTracks(artist.spotifyId);
+            loadTopPreviews(artist.spotifyId, data.tracks);
             setTopTracks(data.tracks);
         } catch (error) {
             console.error('Error fetching top tracks:', error);
@@ -94,26 +95,38 @@ const ArtistContentTabs = ({
         };
     }, [audio]);
 
+    const loadTopPreviews = async (spotifyId: string, tracks: TrackSummary[]) => {
+        if(tracks == null) return;
+        const previewsArray = await getSeveralPreviewsUrl(spotifyId, "artist");
+        let i = 0;
+        if(previewsArray){
+            for(const track of tracks){
+                track.previewUrl = previewsArray[i];
+                i++;
+            }
+        }
+    }
+
     const loadMoreAlbums = () => {
         const newOffset = albumsOffset + 20;
         fetchAlbums(newOffset);
     };
 
-    const handlePreviewPlay = async (trackId: string) => {
+    const handlePreviewPlay = async (track: TrackSummary) => {
         try {
             // Stop current audio if playing
             if (audio) {
                 audio.pause();
-                if (playingTrack === trackId) {
+                if (playingTrack === track.spotifyId) {
                     setPlayingTrack(null);
                     return;
                 }
             }
 
             // Get preview URL
-            const previewUrl = await getTrackPreviewUrl(trackId);
+            const previewUrl = track.previewUrl;
             if (!previewUrl) {
-                console.error('No preview URL available');
+                console.error('No preview URL available for this track');
                 return;
             }
 
@@ -123,7 +136,7 @@ const ArtistContentTabs = ({
             await newAudio.play();
 
             setAudio(newAudio);
-            setPlayingTrack(trackId);
+            setPlayingTrack(track.spotifyId);
         } catch (error) {
             console.error('Error playing preview:', error);
         }
@@ -197,7 +210,7 @@ const ArtistContentTabs = ({
                                             track={track}
                                             index={index}
                                             isPlaying={playingTrack === track.spotifyId}
-                                            onPlayClick={() => handlePreviewPlay(track.spotifyId)}
+                                            onPlayClick={() => handlePreviewPlay(track)}
                                         />
                                     ))}
                                 </div>
@@ -357,7 +370,7 @@ const ArtistContentTabs = ({
                                     track={track}
                                     index={index}
                                     isPlaying={playingTrack === track.spotifyId}
-                                    onPlayClick={() => handlePreviewPlay(track.spotifyId)}
+                                    onPlayClick={() => handlePreviewPlay(track)}
                                 />
                             ))}
                         </div>

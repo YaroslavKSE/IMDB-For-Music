@@ -9,7 +9,7 @@ interface AlbumTrackListProps {
     playingTrack: string | null;
     hoveredTrack: string | null;
     handlePreviewToggle: (track: TrackSummary) => Promise<void>;
-    handleTrackInteraction: (trackId: string, trackName: string) => void;
+    handleTrackInteraction: (track: TrackSummary) => void;
     setHoveredTrack: (trackId: string | null) => void;
 }
 
@@ -82,7 +82,7 @@ const AlbumTrackList = ({
             </span>
 
                         <button
-                            onClick={() => handleTrackInteraction(track.spotifyId, track.name)}
+                            onClick={() => handleTrackInteraction(track)}
                             className="text-gray-400 hover:text-primary-600 focus:outline-none"
                         >
                             <Star className="h-5 w-5" />

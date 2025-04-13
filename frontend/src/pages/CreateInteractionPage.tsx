@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import CatalogService from '../api/catalog';
+import CatalogService, {TrackSummary} from '../api/catalog';
 import InteractionService, {
     GradingMethodSummary,
     GradingMethodDetail,
@@ -63,6 +63,7 @@ const CreateInteractionPage = () => {
                     itemData = await CatalogService.getAlbum(itemId);
                 } else if (itemType === 'track') {
                     itemData = await CatalogService.getTrack(itemId);
+                    loadTrackPreview(itemData);
                 } else {
                     setError('Invalid item type specified');
                     setLoading(false);
@@ -140,6 +141,14 @@ const CreateInteractionPage = () => {
 
     const displayRating = hoveredRating !== null ? hoveredRating : rating;
 
+    const loadTrackPreview = async (track: TrackSummary | null) => {
+        if(track == null) return;
+        const preview = await getTrackPreviewUrl(track.spotifyId);
+        if(preview){
+            track.previewUrl = preview;
+        }
+    }
+
     const handleListenedToggle = () => {
         if (hasListened && !isLiked && rating === null && reviewText.trim() === '') {
             setHasListened(false);
@@ -158,7 +167,12 @@ const CreateInteractionPage = () => {
         try {
             if (formattedItemType !== 'Track') return;
 
-            const previewUrl = await getTrackPreviewUrl(itemId as string);
+            const previewUrl = item.previewUrl;
+            if (!previewUrl) {
+                console.error('No preview URL available for this track');
+                return;
+            }
+
             if (!previewUrl) {
                 console.error('No preview available');
                 return;

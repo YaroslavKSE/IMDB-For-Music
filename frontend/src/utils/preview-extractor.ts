@@ -19,9 +19,9 @@ export async function getTrackPreviewUrl(spotifyTrackId: string): Promise<string
     }
 }
 
-export async function getAlbumPreviewsUrl(spotifyAlbumId: string): Promise<string[] | null> {
+export async function getSeveralPreviewsUrl(spotifyId: string, fetchType: string = "album"): Promise<string[] | null> {
     try {
-        const embedUrl = `/spotify/embed/album/${spotifyAlbumId}`;
+        const embedUrl = `/spotify/embed/${fetchType}/${spotifyId}`;
         const response = await fetch(embedUrl);
         const html = await response.text();
 

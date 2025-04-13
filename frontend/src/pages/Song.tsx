@@ -64,6 +64,11 @@ const Song = () => {
 
     const handlePreviewToggle = async () => {
         if (!track) return;
+        const previewUrl = track.previewUrl;
+        if (!previewUrl) {
+            console.error('No preview URL available for this track');
+            return;
+        }
 
         if (isPlaying) {
             // Pause the current track
@@ -74,17 +79,6 @@ const Song = () => {
         } else {
             // Start playing the track
             try {
-                let previewUrl;
-                if(track.previewUrl){
-                    previewUrl = track.previewUrl;
-                } else {
-                    previewUrl = await getTrackPreviewUrl(track.spotifyId);
-                }
-                if (!previewUrl) {
-                    console.error('No preview URL available for this track');
-                    return;
-                }
-
                 // If there's already an audio element, pause it
                 if (audioRef.current) {
                     audioRef.current.pause();

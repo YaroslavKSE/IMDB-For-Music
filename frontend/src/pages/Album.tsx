@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Disc } from 'lucide-react';
 import CatalogService, {AlbumDetail, TrackDetail, TrackSummary} from '../api/catalog';
 import EmptyState from '../components/common/EmptyState';
-import {getAlbumPreviewsUrl, getTrackPreviewUrl} from '../utils/preview-extractor';
+import {getSeveralPreviewsUrl} from '../utils/preview-extractor';
 import AlbumHeader from '../components/Album/AlbumHeader';
 import AlbumContentTabs from '../components/Album/AlbumContentTabs';
 import LoadingState from '../components/Album/LoadingState';
@@ -63,7 +63,7 @@ const Album = () => {
 
     const loadAlbumPreviews = async (Album: AlbumDetail | null) => {
         if(Album == null) return;
-        const previewsArray = await getAlbumPreviewsUrl(Album.spotifyId);
+        const previewsArray = await getSeveralPreviewsUrl(Album.spotifyId);
         let i = 0;
         if(previewsArray){
             for(const track of Album.tracks){
@@ -74,13 +74,7 @@ const Album = () => {
     }
 
     const handlePreviewToggle = async (track: TrackSummary) => {
-        let previewUrl;
-        if(track.previewUrl){
-            previewUrl = track.previewUrl;
-        }
-        else{
-            previewUrl = await getTrackPreviewUrl(track.spotifyId);
-        }
+        const previewUrl = track.previewUrl;
         if (!previewUrl) return;
 
         if (playingTrack === track.spotifyId) {
@@ -118,7 +112,7 @@ const Album = () => {
         setIsInteractionModalOpen(true);
     };
 
-    const handleTrackInteraction = async (trackId: string) => {
+    const handleTrackInteraction = async (track: TrackSummary) => {
         if (!isAuthenticated) {
             navigate('/login', { state: { from: `/album/${id}` } });
             return;
@@ -137,8 +131,8 @@ const Album = () => {
             // Show some loading indicator if needed
 
             // Fetch the complete track details
-            const trackDetail = await CatalogService.getTrack(trackId);
-
+            const trackDetail = await CatalogService.getTrack(track.spotifyId);
+            trackDetail.previewUrl = track.previewUrl;
             // Set the track and open the modal
             setSelectedTrack(trackDetail);
             setIsAlbumInteraction(false);

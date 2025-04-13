@@ -13,7 +13,7 @@ interface AlbumContentTabsProps {
     hoveredTrack: string | null;
     setHoveredTrack: (trackId: string | null) => void;
     handlePreviewToggle: (track: TrackSummary) => Promise<void>;
-    handleTrackInteraction: (trackId: string, trackName: string) => void;
+    handleTrackInteraction: (track: TrackSummary) => void;
     handleAlbumInteraction: () => void;
 }
 
