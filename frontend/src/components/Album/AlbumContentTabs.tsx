@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Music, MessageSquare, ListMusic, History } from 'lucide-react';
 import EmptyState from '../common/EmptyState';
-import { AlbumDetail } from '../../api/catalog';
+import {AlbumDetail, TrackSummary} from '../../api/catalog';
 import AlbumTrackList from './AlbumTrackList';
 
 interface AlbumContentTabsProps {
@@ -12,7 +12,7 @@ interface AlbumContentTabsProps {
     playingTrack: string | null;
     hoveredTrack: string | null;
     setHoveredTrack: (trackId: string | null) => void;
-    handlePreviewToggle: (trackId: string) => Promise<void>;
+    handlePreviewToggle: (track: TrackSummary) => Promise<void>;
     handleTrackInteraction: (trackId: string, trackName: string) => void;
     handleAlbumInteraction: () => void;
 }

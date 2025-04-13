@@ -9,7 +9,7 @@ import InteractionService, {
     BlockComponent,
     PostInteractionRequest
 } from '../api/interaction';
-import { getPreviewUrl } from '../utils/preview-extractor';
+import { getTrackPreviewUrl } from '../utils/preview-extractor';
 import LoadingState from '../components/Album/LoadingState';
 import ErrorState from '../components/Song/ErrorState';
 import NotFoundState from '../components/Song/NotFoundState';
@@ -158,7 +158,7 @@ const CreateInteractionPage = () => {
         try {
             if (formattedItemType !== 'Track') return;
 
-            const previewUrl = await getPreviewUrl(itemId as string);
+            const previewUrl = await getTrackPreviewUrl(itemId as string);
             if (!previewUrl) {
                 console.error('No preview available');
                 return;

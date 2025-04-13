@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import CatalogService, { TrackDetail } from '../api/catalog';
-import { getPreviewUrl } from '../utils/preview-extractor';
+import { getTrackPreviewUrl } from '../utils/preview-extractor';
 import SongHeader from '../components/Song/SongHeader';
 import SongContentTabs from '../components/Song/SongContentTabs';
 import LoadingState from '../components/Song/LoadingState';
@@ -65,7 +65,7 @@ const Song = () => {
         } else {
             // Start playing the track
             try {
-                const previewUrl = await getPreviewUrl(track.spotifyId);
+                const previewUrl = await getTrackPreviewUrl(track.spotifyId);
                 if (!previewUrl) {
                     console.error('No preview URL available for this track');
                     return;

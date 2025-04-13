@@ -8,7 +8,7 @@ interface AlbumTrackListProps {
     tracks: TrackSummary[];
     playingTrack: string | null;
     hoveredTrack: string | null;
-    handlePreviewToggle: (trackId: string) => Promise<void>;
+    handlePreviewToggle: (track: TrackSummary) => Promise<void>;
     handleTrackInteraction: (trackId: string, trackName: string) => void;
     setHoveredTrack: (trackId: string | null) => void;
 }
@@ -38,7 +38,7 @@ const AlbumTrackList = ({
                             <AudioVisualizer />
                         ) : hoveredTrack === track.spotifyId ? (
                             <button
-                                onClick={() => handlePreviewToggle(track.spotifyId)}
+                                onClick={() => handlePreviewToggle(track)}
                                 className="absolute inset-0 flex items-center justify-center text-primary-600 hover:text-primary-800"
                                 title={playingTrack === track.spotifyId ? "Stop preview" : "Play preview"}
                             >

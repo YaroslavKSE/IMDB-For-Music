@@ -37,6 +37,7 @@ export interface TrackSummary {
   albumId: string;
   popularity?: number;
   externalUrls?: string[];
+  previewUrl?: string;
 }
 
 export interface AlbumSummary {
@@ -57,7 +58,6 @@ export interface TrackDetail extends TrackSummary {
   album: AlbumSummary;
   discNumber: number;
   isrc?: string;
-  previewUrl?: string;
   duration?: string;
 }
 

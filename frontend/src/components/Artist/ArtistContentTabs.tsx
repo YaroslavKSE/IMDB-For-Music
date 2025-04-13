@@ -6,7 +6,7 @@ import EmptyState from '../common/EmptyState';
 import AlbumCard from "./AlbumCard.tsx";
 import TrackRow from "./TrackRow.tsx";
 import TabButton from "./TabButton.tsx";
-import {getPreviewUrl} from "../../utils/preview-extractor.ts";
+import {getTrackPreviewUrl} from "../../utils/preview-extractor.ts";
 
 interface ArtistContentTabsProps {
     activeTab: 'overview' | 'albums' | 'top-tracks';
@@ -111,7 +111,7 @@ const ArtistContentTabs = ({
             }
 
             // Get preview URL
-            const previewUrl = await getPreviewUrl(trackId);
+            const previewUrl = await getTrackPreviewUrl(trackId);
             if (!previewUrl) {
                 console.error('No preview URL available');
                 return;

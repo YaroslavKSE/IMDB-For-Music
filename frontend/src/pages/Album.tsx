@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Disc } from 'lucide-react';
-import CatalogService, { AlbumDetail, TrackDetail } from '../api/catalog';
+import CatalogService, {AlbumDetail, TrackDetail, TrackSummary} from '../api/catalog';
 import EmptyState from '../components/common/EmptyState';
-import { getPreviewUrl } from '../utils/preview-extractor';
+import {getAlbumPreviewsUrl, getTrackPreviewUrl} from '../utils/preview-extractor';
 import AlbumHeader from '../components/Album/AlbumHeader';
 import AlbumContentTabs from '../components/Album/AlbumContentTabs';
 import LoadingState from '../components/Album/LoadingState';
@@ -36,6 +36,7 @@ const Album = () => {
 
             try {
                 const albumData = await CatalogService.getAlbum(id);
+                loadAlbumPreviews(albumData);
                 setAlbum(albumData);
             } catch (err) {
                 console.error('Error fetching album details:', err);
@@ -44,7 +45,6 @@ const Album = () => {
                 setLoading(false);
             }
         };
-
         fetchAlbumDetails();
     }, [id]);
 
@@ -61,11 +61,29 @@ const Album = () => {
         };
     }, []);
 
-    const handlePreviewToggle = async (trackId: string) => {
-        const previewUrl = await getPreviewUrl(trackId);
+    const loadAlbumPreviews = async (Album: AlbumDetail | null) => {
+        if(Album == null) return;
+        const previewsArray = await getAlbumPreviewsUrl(Album.spotifyId);
+        let i = 0;
+        if(previewsArray){
+            for(const track of Album.tracks){
+                track.previewUrl = previewsArray[i];
+                i++;
+            }
+        }
+    }
+
+    const handlePreviewToggle = async (track: TrackSummary) => {
+        let previewUrl;
+        if(track.previewUrl){
+            previewUrl = track.previewUrl;
+        }
+        else{
+            previewUrl = await getTrackPreviewUrl(track.spotifyId);
+        }
         if (!previewUrl) return;
 
-        if (playingTrack === trackId) {
+        if (playingTrack === track.spotifyId) {
             // Stop playing the current track
             if (audioRef.current) {
                 audioRef.current.pause();
@@ -86,7 +104,7 @@ const Album = () => {
             });
 
             await audioRef.current.play();
-            setPlayingTrack(trackId);
+            setPlayingTrack(track.spotifyId);
         }
     };
 

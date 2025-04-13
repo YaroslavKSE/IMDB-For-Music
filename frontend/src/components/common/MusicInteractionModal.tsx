@@ -3,7 +3,7 @@ import { X, Heart, Star, Headphones, Check, Play, Pause } from 'lucide-react';
 import { AlbumDetail, TrackDetail } from '../../api/catalog';
 import InteractionService, { PostInteractionRequest } from '../../api/interaction';
 import useAuthStore from '../../store/authStore';
-import { getPreviewUrl } from '../../utils/preview-extractor';
+import { getTrackPreviewUrl } from '../../utils/preview-extractor';
 import { useNavigate } from 'react-router-dom';
 
 interface MusicInteractionModalProps {
@@ -133,7 +133,7 @@ const MusicInteractionModal = ({
             // Only for tracks, or when dealing with a track inside an album
             let previewUrl;
             if (itemType === 'Track') {
-                previewUrl = await getPreviewUrl(itemId);
+                previewUrl = await getTrackPreviewUrl(itemId);
             }
 
             if (!previewUrl) {
