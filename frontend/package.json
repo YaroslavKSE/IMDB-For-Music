@@ -12,9 +12,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.1",
     "auth0-js": "^9.28.0",
     "axios": "^1.8.3",
     "classnames": "^2.5.1",
+    "framer-motion": "^12.6.5",
     "lucide-react": "^0.482.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

@@ -50,31 +50,26 @@ const GradeSlider = ({
         onChange(fullPath, fixedValue);
     };
 
-    // Calculate percentage for dynamic styling
     const percentage = ((sliderValue - component.minGrade) / (component.maxGrade - component.minGrade)) * 100;
 
     return (
-        <div className="mb-4 bg-white p-4 rounded-md shadow-sm border border-gray-200">
+        <div className="mb-4 bg-white p-4 rounded-lg shadow border border-gray-200">
             <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-800">
                     {component.name}
                 </label>
-                <div className="flex items-center">
-                    <input
-                        min={component.minGrade}
-                        max={component.maxGrade}
-                        value={inputValue}
-                        onChange={handleInputChange}
-                        onBlur={handleBlur}
-                        className="w-16 px-2 py-1 text-right border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm"
-                    />
-                    <span className="ml-1 text-sm text-gray-600">
-          </span>
-                </div>
+                <input
+                    min={component.minGrade}
+                    max={component.maxGrade}
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    onBlur={handleBlur}
+                    className="w-20 px-2 py-1 text-right border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                />
             </div>
 
             {component.description && (
-                <p className="text-xs text-gray-500 mb-2">{component.description}</p>
+                <p className="text-xs text-gray-500 mb-2 italic">{component.description}</p>
             )}
 
             <div className="flex items-center">
@@ -87,10 +82,15 @@ const GradeSlider = ({
                         step={component.stepAmount}
                         value={sliderValue}
                         onChange={handleSliderChange}
-                        className="w-full h-2 appearance-none bg-transparent cursor-pointer"
+                        className="w-full h-3 appearance-none bg-transparent cursor-pointer transition-all rounded-full
+                                   accent-[#7a24ec] [&::-webkit-slider-thumb]:appearance-none
+                                   [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                                   [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#7a24ec]
+                                   [&::-webkit-slider-thumb]:shadow-md hover:[&::-webkit-slider-thumb]:scale-110
+                                   [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4
+                                   [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#7a24ec]"
                         style={{
-                            background: `linear-gradient(to right, #7a24ec 0%, #7a24ec ${percentage}%, #e5e7eb ${percentage}%, #e5e7eb 100%)`,
-                            borderRadius: '9999px'
+                            background: `linear-gradient(to right, #7a24ec 0%, #7a24ec ${percentage}%, #e5e7eb ${percentage}%, #e5e7eb 100%)`
                         }}
                     />
                 </div>
