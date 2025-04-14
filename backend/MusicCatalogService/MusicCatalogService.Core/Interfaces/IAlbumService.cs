@@ -15,6 +15,7 @@ public interface IAlbumService
 
     // New method to get multiple albums with simplified overview
     Task<MultipleAlbumsOverviewDto> GetMultipleAlbumsOverviewAsync(IEnumerable<string> spotifyIds);
-    // Add this method to MusicCatalogService.Core.Interfaces.IAlbumService
+    // Method from complex branch to get album tracks
     Task<AlbumTracksResultDto> GetAlbumTracksAsync(string spotifyId, int limit = 20, int offset = 0, string? market = null);
+
 }
