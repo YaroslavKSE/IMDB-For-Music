@@ -1,7 +1,5 @@
 import { createApiClient } from '../utils/axios-factory';
 
-// Create the API client specifically for interaction service
-// Note: For grading methods, we need a slightly different API path
 const interactionApi = createApiClient('/interactions');
 const gradingApi = createApiClient('/grading-methods');
 
@@ -19,7 +17,7 @@ export interface BlockComponent {
   componentType: 'block';
   name: string;
   subComponents: (GradeComponent | BlockComponent)[];
-  actions: number[]; // 0: Add, 1: Subtract, 2: Multiply, 3: Divide
+  actions: number[] | string[]; // 0: Add, 1: Subtract, 2: Multiply, 3: Divide
   minGrade?: number;
   maxGrade?: number;
 }
@@ -53,7 +51,7 @@ export interface GradingMethodDetail {
   createdAt: string;
   isPublic: boolean;
   components: (GradeComponent | BlockComponent)[];
-  actions: number[];
+  actions: number[] | string[];
   minPossibleGrade?: number;
   maxPossibleGrade?: number;
 }
@@ -113,6 +111,7 @@ export interface UpdateInteractionResult {
 export interface RatingNormalizedDTO {
   ratingId: string;
   normalizedGrade: number;
+  isComplex: boolean;
 }
 
 export interface ReviewDTO {
@@ -149,12 +148,6 @@ export interface RatingOverviewDTO {
   normalizedGrade: number;
 }
 
-export interface GetRatingDetailResult {
-  success: boolean;
-  errorMessage?: string;
-  rating: RatingDetailDTO;
-}
-
 export interface RatingDetailDTO {
   ratingId: string;
   itemId: string;
@@ -171,9 +164,14 @@ export interface RatingDetailDTO {
 
 export interface GradedComponentDTO {
   name: string;
+  componentType: string;
   currentGrade: number;
   minPossibleGrade: number;
   maxPossibleGrade: number;
+  components?: GradedComponentDTO[];
+  actions?: string[];
+  description?: string;
+  stepAmount?: number;
 }
 
 export interface ErrorResponse {
@@ -211,11 +209,6 @@ const InteractionService = {
     return response.data;
   },
 
-  getPublicGradingMethods: async (): Promise<GradingMethodSummary[]> => {
-    const response = await gradingApi.get('/public-all');
-    return response.data;
-  },
-
   getGradingMethodById: async (id: string): Promise<GradingMethodDetail> => {
     const response = await gradingApi.get(`/by-id/${id}`);
     return response.data;
@@ -245,11 +238,6 @@ const InteractionService = {
     return response.data;
   },
 
-  getAllInteractions: async (): Promise<GetInteractionsResult> => {
-    const response = await interactionApi.get('/all');
-    return response.data;
-  },
-
   getInteractionById: async (id: string): Promise<InteractionDetailDTO> => {
     const response = await interactionApi.get(`/by-id/${id}`);
     return response.data;
@@ -260,22 +248,7 @@ const InteractionService = {
     return response.data;
   },
 
-  getAllLikes: async () => {
-    const response = await interactionApi.get('/likes-all');
-    return response.data;
-  },
-
-  getAllReviews: async () => {
-    const response = await interactionApi.get('/reviews-all');
-    return response.data;
-  },
-
-  getAllRatings: async (): Promise<GetRatingsResult> => {
-    const response = await interactionApi.get('/ratings-all');
-    return response.data;
-  },
-
-  getRatingById: async (id: string): Promise<GetRatingDetailResult> => {
+  getRatingById: async (id: string): Promise<RatingDetailDTO> => {
     const response = await interactionApi.get(`/rating-by-id/${id}`);
     return response.data;
   },

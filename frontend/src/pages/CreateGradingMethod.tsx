@@ -8,10 +8,11 @@ import InteractionService, {
     GradeComponent, BlockComponent, GradingMethodCreate
 } from '../api/interaction';
 import { getOperationSymbol } from '../utils/grading-utils';
-import OperationSelector from "../components/CreateGradingMethod/OperationSelector.tsx";
-import HelpModal from "../components/CreateGradingMethod/HelpModal.tsx";
-import GradeEditor from "../components/CreateGradingMethod/GradeEditor.tsx";
-import BlockEditor from "../components/CreateGradingMethod/BlockEditor.tsx";
+import { validateGradingMethod } from '../utils/validation-utils';
+import OperationSelector from "../components/CreateGradingMethod/OperationSelector";
+import HelpModal from "../components/CreateGradingMethod/HelpModal";
+import GradeEditor from "../components/CreateGradingMethod/GradeEditor";
+import BlockEditor from "../components/CreateGradingMethod/BlockEditor";
 
 const CreateGradingMethod = () => {
     const navigate = useNavigate();
@@ -150,45 +151,25 @@ const CreateGradingMethod = () => {
             return;
         }
 
-        if (!name.trim()) {
-            setError('Please provide a name for your grading method.');
+        // Validate the grading method
+        const validation = validateGradingMethod(name, components, actions);
+        if (!validation.valid && validation.error) {
+            setError(validation.error);
             return;
         }
-
-        if (components.length === 0) {
-            setError('Please add at least one component to your grading method.');
-            return;
-        }
-
-        // Validate all components
-        for (let i = 0; i < components.length; i++) {
-            const component = components[i];
-            if (!component.name.trim()) {
-                setError(`Component ${i + 1} is missing a name.`);
-                return;
-            }
-
-            if (component.componentType === 'block') {
-                const block = component as BlockComponent;
-                if (block.subComponents.length === 0) {
-                    setError(`Block "${component.name}" must have at least one subcomponent.`);
-                    return;
-                }
-            }
-        }
-
-        const gradingMethod: GradingMethodCreate = {
-            name,
-            userId: user.id,
-            isPublic,
-            components,
-            actions
-        };
-
-        setIsSubmitting(true);
-        setError(null);
 
         try {
+            setIsSubmitting(true);
+            setError(null);
+
+            const gradingMethod: GradingMethodCreate = {
+                name,
+                userId: user.id,
+                isPublic,
+                components,
+                actions
+            };
+
             const response = await InteractionService.createGradingMethod(gradingMethod);
 
             if (response.success) {

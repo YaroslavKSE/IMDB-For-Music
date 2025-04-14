@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Heart, Star, Headphones, Check, Play, Pause } from 'lucide-react';
+import {X, Heart, Star, Headphones, Check, Play, Pause, SlidersHorizontal} from 'lucide-react';
 import { AlbumDetail, TrackDetail } from '../../api/catalog';
 import InteractionService, { PostInteractionRequest } from '../../api/interaction';
 import useAuthStore from '../../store/authStore';
-import { getPreviewUrl } from '../../utils/preview-extractor';
+import { useNavigate } from 'react-router-dom';
 
 interface MusicInteractionModalProps {
     item: AlbumDetail | TrackDetail;
@@ -20,6 +20,7 @@ const MusicInteractionModal = ({
                                    onClose,
                                    onSuccess
                                }: MusicInteractionModalProps) => {
+    const navigate = useNavigate();
     const { user } = useAuthStore();
     const [rating, setRating] = useState<number | null>(null);
     const [hoveredRating, setHoveredRating] = useState<number | null>(null);
@@ -131,7 +132,10 @@ const MusicInteractionModal = ({
             // Only for tracks, or when dealing with a track inside an album
             let previewUrl;
             if (itemType === 'Track') {
-                previewUrl = await getPreviewUrl(itemId);
+                const track = item as TrackDetail;
+                if(track.previewUrl){
+                    previewUrl = track.previewUrl;
+                }
             }
 
             if (!previewUrl) {
@@ -344,22 +348,28 @@ const MusicInteractionModal = ({
                     <div className="p-4 border-t border-gray-200">
                         {/* Rating */}
                         <div className="mb-4">
-                            <div className="flex items-center space-x-1">
+                            <div className="flex justify-center items-center">
                                 {renderStars()}
-                                {displayRating !== null && (
-                                    <span className="ml-2 text-yellow-600 font-medium">
-                    {displayRating.toFixed(1)}
-                  </span>
+                            </div>
+                            {/* Fixed height container for the buttons to prevent layout jumps */}
+                            <div className="mt-2 text-center h-6 flex items-center justify-center">
+                                {rating !== null ? (
+                                    <button
+                                        onClick={() => setRating(null)}
+                                        className="text-sm text-gray-500 hover:text-gray-700 flex items-center"
+                                    >
+                                        Clear rating
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => navigate(`/create-interaction/${itemType.toLowerCase()}/${itemId}`)}
+                                        className="text-sm text-gray-500 hover:text-primary-600 flex items-center"
+                                    >
+                                        <SlidersHorizontal className="h-4 w-4 mr-1" />
+                                        <span>Use complex grading</span>
+                                    </button>
                                 )}
                             </div>
-                            {rating !== null && (
-                                <button
-                                    onClick={() => setRating(null)}
-                                    className="mt-2 text-sm text-gray-500 hover:text-gray-700"
-                                >
-                                    Clear rating
-                                </button>
-                            )}
                         </div>
 
                         {/* Like and Listened buttons side by side */}

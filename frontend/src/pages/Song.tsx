@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import CatalogService, { TrackDetail } from '../api/catalog';
-import { getPreviewUrl } from '../utils/preview-extractor';
+import CatalogService, {TrackDetail, TrackSummary} from '../api/catalog';
+import {getTrackPreviewUrl} from '../utils/preview-extractor';
 import SongHeader from '../components/Song/SongHeader';
 import SongContentTabs from '../components/Song/SongContentTabs';
 import LoadingState from '../components/Song/LoadingState';
 import ErrorState from '../components/Song/ErrorState';
 import NotFoundState from '../components/Song/NotFoundState';
-import MusicInteractionModal from '../components/common/MusicInteractionModal';
+import MusicInteractionModal from '../components/CreateInteraction/MusicInteractionModal.tsx';
 import useAuthStore from '../store/authStore';
 
 const Song = () => {
@@ -32,6 +32,7 @@ const Song = () => {
 
             try {
                 const trackData = await CatalogService.getTrack(id);
+                loadTrackPreview(trackData);
                 setTrack(trackData);
             } catch (err) {
                 console.error('Error fetching track details:', err);
@@ -53,8 +54,21 @@ const Song = () => {
         };
     }, []);
 
+    const loadTrackPreview = async (track: TrackSummary | null) => {
+        if(track == null) return;
+        const preview = await getTrackPreviewUrl(track.spotifyId);
+        if(preview){
+            track.previewUrl = preview;
+        }
+    }
+
     const handlePreviewToggle = async () => {
         if (!track) return;
+        const previewUrl = track.previewUrl;
+        if (!previewUrl) {
+            console.error('No preview URL available for this track');
+            return;
+        }
 
         if (isPlaying) {
             // Pause the current track
@@ -65,12 +79,6 @@ const Song = () => {
         } else {
             // Start playing the track
             try {
-                const previewUrl = await getPreviewUrl(track.spotifyId);
-                if (!previewUrl) {
-                    console.error('No preview URL available for this track');
-                    return;
-                }
-
                 // If there's already an audio element, pause it
                 if (audioRef.current) {
                     audioRef.current.pause();
@@ -96,6 +104,10 @@ const Song = () => {
         if (!isAuthenticated) {
             navigate('/login', { state: { from: `/track/${id}` } });
             return;
+        }
+        if (audioRef.current) {
+            audioRef.current.pause();
+            setIsPlaying(false);
         }
         setIsInteractionModalOpen(true);
     };

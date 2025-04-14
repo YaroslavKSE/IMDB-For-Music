@@ -71,6 +71,64 @@ public class SpotifyApiClient : ISpotifyApiClient
         }
     }
 
+    public async Task<SpotifyPagingObject<SpotifyTrackSimplified>?> GetAlbumTracksAsync(string albumId, int limit = 20, int offset = 0, string? market = null)
+    {
+        try
+        {
+            var token = await _tokenService.GetAccessTokenAsync();
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            // Build the request URL with query parameters
+            var requestUrl = $"albums/{albumId}/tracks?limit={limit}&offset={offset}";
+
+            // Add market parameter if provided
+            if (!string.IsNullOrEmpty(market))
+            {
+                requestUrl += $"&market={market}";
+            }
+
+            var response = await _httpClient.GetAsync(requestUrl);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Spotify API error: {StatusCode} when getting album tracks for {AlbumId}. Response: {Response}",
+                    response.StatusCode, albumId, errorContent);
+
+                // Parse Spotify error response
+                var spotifyError = ParseSpotifyError(errorContent, response.StatusCode);
+
+                throw response.StatusCode switch
+                {
+                    // Throw appropriate exception based on status code
+                    HttpStatusCode.NotFound => new SpotifyResourceNotFoundException(spotifyError.Message, albumId),
+                    HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => new SpotifyAuthorizationException(
+                        spotifyError.Message),
+                    HttpStatusCode.TooManyRequests => new SpotifyRateLimitException(spotifyError.Message),
+                    _ => new SpotifyApiException(spotifyError.Message, response.StatusCode)
+                };
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            _logger.LogDebug("Spotify API returned album tracks: {Content}", content);
+
+            return JsonSerializer.Deserialize<SpotifyPagingObject<SpotifyTrackSimplified>>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+        }
+        catch (SpotifyException)
+        {
+            // Let the custom exceptions propagate
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching tracks for album {AlbumId} from Spotify", albumId);
+            throw new SpotifyApiException("An unexpected error occurred while fetching album tracks", ex);
+        }
+    }
+
     public async Task<SpotifyTrackResponse?> GetTrackAsync(string trackId)
     {
         try

@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Music, MessageSquare, ListMusic, History } from 'lucide-react';
 import EmptyState from '../common/EmptyState';
-import { AlbumDetail } from '../../api/catalog';
+import {AlbumDetail, TrackSummary} from '../../api/catalog';
 import AlbumTrackList from './AlbumTrackList';
 
 interface AlbumContentTabsProps {
@@ -12,9 +12,13 @@ interface AlbumContentTabsProps {
     playingTrack: string | null;
     hoveredTrack: string | null;
     setHoveredTrack: (trackId: string | null) => void;
-    handlePreviewToggle: (trackId: string) => Promise<void>;
-    handleTrackInteraction: (trackId: string, trackName: string) => void;
+    handlePreviewToggle: (track: TrackSummary) => Promise<void>;
+    handleTrackInteraction: (track: TrackSummary) => void;
     handleAlbumInteraction: () => void;
+    tracksTotal: number;
+    tracksOffset: number;
+    loadingMoreTracks: boolean;
+    onLoadMoreTracks: () => void;
 }
 
 const AlbumContentTabs = ({
@@ -26,7 +30,11 @@ const AlbumContentTabs = ({
                               setHoveredTrack,
                               handlePreviewToggle,
                               handleTrackInteraction,
-                              handleAlbumInteraction
+                              handleAlbumInteraction,
+                              tracksTotal,
+                              tracksOffset,
+                              loadingMoreTracks,
+                              onLoadMoreTracks
                           }: AlbumContentTabsProps) => {
     const navigate = useNavigate();
 
@@ -70,6 +78,10 @@ const AlbumContentTabs = ({
                     setHoveredTrack={setHoveredTrack}
                     handlePreviewToggle={handlePreviewToggle}
                     handleTrackInteraction={handleTrackInteraction}
+                    tracksTotal={tracksTotal}
+                    tracksOffset={tracksOffset}
+                    loadingMoreTracks={loadingMoreTracks}
+                    onLoadMore={onLoadMoreTracks}
                 />
             )}
 

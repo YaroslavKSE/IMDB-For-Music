@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Disc } from 'lucide-react';
-import CatalogService, { AlbumDetail, TrackDetail } from '../api/catalog';
+import CatalogService, {AlbumDetail, TrackDetail, TrackSummary} from '../api/catalog';
 import EmptyState from '../components/common/EmptyState';
-import { getPreviewUrl } from '../utils/preview-extractor';
+import {getSeveralPreviewsUrl, getTrackPreviewUrl} from '../utils/preview-extractor';
 import AlbumHeader from '../components/Album/AlbumHeader';
 import AlbumContentTabs from '../components/Album/AlbumContentTabs';
 import LoadingState from '../components/Album/LoadingState';
-import MusicInteractionModal from '../components/common/MusicInteractionModal';
+import MusicInteractionModal from '../components/CreateInteraction/MusicInteractionModal.tsx';
 import useAuthStore from '../store/authStore';
 
 const Album = () => {
@@ -16,6 +16,7 @@ const Album = () => {
     const { isAuthenticated } = useAuthStore();
     const [album, setAlbum] = useState<AlbumDetail | null>(null);
     const [loading, setLoading] = useState(true);
+    const [loadingMoreTracks, setLoadingMoreTracks] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'tracks' | 'reviews' | 'lists' | 'my-history'>('tracks');
     const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
@@ -24,6 +25,8 @@ const Album = () => {
     const [interactionSuccess, setInteractionSuccess] = useState(false);
     const [selectedTrack, setSelectedTrack] = useState<TrackDetail | null>(null);
     const [isAlbumInteraction, setIsAlbumInteraction] = useState(true);
+    const [tracksOffset, setTracksOffset] = useState(0);
+    const [tracksTotal, setTracksTotal] = useState(0);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const animationFrameRef = useRef<number | null>(null);
 
@@ -36,6 +39,13 @@ const Album = () => {
 
             try {
                 const albumData = await CatalogService.getAlbum(id);
+
+                // Update the tracks offset and total for pagination tracking
+                if (albumData.tracks) {
+                    setTracksOffset(albumData.tracks.length);
+                    setTracksTotal(albumData.totalTracks || albumData.tracks.length);
+                }
+                loadAlbumPreviews(albumData);
                 setAlbum(albumData);
             } catch (err) {
                 console.error('Error fetching album details:', err);
@@ -44,7 +54,6 @@ const Album = () => {
                 setLoading(false);
             }
         };
-
         fetchAlbumDetails();
     }, [id]);
 
@@ -61,17 +70,72 @@ const Album = () => {
         };
     }, []);
 
-    const handlePreviewToggle = async (trackId: string) => {
-        const previewUrl = await getPreviewUrl(trackId);
-        if (!previewUrl) return;
+    const loadAlbumPreviews = async (albumData: AlbumDetail | null) => {
+        console.log("reloading previews");
+        if(albumData == null) return;
+        const previewsArray = await getSeveralPreviewsUrl(albumData.spotifyId);
+        let i = 0;
+        if(previewsArray){
+            for(const track of albumData.tracks){
+                if (i < previewsArray.length) {
+                    track.previewUrl = previewsArray[i];
+                    i++;
+                }
+            }
+        }
+    };
 
-        if (playingTrack === trackId) {
+    const loadMoreTracks = async () => {
+        if (!id || !album || loadingMoreTracks || tracksOffset >= tracksTotal) return;
+
+        setLoadingMoreTracks(true);
+
+        try {
+            const response = await CatalogService.getAlbumTracks(album.spotifyId, 50, tracksOffset);
+
+            const newTracks = response.tracks || [];
+
+            if (newTracks.length === 0) {
+                setTracksOffset(tracksTotal);
+                setLoadingMoreTracks(false);
+                return;
+            }
+
+            const updatedAlbum = { ...album };
+
+            // Append the new tracks to the existing ones
+            updatedAlbum.tracks = [...updatedAlbum.tracks, ...newTracks];
+
+            // Update the tracksOffset for next pagination
+            setTracksOffset(tracksOffset + newTracks.length);
+            if(tracksOffset <= 99){
+                loadAlbumPreviews(updatedAlbum);
+            }
+
+            setAlbum(updatedAlbum);
+
+        } catch (err) {
+            console.error('Error loading more tracks:', err);
+            setError('Failed to load additional tracks. Please try again.');
+        } finally {
+            setLoadingMoreTracks(false);
+        }
+    };
+
+    const handlePreviewToggle = async (track: TrackSummary) => {
+        if (playingTrack === track.spotifyId) {
             // Stop playing the current track
             if (audioRef.current) {
                 audioRef.current.pause();
             }
             setPlayingTrack(null);
         } else {
+            if(!track.previewUrl && track.trackNumber && track.trackNumber > 100){
+                track.previewUrl = await getTrackPreviewUrl(track.spotifyId) as string;
+                console.log("track preview extracted");
+            }
+            const previewUrl = track.previewUrl;
+            if (!previewUrl) return;
             // Stop any currently playing track
             if (audioRef.current) {
                 audioRef.current.pause();
@@ -86,7 +150,7 @@ const Album = () => {
             });
 
             await audioRef.current.play();
-            setPlayingTrack(trackId);
+            setPlayingTrack(track.spotifyId);
         }
     };
 
@@ -100,7 +164,7 @@ const Album = () => {
         setIsInteractionModalOpen(true);
     };
 
-    const handleTrackInteraction = async (trackId: string) => {
+    const handleTrackInteraction = async (track: TrackSummary) => {
         if (!isAuthenticated) {
             navigate('/login', { state: { from: `/album/${id}` } });
             return;
@@ -116,11 +180,9 @@ const Album = () => {
             // Need to fetch the full TrackDetail since TrackSummary isn't enough
             setIsInteractionModalOpen(false); // Close any open modal first
 
-            // Show some loading indicator if needed
-
             // Fetch the complete track details
-            const trackDetail = await CatalogService.getTrack(trackId);
-
+            const trackDetail = await CatalogService.getTrack(track.spotifyId);
+            trackDetail.previewUrl = track.previewUrl;
             // Set the track and open the modal
             setSelectedTrack(trackDetail);
             setIsAlbumInteraction(false);
@@ -202,6 +264,10 @@ const Album = () => {
                 handlePreviewToggle={handlePreviewToggle}
                 handleTrackInteraction={handleTrackInteraction}
                 handleAlbumInteraction={handleAlbumInteraction}
+                tracksTotal={tracksTotal}
+                tracksOffset={tracksOffset}
+                loadingMoreTracks={loadingMoreTracks}
+                onLoadMoreTracks={loadMoreTracks}
             />
 
             {/* Modal for Album interaction */}

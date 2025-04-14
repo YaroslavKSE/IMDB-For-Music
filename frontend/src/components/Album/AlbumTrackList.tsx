@@ -1,5 +1,6 @@
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Pause, Star } from 'lucide-react';
+import { Play, Pause, Star, Loader } from 'lucide-react';
 import { formatDuration } from '../../utils/formatters';
 import { TrackSummary } from '../../api/catalog';
 import AudioVisualizer from './AudioVisualizer';
@@ -8,9 +9,13 @@ interface AlbumTrackListProps {
     tracks: TrackSummary[];
     playingTrack: string | null;
     hoveredTrack: string | null;
-    handlePreviewToggle: (trackId: string) => Promise<void>;
-    handleTrackInteraction: (trackId: string, trackName: string) => void;
+    handlePreviewToggle: (track: TrackSummary) => Promise<void>;
+    handleTrackInteraction: (track: TrackSummary) => void;
     setHoveredTrack: (trackId: string | null) => void;
+    tracksTotal: number;
+    tracksOffset: number;
+    loadingMoreTracks: boolean;
+    onLoadMore: () => void;
 }
 
 const AlbumTrackList = ({
@@ -19,8 +24,51 @@ const AlbumTrackList = ({
                             hoveredTrack,
                             handlePreviewToggle,
                             handleTrackInteraction,
-                            setHoveredTrack
+                            setHoveredTrack,
+                            tracksTotal,
+                            tracksOffset,
+                            loadingMoreTracks,
+                            onLoadMore
                         }: AlbumTrackListProps) => {
+    const listEndRef = useRef<HTMLDivElement>(null);
+    const observerRef = useRef<IntersectionObserver | null>(null);
+
+    // Set up intersection observer for infinite scrolling
+    useEffect(() => {
+        const hasMoreTracks = tracksOffset < tracksTotal;
+
+        if (!hasMoreTracks || loadingMoreTracks) {
+            return;
+        }
+
+        // Clean up previous observer
+        if (observerRef.current) {
+            observerRef.current.disconnect();
+        }
+
+        // Create new intersection observer
+        observerRef.current = new IntersectionObserver(
+            (entries) => {
+                const [entry] = entries;
+                if (entry.isIntersecting && !loadingMoreTracks) {
+                    onLoadMore();
+                }
+            },
+            { threshold: 0.5 } // Trigger when element is 50% visible
+        );
+
+        // Start observing the end of the list
+        if (listEndRef.current) {
+            observerRef.current.observe(listEndRef.current);
+        }
+
+        return () => {
+            if (observerRef.current) {
+                observerRef.current.disconnect();
+            }
+        };
+    }, [tracksOffset, tracksTotal, loadingMoreTracks, onLoadMore]);
+
     return (
         <div className="divide-y divide-gray-200">
             {tracks.map((track, index) => (
@@ -38,7 +86,7 @@ const AlbumTrackList = ({
                             <AudioVisualizer />
                         ) : hoveredTrack === track.spotifyId ? (
                             <button
-                                onClick={() => handlePreviewToggle(track.spotifyId)}
+                                onClick={() => handlePreviewToggle(track)}
                                 className="absolute inset-0 flex items-center justify-center text-primary-600 hover:text-primary-800"
                                 title={playingTrack === track.spotifyId ? "Stop preview" : "Play preview"}
                             >
@@ -50,8 +98,8 @@ const AlbumTrackList = ({
                             </button>
                         ) : (
                             <span className="text-gray-500 font-medium">
-                {track.trackNumber || index + 1}
-              </span>
+                                {track.trackNumber || index + 1}
+                            </span>
                         )}
                     </div>
 
@@ -66,8 +114,8 @@ const AlbumTrackList = ({
 
                             {track.isExplicit && (
                                 <span className="ml-2 px-1.5 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">
-                  E
-                </span>
+                                    E
+                                </span>
                             )}
                         </div>
 
@@ -77,12 +125,12 @@ const AlbumTrackList = ({
                     </div>
 
                     <div className="ml-auto flex items-center">
-            <span className="text-sm text-gray-500 mr-4">
-              {formatDuration(track.durationMs)}
-            </span>
+                        <span className="text-sm text-gray-500 mr-4">
+                            {formatDuration(track.durationMs)}
+                        </span>
 
                         <button
-                            onClick={() => handleTrackInteraction(track.spotifyId, track.name)}
+                            onClick={() => handleTrackInteraction(track)}
                             className="text-gray-400 hover:text-primary-600 focus:outline-none"
                         >
                             <Star className="h-5 w-5" />
@@ -90,6 +138,19 @@ const AlbumTrackList = ({
                     </div>
                 </div>
             ))}
+
+            {/* Loading indicator and observer target */}
+            <div
+                ref={listEndRef}
+                className={`py-4 flex justify-center items-center ${loadingMoreTracks ? 'opacity-100' : 'opacity-0'} ${tracksOffset >= tracksTotal ? 'hidden' : ''}`}
+            >
+                {loadingMoreTracks && (
+                    <div className="flex items-center justify-center">
+                        <Loader className="h-5 w-5 text-primary-600 animate-spin mr-2" />
+                        <span className="text-gray-600 text-sm">Loading more tracks...</span>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

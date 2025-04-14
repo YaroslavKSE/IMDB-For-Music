@@ -16,4 +16,7 @@ public interface ISpotifyApiClient
     Task<SpotifyMultipleTracksResponse?> GetMultipleTracksAsync(IEnumerable<string> trackIds);
     Task<SpotifyArtistAlbumsResponse?> GetArtistAlbumsAsync(string artistId, int limit = 20, int offset = 0, string? market = null, string? includeGroups = "album");
     Task<SpotifyArtistTopTracksResponse?> GetArtistTopTracksAsync(string artistId, string? market = null);
+
+    // Add this method to MusicCatalogService.Core.Interfaces.ISpotifyApiClient
+    Task<SpotifyPagingObject<SpotifyTrackSimplified>?> GetAlbumTracksAsync(string albumId, int limit = 20, int offset = 0, string? market = null);
 }
