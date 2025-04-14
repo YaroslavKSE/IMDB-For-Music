@@ -9,7 +9,7 @@ interface NormalizedStarDisplayProps {
 
 /**
  * Calculates the normalized star rating (0.5-5 scale) based on current grade and range
- * Uses the same algorithm as the backend
+ * Uses the exact same algorithm as the backend
  */
 const calculateNormalizedStars = (current: number, min: number, max: number): number => {
     // Ensure we don't divide by zero
@@ -22,11 +22,9 @@ const calculateNormalizedStars = (current: number, min: number, max: number): nu
     // Convert to 1-10 scale (same algorithm as backend)
     const normalizedValue = 1 + normalizedPercentage * 9;
 
-    // Convert to 0.5-5 star scale
-    const starRating = normalizedValue / 2;
+    const roundedValue = Math.round(normalizedValue);
 
-    // Ensure minimum of 0.5 stars
-    return Math.max(0.51, starRating);
+    return roundedValue / 2;
 };
 
 const NormalizedStarDisplay: React.FC<NormalizedStarDisplayProps> = ({
