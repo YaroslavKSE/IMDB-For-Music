@@ -572,4 +572,41 @@ public class AlbumService : IAlbumService
                 : null
         };
     }
+
+    private AlbumTracksResultDto MapToAlbumTracksResultDto(
+        SpotifyPagingObject<SpotifyTrackSimplified> response,
+        string albumId,
+        string albumName,
+        int limit,
+        int offset)
+    {
+        var result = new AlbumTracksResultDto
+        {
+            AlbumId = albumId,
+            AlbumName = albumName,
+            Limit = limit,
+            Offset = offset,
+            TotalResults = response.Total,
+            Next = response.Next,
+            Previous = response.Previous
+        };
+
+        // Map tracks
+        if (response.Items != null)
+        {
+            result.Tracks = response.Items.Select(track => new TrackSummaryDto
+            {
+                SpotifyId = track.Id,
+                Name = track.Name,
+                ArtistName = track.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
+                DurationMs = track.DurationMs,
+                IsExplicit = track.Explicit,
+                TrackNumber = track.TrackNumber,
+                AlbumId = albumId,
+                ExternalUrls = track.ExternalUrls?.Spotify != null ? new List<string> { track.ExternalUrls.Spotify } : null
+            }).ToList();
+        }
+
+        return result;
+    }
 }
