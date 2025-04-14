@@ -1,4 +1,3 @@
-// ComplexRatingModal.tsx (await fetch before open)
 import { useState, useEffect } from 'react';
 import { X, ChevronDown, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,6 +20,7 @@ const ComplexRatingModal = ({ isOpen, onClose, ratingId, itemName, artistName, d
     const [error, setError] = useState<string | null>(null);
     const [ratingDetail, setRatingDetail] = useState<RatingDetailDTO | null>(null);
     const [expandedBlocks, setExpandedBlocks] = useState<Record<string, boolean>>({});
+    const [initialized, setInitialized] = useState(false);
 
     useEffect(() => {
         const fetchAndShow = async () => {
@@ -28,6 +28,8 @@ const ComplexRatingModal = ({ isOpen, onClose, ratingId, itemName, artistName, d
                 setLoading(true);
                 setError(null);
                 setRatingDetail(null);
+                setExpandedBlocks({});
+                setInitialized(false);
 
                 try {
                     const response = await InteractionService.getRatingById(ratingId);
@@ -54,6 +56,33 @@ const ComplexRatingModal = ({ isOpen, onClose, ratingId, itemName, artistName, d
         fetchAndShow();
     }, [isOpen, ratingId]);
 
+    // Initialize expandedBlocks when rating details are loaded
+    useEffect(() => {
+        if (ratingDetail && !initialized) {
+            // Initialize all blocks as expanded by default
+            const initExpanded: Record<string, boolean> = {};
+
+            const initializeComponents = (component: GradedComponentDTO, path = component.name) => {
+                if (component && component.componentType === 'block') {
+                    initExpanded[path] = true;
+
+                    if (Array.isArray(component.components)) {
+                        component.components.forEach(subComponent => {
+                            initializeComponents(subComponent, `${path}.${subComponent.name}`);
+                        });
+                    }
+                }
+            };
+
+            if (ratingDetail.gradingComponent) {
+                initializeComponents(ratingDetail.gradingComponent);
+            }
+
+            setExpandedBlocks(initExpanded);
+            setInitialized(true);
+        }
+    }, [ratingDetail, initialized]);
+
     const toggleBlock = (path: string) => {
         setExpandedBlocks(prev => ({ ...prev, [path]: !prev[path] }));
     };
@@ -64,7 +93,7 @@ const ComplexRatingModal = ({ isOpen, onClose, ratingId, itemName, artistName, d
         const percentage = component.maxPossibleGrade > 0 ? component.currentGrade / component.maxPossibleGrade : 0;
         const gradientClasses = getGradeGradient(percentage);
         const isBlock = component.componentType === 'block';
-        const isOpen = expandedBlocks[path] ?? true;
+        const isOpen = expandedBlocks[path] ?? false; // Default to closed if not in state
 
         return (
             <div
@@ -189,7 +218,7 @@ const ComplexRatingModal = ({ isOpen, onClose, ratingId, itemName, artistName, d
                                     <h3 className="text-sm font-medium text-gray-700 mb-2">
                                         Rating Components
                                     </h3>
-                                    {ratingDetail.gradingComponent
+                                    {ratingDetail.gradingComponent && initialized
                                         ? renderComponent(ratingDetail.gradingComponent)
                                         : <p className="text-gray-500 text-sm">No component details available</p>}
                                 </div>
