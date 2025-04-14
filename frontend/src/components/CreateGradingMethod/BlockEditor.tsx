@@ -33,8 +33,8 @@ const BlockEditor = ({
             subComponents: newSubComponents,
             // Ensure we have enough actions
             actions: newSubComponents.length > 1
-                ? [...component.actions, 0].slice(0, newSubComponents.length - 1)
-                : component.actions
+                ? [...component.actions, 0].slice(0, newSubComponents.length - 1) as number[]
+                : component.actions as number[]
         });
     };
 
@@ -52,8 +52,8 @@ const BlockEditor = ({
             subComponents: newSubComponents,
             // Ensure we have enough actions
             actions: newSubComponents.length > 1
-                ? [...component.actions, 0].slice(0, newSubComponents.length - 1)
-                : component.actions
+                ? [...component.actions, 0].slice(0, newSubComponents.length - 1) as number[]
+                : component.actions as number[]
         });
     };
 
@@ -81,7 +81,7 @@ const BlockEditor = ({
         onChange({
             ...component,
             subComponents: newSubComponents,
-            actions: newActions
+            actions: newActions as number[]
         });
     };
 
@@ -106,7 +106,7 @@ const BlockEditor = ({
         onChange({
             ...component,
             subComponents: newSubComponents,
-            actions: newActions
+            actions: newActions as number[]
         });
     };
 
@@ -131,7 +131,7 @@ const BlockEditor = ({
         onChange({
             ...component,
             subComponents: newSubComponents,
-            actions: newActions
+            actions: newActions as number[]
         });
     };
 
@@ -140,7 +140,7 @@ const BlockEditor = ({
         newActions[index] = value;
         onChange({
             ...component,
-            actions: newActions
+            actions: newActions as number[]
         });
     };
 
@@ -317,11 +317,11 @@ const BlockEditor = ({
                                     {!isLast && (
                                         <div className="ml-8 mb-4 flex items-center">
                                             <div className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center font-bold text-gray-500">
-                                                {getOperationSymbol(component.actions[index] || 0)}
+                                                {getOperationSymbol(component.actions[index] as number || 0)}
                                             </div>
                                             <div className="ml-2 flex-grow">
                                                 <OperationSelector
-                                                    value={component.actions[index] || 0}
+                                                    value={component.actions[index] as number || 0}
                                                     onChange={(value) => updateOperation(index, value)}
                                                     label="Operation with next component:"
                                                 />
