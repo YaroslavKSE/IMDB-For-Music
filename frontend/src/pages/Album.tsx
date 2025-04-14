@@ -55,7 +55,6 @@ const Album = () => {
             }
         };
         fetchAlbumDetails();
-        //eslint-disable-next-line
     }, [id]);
 
     useEffect(() => {
@@ -72,7 +71,7 @@ const Album = () => {
     }, []);
 
     const loadAlbumPreviews = async (albumData: AlbumDetail | null) => {
-        console.log(tracksOffset + " reloading previews");
+        console.log("reloading previews");
         if(albumData == null) return;
         const previewsArray = await getSeveralPreviewsUrl(albumData.spotifyId);
         let i = 0;
