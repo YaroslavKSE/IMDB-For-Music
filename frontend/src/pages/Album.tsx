@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Disc, Loader } from 'lucide-react';
+import { Disc } from 'lucide-react';
 import CatalogService, {AlbumDetail, TrackDetail, TrackSummary} from '../api/catalog';
 import EmptyState from '../components/common/EmptyState';
 import {getSeveralPreviewsUrl, getTrackPreviewUrl} from '../utils/preview-extractor';
@@ -45,8 +45,7 @@ const Album = () => {
                     setTracksOffset(albumData.tracks.length);
                     setTracksTotal(albumData.totalTracks || albumData.tracks.length);
                 }
-
-                await loadAlbumPreviews(albumData);
+                loadAlbumPreviews(albumData);
                 setAlbum(albumData);
             } catch (err) {
                 console.error('Error fetching album details:', err);
@@ -56,6 +55,7 @@ const Album = () => {
             }
         };
         fetchAlbumDetails();
+        //eslint-disable-next-line
     }, [id]);
 
     useEffect(() => {
@@ -72,6 +72,7 @@ const Album = () => {
     }, []);
 
     const loadAlbumPreviews = async (albumData: AlbumDetail | null) => {
+        console.log(tracksOffset + " reloading previews");
         if(albumData == null) return;
         const previewsArray = await getSeveralPreviewsUrl(albumData.spotifyId);
         let i = 0;
@@ -86,16 +87,21 @@ const Album = () => {
     };
 
     const loadMoreTracks = async () => {
-        if (!id || !album || loadingMoreTracks) return;
+        if (!id || !album || loadingMoreTracks || tracksOffset >= tracksTotal) return;
 
         setLoadingMoreTracks(true);
 
         try {
-            // Fetch additional tracks using the catalog API
             const response = await CatalogService.getAlbumTracks(album.spotifyId, 50, tracksOffset);
 
-            // Update the state with the new tracks
-            const newTracks = response.tracks;
+            const newTracks = response.tracks || [];
+
+            if (newTracks.length === 0) {
+                setTracksOffset(tracksTotal);
+                setLoadingMoreTracks(false);
+                return;
+            }
+
             const updatedAlbum = { ...album };
 
             // Append the new tracks to the existing ones
@@ -103,7 +109,9 @@ const Album = () => {
 
             // Update the tracksOffset for next pagination
             setTracksOffset(tracksOffset + newTracks.length);
-            loadAlbumPreviews(updatedAlbum);
+            if(tracksOffset <= 99){
+                loadAlbumPreviews(updatedAlbum);
+            }
 
             setAlbum(updatedAlbum);
 
@@ -234,9 +242,6 @@ const Album = () => {
         );
     }
 
-    // Check if we need to show the load more button
-    const showLoadMoreButton = tracksOffset < tracksTotal;
-
     return (
         <div className="max-w-6xl mx-auto pb-12">
             {interactionSuccess && (
@@ -260,27 +265,11 @@ const Album = () => {
                 handlePreviewToggle={handlePreviewToggle}
                 handleTrackInteraction={handleTrackInteraction}
                 handleAlbumInteraction={handleAlbumInteraction}
+                tracksTotal={tracksTotal}
+                tracksOffset={tracksOffset}
+                loadingMoreTracks={loadingMoreTracks}
+                onLoadMoreTracks={loadMoreTracks}
             />
-
-            {/* Load More Tracks Button */}
-            {activeTab === 'tracks' && showLoadMoreButton && (
-                <div className="flex justify-center mt-8">
-                    <button
-                        onClick={loadMoreTracks}
-                        disabled={loadingMoreTracks}
-                        className="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                    >
-                        {loadingMoreTracks ? (
-                            <>
-                                <Loader className="h-4 w-4 animate-spin mr-2" />
-                                Loading...
-                            </>
-                        ) : (
-                            `Load More Tracks (${tracksOffset} of ${tracksTotal})`
-                        )}
-                    </button>
-                </div>
-            )}
 
             {/* Modal for Album interaction */}
             {album && isAlbumInteraction && (

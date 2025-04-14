@@ -15,6 +15,10 @@ interface AlbumContentTabsProps {
     handlePreviewToggle: (track: TrackSummary) => Promise<void>;
     handleTrackInteraction: (track: TrackSummary) => void;
     handleAlbumInteraction: () => void;
+    tracksTotal: number;
+    tracksOffset: number;
+    loadingMoreTracks: boolean;
+    onLoadMoreTracks: () => void;
 }
 
 const AlbumContentTabs = ({
@@ -26,7 +30,11 @@ const AlbumContentTabs = ({
                               setHoveredTrack,
                               handlePreviewToggle,
                               handleTrackInteraction,
-                              handleAlbumInteraction
+                              handleAlbumInteraction,
+                              tracksTotal,
+                              tracksOffset,
+                              loadingMoreTracks,
+                              onLoadMoreTracks
                           }: AlbumContentTabsProps) => {
     const navigate = useNavigate();
 
@@ -70,6 +78,10 @@ const AlbumContentTabs = ({
                     setHoveredTrack={setHoveredTrack}
                     handlePreviewToggle={handlePreviewToggle}
                     handleTrackInteraction={handleTrackInteraction}
+                    tracksTotal={tracksTotal}
+                    tracksOffset={tracksOffset}
+                    loadingMoreTracks={loadingMoreTracks}
+                    onLoadMore={onLoadMoreTracks}
                 />
             )}
 
