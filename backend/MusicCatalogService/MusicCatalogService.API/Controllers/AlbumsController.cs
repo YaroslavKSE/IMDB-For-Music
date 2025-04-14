@@ -43,6 +43,26 @@ public class AlbumsController : BaseApiController
             spotifyId);
     }
 
+    [HttpGet("spotify/{spotifyId}/tracks")]
+    [ProducesResponseType(typeof(AlbumTracksResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetAlbumTracks(
+        string spotifyId,
+        [FromQuery] int limit = 20,
+        [FromQuery] int offset = 0,
+        [FromQuery] string? market = null)
+    {
+        // Ensure limit is within acceptable range
+        limit = Math.Clamp(limit, 1, 50);
+
+        return await ExecuteApiActionAsync(
+            () => _albumService.GetAlbumTracksAsync(spotifyId, limit, offset, market),
+            $"Error retrieving tracks for album with Spotify ID: {spotifyId}",
+            spotifyId);
+    }
+
     [HttpGet("spotify")]
     [ProducesResponseType(typeof(MultipleAlbumsOverviewDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]

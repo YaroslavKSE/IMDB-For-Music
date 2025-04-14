@@ -132,6 +132,73 @@ public class AlbumService : IAlbumService
         return result;
     }
 
+    public async Task<AlbumTracksResultDto> GetAlbumTracksAsync(string spotifyId, int limit = 20, int offset = 0, string? market = null)
+    {
+        try
+        {
+            // Generate cache key for this request
+            var cacheKey = $"album:{spotifyId}:tracks:{limit}:{offset}:{market ?? "none"}";
+
+            // Try to get from cache first
+            var cachedResult = await _cacheService.GetAsync<AlbumTracksResultDto>(cacheKey);
+            if (cachedResult != null)
+            {
+                _logger.LogInformation("Album tracks for {SpotifyId} retrieved from cache", spotifyId);
+                return cachedResult;
+            }
+
+            // Get the album to ensure it exists and to get the name
+            var album = await _catalogRepository.GetAlbumBySpotifyIdAsync(spotifyId);
+            string albumName = "Unknown Album";
+
+            if (album != null)
+            {
+                albumName = album.Name;
+            }
+            else
+            {
+                // Try to fetch album from Spotify
+                var albumResponse = await _spotifyApiClient.GetAlbumAsync(spotifyId);
+                if (albumResponse != null)
+                {
+                    albumName = albumResponse.Name;
+                }
+            }
+
+            // Fetch tracks from Spotify API
+            _logger.LogInformation("Fetching tracks for album {SpotifyId} from Spotify API", spotifyId);
+            var tracksResponse = await _spotifyApiClient.GetAlbumTracksAsync(spotifyId, limit, offset, market);
+            if (tracksResponse == null)
+            {
+                _logger.LogWarning("No tracks found for album {SpotifyId}", spotifyId);
+                return new AlbumTracksResultDto
+                {
+                    AlbumId = spotifyId,
+                    AlbumName = albumName,
+                    Limit = limit,
+                    Offset = offset,
+                    TotalResults = 0
+                };
+            }
+
+            // Map the response to our DTO
+            var result = MapToAlbumTracksResultDto(tracksResponse, spotifyId, albumName, limit, offset);
+
+            // Cache the result
+            await _cacheService.SetAsync(
+                cacheKey,
+                result,
+                TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving tracks for album {SpotifyId}", spotifyId);
+            throw;
+        }
+    }
+
     // Implementation for GetMultipleAlbumsOverviewAsync - returns simplified album information
     public async Task<MultipleAlbumsOverviewDto> GetMultipleAlbumsOverviewAsync(IEnumerable<string> spotifyIds)
     {
@@ -456,5 +523,42 @@ public class AlbumService : IAlbumService
                 ? new List<string> {album.ExternalUrls.Spotify}
                 : null
         };
+    }
+
+    private AlbumTracksResultDto MapToAlbumTracksResultDto(
+        SpotifyPagingObject<SpotifyTrackSimplified> response,
+        string albumId,
+        string albumName,
+        int limit,
+        int offset)
+    {
+        var result = new AlbumTracksResultDto
+        {
+            AlbumId = albumId,
+            AlbumName = albumName,
+            Limit = limit,
+            Offset = offset,
+            TotalResults = response.Total,
+            Next = response.Next,
+            Previous = response.Previous
+        };
+
+        // Map tracks
+        if (response.Items != null)
+        {
+            result.Tracks = response.Items.Select(track => new TrackSummaryDto
+            {
+                SpotifyId = track.Id,
+                Name = track.Name,
+                ArtistName = track.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
+                DurationMs = track.DurationMs,
+                IsExplicit = track.Explicit,
+                TrackNumber = track.TrackNumber,
+                AlbumId = albumId,
+                ExternalUrls = track.ExternalUrls?.Spotify != null ? new List<string> { track.ExternalUrls.Spotify } : null
+            }).ToList();
+        }
+
+        return result;
     }
 }
