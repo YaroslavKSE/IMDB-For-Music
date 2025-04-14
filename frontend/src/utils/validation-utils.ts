@@ -54,7 +54,7 @@ export const hasDivisionByZeroRisk = (
     // Also check nested block components for division operations
     for (const component of components) {
         if (component.componentType === 'block') {
-            if (hasDivisionByZeroRisk(component.subComponents, component.actions)) {
+            if (hasDivisionByZeroRisk(component.subComponents, component.actions as number[])) {
                 return true;
             }
         }
@@ -126,7 +126,7 @@ export const validateAllComponents = (
             if (!result.valid) return result;
 
             // Check for division by zero in this block
-            if (hasDivisionByZeroRisk(component.subComponents, component.actions)) {
+            if (hasDivisionByZeroRisk(component.subComponents, component.actions as number[])) {
                 return {
                     valid: false,
                     error: `Block "${component.name}" has a division operation where the divisor could be zero. Please adjust the grade ranges to prevent division by zero.`
