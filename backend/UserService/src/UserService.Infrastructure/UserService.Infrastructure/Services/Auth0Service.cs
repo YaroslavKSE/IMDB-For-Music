@@ -299,6 +299,42 @@ public class Auth0Service : IAuth0Service
             throw new Auth0Exception("Failed to process social login tokens", ex);
         }
     }
+    public async Task<bool> UpdateUserPictureAsync(string auth0UserId, string pictureUrl)
+    {
+        try
+        {
+            await EnsureManagementApiToken();
+
+            // Prepare update request
+            var updateRequest = new 
+            {
+                picture = pictureUrl
+            };
+
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", _managementApiToken);
+
+            var response = await _httpClient.PatchAsJsonAsync(
+                $"https://{_settings.Domain}/api/v2/users/{auth0UserId}",
+                updateRequest);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to update Auth0 user picture. Status: {Status}, Error: {Error}",
+                    response.StatusCode, error);
+                return false;
+            }
+
+            _logger.LogInformation("Successfully updated picture for Auth0 user: {Auth0UserId}", auth0UserId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating picture for Auth0 user: {Auth0UserId}", auth0UserId);
+            return false;
+        }
+    }
 
     public async Task AssignDefaultRoleAsync(string userId)
     {

@@ -26,6 +26,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Surname).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Auth0Id).IsRequired();
+            entity.Property(e => e.AvatarUrl).IsRequired(false); 
         });
         modelBuilder.Entity<UserSubscription>(entity =>
         {

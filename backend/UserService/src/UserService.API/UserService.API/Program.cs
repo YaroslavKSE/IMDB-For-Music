@@ -2,6 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using Amazon;
+using Amazon.S3;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using FluentValidation;
@@ -51,6 +53,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
 
+// Add AWS Configuration
+builder.Services.Configure<AWSSettings>(
+    builder.Configuration.GetSection("AWS"));
+
+// Add AWS S3 Service
+var awsOptions = builder.Configuration.GetAWSOptions();
+builder.Services.AddDefaultAWSOptions(awsOptions);
+builder.Services.AddAWSService<IAmazonS3>();
+
+builder.Services.AddScoped<IS3StorageService, S3StorageService>();
 
 // Auth0
 builder.Services.Configure<Auth0Settings>(

@@ -10,4 +10,5 @@ public interface IAuth0Service
     Task<UserInfoDto> GetUserInfoAsync(string accessToken);
     Task<AuthTokenResponse> GetTokensForSocialUserAsync(string accessToken);
     Task AssignDefaultRoleAsync(string userId);
+    Task<bool> UpdateUserPictureAsync(string auth0UserId, string pictureUrl);
 }

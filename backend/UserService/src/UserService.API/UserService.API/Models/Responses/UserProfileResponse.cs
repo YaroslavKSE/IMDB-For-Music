@@ -8,5 +8,6 @@ public class UserProfileResponse
     public string Surname { get; set; }
 
     public string Username { get; set; }
+    public string AvatarUrl { get; set; } 
     // Additional properties can be added later (bio, preferences, etc.)
 }

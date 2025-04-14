@@ -6,5 +6,6 @@
     public string Surname { get; set; }
     public int FollowerCount { get; set; }
     public int FollowingCount { get; set; }
+    public string AvatarUrl { get; set; }
     public DateTime CreatedAt { get; set; }
 }
