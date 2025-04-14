@@ -132,13 +132,10 @@ public class TrackService : ITrackService
         return result;
     }
 
-    // Implementation for GetMultipleTracksOverviewAsync - returns simplified track information
     public async Task<MultipleTracksOverviewDto> GetMultipleTracksOverviewAsync(IEnumerable<string> spotifyIds)
     {
         if (spotifyIds == null || !spotifyIds.Any())
-        {
             throw new ArgumentException("Track IDs cannot be null or empty", nameof(spotifyIds));
-        }
 
         var result = new MultipleTracksOverviewDto();
 
@@ -161,35 +158,59 @@ public class TrackService : ITrackService
 
                 if (cachedBatch != null && cachedBatch.Any())
                 {
-                    _logger.LogInformation("Track overview batch retrieved from cache for {Count} tracks", cachedBatch.Count);
+                    _logger.LogInformation("Track overview batch retrieved from cache for {Count} tracks",
+                        cachedBatch.Count);
                     result.Tracks.AddRange(cachedBatch);
                     continue;
                 }
 
                 // Try to get from database first
                 var databaseTracks = await _catalogRepository.GetBatchTracksBySpotifyIdsAsync(batch);
-                var validDatabaseTracks = databaseTracks
-                    .Where(t => t != null && DateTime.UtcNow < t.CacheExpiresAt)
-                    .ToList();
 
-                if (validDatabaseTracks.Count == batch.Length)
+                // Keep track of which IDs we need to fetch from Spotify
+                var missingIds = new List<string>();
+                var existingDbTracks = new Dictionary<string, Track>();
+                var trackSummaries = new List<TrackSummaryDto>();
+
+                // Process database results first and identify missing tracks
+                foreach (var spotifyId in batch)
                 {
-                    _logger.LogInformation("Retrieved all {Count} track overviews from database", batch.Length);
+                    var dbTrack = databaseTracks.FirstOrDefault(t => t != null && t.SpotifyId == spotifyId);
 
-                    // Map database tracks to summary DTOs (simplified view)
-                    var trackSummaries = validDatabaseTracks.Select(track => new TrackSummaryDto
+                    if (dbTrack != null && DateTime.UtcNow < dbTrack.CacheExpiresAt)
                     {
-                        CatalogItemId = track.Id,
-                        SpotifyId = track.SpotifyId,
-                        Name = track.Name,
-                        ArtistName = track.ArtistName,
-                        ImageUrl = track.ThumbnailUrl,
-                        DurationMs = track.DurationMs,
-                        IsExplicit = track.IsExplicit,
-                        AlbumId = track.AlbumId,
-                        Popularity = track.Popularity,
-                        ExternalUrls = track.SpotifyUrl != null ? new List<string> { track.SpotifyUrl } : null
-                    }).ToList();
+                        // Valid track from database - add to result directly
+                        existingDbTracks[spotifyId] = dbTrack;
+
+                        // Map to summary DTO
+                        trackSummaries.Add(new TrackSummaryDto
+                        {
+                            CatalogItemId = dbTrack.Id,
+                            SpotifyId = dbTrack.SpotifyId,
+                            Name = dbTrack.Name,
+                            ArtistName = dbTrack.ArtistName,
+                            ImageUrl = dbTrack.ThumbnailUrl,
+                            DurationMs = dbTrack.DurationMs,
+                            IsExplicit = dbTrack.IsExplicit,
+                            AlbumId = dbTrack.AlbumId,
+                            Popularity = dbTrack.Popularity,
+                            ExternalUrls = dbTrack.SpotifyUrl != null ? new List<string> {dbTrack.SpotifyUrl} : null
+                        });
+                    }
+                    else
+                    {
+                        // Track not in database or expired - need to fetch from Spotify
+                        missingIds.Add(spotifyId);
+
+                        // Store reference to expired track if it exists (for _id preservation)
+                        if (dbTrack != null) existingDbTracks[spotifyId] = dbTrack;
+                    }
+                }
+
+                // If we got all tracks from the database, no need to call Spotify API
+                if (!missingIds.Any())
+                {
+                    _logger.LogInformation("Retrieved all {Count} track overviews from database", trackSummaries.Count);
 
                     // Add to result
                     result.Tracks.AddRange(trackSummaries);
@@ -204,89 +225,116 @@ public class TrackService : ITrackService
                 }
 
                 // Fetch missing tracks from Spotify API
-                _logger.LogInformation("Fetching batch of {Count} track overviews from Spotify API", batch.Length);
+                _logger.LogInformation("Fetching {Count} missing tracks from Spotify API", missingIds.Count);
 
-                var spotifyResponse = await _spotifyApiClient.GetMultipleTracksAsync(batch);
+                var spotifyResponse = missingIds.Count > 0
+                    ? await _spotifyApiClient.GetMultipleTracksAsync(missingIds)
+                    : null;
 
-                if (spotifyResponse?.Tracks == null || !spotifyResponse.Tracks.Any())
-                {
-                    _logger.LogWarning("No tracks returned from Spotify for batch of {Count} ids", batch.Length);
-                    continue;
-                }
-
-                var batchSummaries = new List<TrackSummaryDto>();
-
-                // Process each track from Spotify - map to simplified summary
-                foreach (var spotifyTrack in spotifyResponse.Tracks)
-                {
-                    if (spotifyTrack == null) continue;
-
-                    // Get existing track from database or create new entity
-                    var existingTrack = validDatabaseTracks.FirstOrDefault(t => t.SpotifyId == spotifyTrack.Id);
-                    var trackEntity = new Track
+                if (spotifyResponse?.Tracks != null && spotifyResponse.Tracks.Any())
+                    // Process each track from Spotify
+                    foreach (var spotifyTrack in spotifyResponse.Tracks)
                     {
-                        Id = existingTrack?.Id ?? Guid.NewGuid(),
-                        SpotifyId = spotifyTrack.Id,
-                        Name = spotifyTrack.Name,
-                        ArtistName = spotifyTrack.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
-                        ThumbnailUrl = GetOptimalImage(spotifyTrack.Album.Images),
-                        Popularity = spotifyTrack.Popularity,
-                        LastAccessed = DateTime.UtcNow,
-                        CacheExpiresAt = DateTime.UtcNow.AddMinutes(_spotifySettings.CacheExpirationMinutes),
-                        DurationMs = spotifyTrack.DurationMs,
-                        IsExplicit = spotifyTrack.Explicit,
-                        Isrc = spotifyTrack.ExternalIds?.Isrc,
-                        AlbumId = spotifyTrack.Album.Id,
-                        AlbumName = spotifyTrack.Album.Name,
-                        AlbumType = spotifyTrack.Album.AlbumType,
-                        ReleaseDate = spotifyTrack.Album.ReleaseDate,
-                        SpotifyUrl = spotifyTrack.ExternalUrls?.Spotify,
-                        Artists = spotifyTrack.Artists.Select(a => new SimplifiedArtist
+                        if (spotifyTrack == null) continue;
+
+                        Track trackEntity;
+
+                        // Check if we have an existing entity to update
+                        if (existingDbTracks.TryGetValue(spotifyTrack.Id, out var existingTrack))
                         {
-                            Id = a.Id,
-                            Name = a.Name,
-                            SpotifyUrl = a.ExternalUrls?.Spotify
-                        }).ToList(),
-                        RawData = JsonSerializer.Serialize(spotifyTrack)
-                    };
-
-                    // Save to database
-                    await _catalogRepository.AddOrUpdateTrackAsync(trackEntity);
-
-                    // Map to a simplified summary DTO
-                    var trackSummary = new TrackSummaryDto
-                    {
-                        CatalogItemId = trackEntity.Id,
-                        SpotifyId = spotifyTrack.Id,
-                        Name = spotifyTrack.Name,
-                        ArtistName = spotifyTrack.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
-                        ImageUrl = GetOptimalImage(spotifyTrack.Album.Images),
-                        Images = spotifyTrack.Album.Images?.Select(img => new ImageDto
+                            // Update existing entity properties
+                            trackEntity = existingTrack;
+                            trackEntity.Name = spotifyTrack.Name;
+                            trackEntity.ArtistName = spotifyTrack.Artists.FirstOrDefault()?.Name ?? "Unknown Artist";
+                            trackEntity.ThumbnailUrl = GetOptimalImage(spotifyTrack.Album.Images);
+                            trackEntity.Popularity = spotifyTrack.Popularity;
+                            trackEntity.LastAccessed = DateTime.UtcNow;
+                            trackEntity.CacheExpiresAt =
+                                DateTime.UtcNow.AddMinutes(_spotifySettings.CacheExpirationMinutes);
+                            trackEntity.DurationMs = spotifyTrack.DurationMs;
+                            trackEntity.IsExplicit = spotifyTrack.Explicit;
+                            trackEntity.Isrc = spotifyTrack.ExternalIds?.Isrc;
+                            trackEntity.AlbumId = spotifyTrack.Album.Id;
+                            trackEntity.AlbumName = spotifyTrack.Album.Name;
+                            trackEntity.AlbumType = spotifyTrack.Album.AlbumType;
+                            trackEntity.ReleaseDate = spotifyTrack.Album.ReleaseDate;
+                            trackEntity.SpotifyUrl = spotifyTrack.ExternalUrls?.Spotify;
+                            trackEntity.Artists = spotifyTrack.Artists.Select(a => new SimplifiedArtist
+                            {
+                                Id = a.Id,
+                                Name = a.Name,
+                                SpotifyUrl = a.ExternalUrls?.Spotify
+                            }).ToList();
+                            trackEntity.RawData = JsonSerializer.Serialize(spotifyTrack);
+                        }
+                        else
                         {
-                            Url = img.Url,
-                            Height = img.Height,
-                            Width = img.Width
-                        }).ToList(),
-                        DurationMs = spotifyTrack.DurationMs,
-                        IsExplicit = spotifyTrack.Explicit,
-                        TrackNumber = spotifyTrack.TrackNumber,
-                        AlbumId = spotifyTrack.Album.Id,
-                        Popularity = spotifyTrack.Popularity,
-                        ExternalUrls = spotifyTrack.ExternalUrls?.Spotify != null
-                            ? new List<string> { spotifyTrack.ExternalUrls.Spotify }
-                            : null
-                    };
+                            // Create new entity for tracks not in database
+                            trackEntity = new Track
+                            {
+                                Id = Guid.NewGuid(),
+                                SpotifyId = spotifyTrack.Id,
+                                Name = spotifyTrack.Name,
+                                ArtistName = spotifyTrack.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
+                                ThumbnailUrl = GetOptimalImage(spotifyTrack.Album.Images),
+                                Popularity = spotifyTrack.Popularity,
+                                LastAccessed = DateTime.UtcNow,
+                                CacheExpiresAt = DateTime.UtcNow.AddMinutes(_spotifySettings.CacheExpirationMinutes),
+                                DurationMs = spotifyTrack.DurationMs,
+                                IsExplicit = spotifyTrack.Explicit,
+                                Isrc = spotifyTrack.ExternalIds?.Isrc,
+                                AlbumId = spotifyTrack.Album.Id,
+                                AlbumName = spotifyTrack.Album.Name,
+                                AlbumType = spotifyTrack.Album.AlbumType,
+                                ReleaseDate = spotifyTrack.Album.ReleaseDate,
+                                SpotifyUrl = spotifyTrack.ExternalUrls?.Spotify,
+                                Artists = spotifyTrack.Artists.Select(a => new SimplifiedArtist
+                                {
+                                    Id = a.Id,
+                                    Name = a.Name,
+                                    SpotifyUrl = a.ExternalUrls?.Spotify
+                                }).ToList(),
+                                RawData = JsonSerializer.Serialize(spotifyTrack)
+                            };
+                        }
 
-                    batchSummaries.Add(trackSummary);
-                }
+                        // Save to database
+                        await _catalogRepository.AddOrUpdateTrackAsync(trackEntity);
 
-                // Add batch results to overall results
-                result.Tracks.AddRange(batchSummaries);
+                        // Map to a summary DTO and add to results
+                        var trackSummary = new TrackSummaryDto
+                        {
+                            CatalogItemId = trackEntity.Id,
+                            SpotifyId = spotifyTrack.Id,
+                            Name = spotifyTrack.Name,
+                            ArtistName = spotifyTrack.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
+                            ImageUrl = GetOptimalImage(spotifyTrack.Album.Images),
+                            Images = spotifyTrack.Album.Images?.Select(img => new ImageDto
+                            {
+                                Url = img.Url,
+                                Height = img.Height,
+                                Width = img.Width
+                            }).ToList(),
+                            DurationMs = spotifyTrack.DurationMs,
+                            IsExplicit = spotifyTrack.Explicit,
+                            TrackNumber = spotifyTrack.TrackNumber,
+                            AlbumId = spotifyTrack.Album.Id,
+                            Popularity = spotifyTrack.Popularity,
+                            ExternalUrls = spotifyTrack.ExternalUrls?.Spotify != null
+                                ? new List<string> {spotifyTrack.ExternalUrls.Spotify}
+                                : null
+                        };
+
+                        trackSummaries.Add(trackSummary);
+                    }
+
+                // Add all track summaries to the result (both from DB and Spotify)
+                result.Tracks.AddRange(trackSummaries);
 
                 // Cache this batch
                 await _cacheService.SetAsync(
                     batchCacheKey,
-                    batchSummaries,
+                    trackSummaries,
                     TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
             }
 
@@ -305,34 +353,32 @@ public class TrackService : ITrackService
         try
         {
             _logger.LogInformation("Retrieving track with catalog ID: {CatalogId}", catalogId);
-            
+
             // Get track by catalog ID directly from database
             var track = await _catalogRepository.GetTrackByIdAsync(catalogId);
-            
+
             if (track == null)
             {
                 _logger.LogWarning("Track with catalog ID {CatalogId} not found", catalogId);
                 return null;
             }
-            
+
             // Check if the cached item has expired but is still in the database
             if (DateTime.UtcNow > track.CacheExpiresAt)
             {
-                _logger.LogInformation("Track with catalog ID {CatalogId} is expired, refreshing from Spotify", catalogId);
-                
+                _logger.LogInformation("Track with catalog ID {CatalogId} is expired, refreshing from Spotify",
+                    catalogId);
+
                 // Try to refresh from Spotify
                 var refreshedTrack = await GetTrackAsync(track.SpotifyId);
-                if (refreshedTrack != null)
-                {
-                    return refreshedTrack;
-                }
+                if (refreshedTrack != null) return refreshedTrack;
             }
-            
+
             // Deserialize the raw data to Spotify response
             var trackResponse = JsonSerializer.Deserialize<SpotifyTrackResponse>(
                 track.RawData,
                 new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
-            
+
             return MapToTrackDetailDto(trackResponse, track.Id);
         }
         catch (Exception ex)
@@ -348,7 +394,7 @@ public class TrackService : ITrackService
         try
         {
             _logger.LogInformation("Permanently saving track with Spotify ID: {SpotifyId}", spotifyId);
-            
+
             // First, ensure we have the track (either from cache, database or Spotify)
             var trackDto = await GetTrackAsync(spotifyId);
             if (trackDto == null)
@@ -356,7 +402,7 @@ public class TrackService : ITrackService
                 _logger.LogWarning("Cannot save track with Spotify ID {SpotifyId}: not found", spotifyId);
                 return null;
             }
-            
+
             // Retrieve the entity from the database
             var track = await _catalogRepository.GetTrackBySpotifyIdAsync(spotifyId);
             if (track == null)
@@ -364,10 +410,10 @@ public class TrackService : ITrackService
                 _logger.LogError("Unexpected error: track entity not found after GetTrackAsync succeeded");
                 throw new InvalidOperationException($"Track entity with Spotify ID {spotifyId} not found");
             }
-            
+
             // Permanently save to database with extended expiration
             await _catalogRepository.SaveTrackAsync(track);
-            
+
             // Return the track DTO for the API response
             return trackDto;
         }

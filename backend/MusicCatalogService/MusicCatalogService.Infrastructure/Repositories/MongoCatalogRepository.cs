@@ -106,7 +106,7 @@ public class MongoCatalogRepository : ICatalogRepository
         }
     }
 
-    // Save album permanently (identical to AddOrUpdateAlbumAsync but with different semantics)
+    // Save album permanently
     public async Task SaveAlbumAsync(Album album)
     {
         try
