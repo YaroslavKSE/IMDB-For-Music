@@ -109,7 +109,6 @@ const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-
   logout: async () => {
     try {
       set({ isLoading: true });
@@ -178,6 +177,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
 
   clearError: () => set({ error: null }),
 
+  // Fixed setUser method - this replaces the need for updateUser
   setUser: (user) => set({ user }),
 
   fetchUserProfile: async () => {

@@ -185,9 +185,22 @@ const People = () => {
                             {users.map((user) => (
                                 <div key={user.id} className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow duration-200">
                                     <div className="p-4 flex flex-col items-center text-center">
-                                        <div className="h-20 w-20 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-2xl font-bold mb-3 border-2 border-primary-200">
-                                            {user.name.charAt(0).toUpperCase()}{user.surname.charAt(0).toUpperCase()}
-                                        </div>
+                                        {/* Avatar Display - Now showing avatar if available */}
+                                        {user.avatarUrl ? (
+                                            <img
+                                                src={user.avatarUrl}
+                                                alt={`${user.name} ${user.surname}`}
+                                                className="h-20 w-20 rounded-full object-cover mb-3 border-2 border-primary-200"
+                                                onClick={() => navigate(`/people/${user.id}`)}
+                                            />
+                                        ) : (
+                                            <div
+                                                className="h-20 w-20 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-2xl font-bold mb-3 border-2 border-primary-200"
+                                                onClick={() => navigate(`/people/${user.id}`)}
+                                            >
+                                                {user.name.charAt(0).toUpperCase()}{user.surname.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
                                         <h3 className="font-medium text-gray-900 mb-1">{user.name} {user.surname}</h3>
                                         <p className="text-sm text-gray-600 mb-4">@{user.username}</p>
 

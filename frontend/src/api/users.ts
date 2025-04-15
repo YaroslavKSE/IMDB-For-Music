@@ -9,6 +9,7 @@ export interface UserSummary {
   username: string;
   name: string;
   surname: string;
+  avatarUrl?: string;
 }
 
 export interface PaginatedUsersResponse {
@@ -26,6 +27,7 @@ export interface UserSubscriptionResponse {
   username: string;
   name: string;
   surname: string;
+  avatarUrl?: string;
   subscribedAt: string;
 }
 
@@ -46,16 +48,8 @@ export interface PublicUserProfile {
   surname: string;
   followerCount: number;
   followingCount: number;
+  avatarUrl?: string;
   createdAt: string;
-}
-
-export interface UserProfile {
-  id: string;
-  username: string;
-  name: string;
-  surname: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 const UsersService = {

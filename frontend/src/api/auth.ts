@@ -3,6 +3,7 @@ import { createApiClient } from '../utils/axios-factory';
 // Create the API client specifically for auth/user service
 const authApi = createApiClient('/auth');
 const userApi = createApiClient('/users');
+const avatarApi = createApiClient('/users/avatars');
 
 export interface RegisterParams {
   email: string;
@@ -48,6 +49,15 @@ export interface UserProfile {
   username?: string;
   createdAt?: string;
   updatedAt?: string;
+  avatarUrl?: string;
+}
+
+export interface PresignedUrlResponse {
+  url: string;
+  formData?: Record<string, string>;
+  objectKey: string;
+  avatarUrl: string;
+  expiresInSeconds: number;
 }
 
 const AuthService = {
@@ -112,6 +122,39 @@ const AuthService = {
   getToken: (): string | null => {
     return localStorage.getItem('token');
   },
+
+  // Avatar related functions
+  getAvatarUploadUrl: async (contentType: string): Promise<PresignedUrlResponse> => {
+    const response = await avatarApi.post('/presigned-url', { contentType });
+    return response.data;
+  },
+
+  completeAvatarUpload: async (objectKey: string, avatarUrl: string): Promise<UserProfile> => {
+    const response = await avatarApi.post('/complete-upload', { objectKey, avatarUrl });
+    // Update cached user profile
+    localStorage.setItem('user', JSON.stringify(response.data));
+    return response.data;
+  },
+
+  uploadAvatar: async (file: File): Promise<UserProfile> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await avatarApi.post('/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    // Update cached user profile
+    localStorage.setItem('user', JSON.stringify(response.data));
+    return response.data;
+  },
+
+  deleteAvatar: async (): Promise<UserProfile> => {
+    const response = await avatarApi.delete('');
+    // Update cached user profile
+    localStorage.setItem('user', JSON.stringify(response.data));
+    return response.data;
+  }
 };
 
 export default AuthService;
