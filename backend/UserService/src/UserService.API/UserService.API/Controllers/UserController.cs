@@ -76,7 +76,8 @@ public class UserController : ControllerBase
                 Email = userProfile.Email,
                 Name = userProfile.Name,
                 Username = userProfile.Username,
-                Surname = userProfile.Surname
+                Surname = userProfile.Surname,
+                AvatarUrl = userProfile.AvatarUrl
             };
 
             return Ok(response);
@@ -147,7 +148,8 @@ public class UserController : ControllerBase
                 Email = updatedProfile.Email,
                 Name = updatedProfile.Name,
                 Surname = updatedProfile.Surname,
-                Username = updatedProfile.Username
+                Username = updatedProfile.Username,
+                AvatarUrl = updatedProfile.AvatarUrl
             };
 
             return Ok(response);
@@ -218,7 +220,8 @@ public class UserController : ControllerBase
                 Email = userProfile.Email,
                 Name = userProfile.Name,
                 Username = userProfile.Username,
-                Surname = userProfile.Surname
+                Surname = userProfile.Surname,
+                AvatarUrl = userProfile.AvatarUrl
             };
 
             return Ok(response);
@@ -278,7 +281,8 @@ public class UserController : ControllerBase
                 Email = userProfile.Email,
                 Name = userProfile.Name,
                 Username = userProfile.Username,
-                Surname = userProfile.Surname
+                Surname = userProfile.Surname,
+                AvatarUrl = userProfile.AvatarUrl
             };
 
             return Ok(response);
@@ -338,7 +342,8 @@ public class UserController : ControllerBase
                 Email = userProfile.Email,
                 Name = userProfile.Name,
                 Username = userProfile.Username,
-                Surname = userProfile.Surname
+                Surname = userProfile.Surname,
+                AvatarUrl = userProfile.AvatarUrl
             };
 
             return Ok(response);

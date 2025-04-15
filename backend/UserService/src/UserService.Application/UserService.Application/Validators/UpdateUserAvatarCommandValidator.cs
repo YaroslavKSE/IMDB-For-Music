@@ -29,6 +29,8 @@ public class UpdateUserAvatarCommandValidator : AbstractValidator<UpdateUserAvat
     {
         return contentType == "image/jpeg" ||
                contentType == "image/png" ||
-               contentType == "image/gif";
+               contentType == "image/gif" ||
+               contentType == "image/heic" ||
+               contentType == "image/heif";
     }
 }

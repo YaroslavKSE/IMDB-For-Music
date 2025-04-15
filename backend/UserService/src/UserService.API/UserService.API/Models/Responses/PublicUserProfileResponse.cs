@@ -1,4 +1,6 @@
-﻿public class PublicUserProfileResponse
+﻿using System;
+
+public class PublicUserProfileResponse
 {
     public Guid Id { get; set; }
     public string Username { get; set; }
