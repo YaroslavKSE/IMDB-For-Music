@@ -51,7 +51,8 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PaginatedUser
                 Id = u.Id,
                 Username = u.Username,
                 Name = u.Name,
-                Surname = u.Surname
+                Surname = u.Surname,
+                AvatarUrl = u.AvatarUrl,
             }).ToList(),
             Page = request.Page,
             PageSize = request.PageSize,

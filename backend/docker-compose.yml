@@ -68,6 +68,11 @@ services:
       - Auth0__Audience=${AUTH0_AUDIENCE}
       - Auth0__ManagementApiAudience=${AUTH0_MANAGEMENT_API_AUDIENCE}
       - Cors__AllowedOrigins__0=${FRONTEND_BASE_URL}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_KEY}
+      - AWS__REGION=${AWS_REGION}
+      - AWS__AvatarBucketName=${AVATAR_BUCKET_NAME}
+      - AWS__AvatarBaseUrl=${AVATAR_BASE_URL}
     ports:
       - "5001:80"
     depends_on:

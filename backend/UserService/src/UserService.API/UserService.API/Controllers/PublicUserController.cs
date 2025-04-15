@@ -46,7 +46,8 @@ public class PublicUserController : ControllerBase
                     Id = u.Id,
                     Username = u.Username,
                     Name = u.Name,
-                    Surname = u.Surname
+                    Surname = u.Surname,
+                    AvatarUrl = u.AvatarUrl
                 }).ToList(),
                 Page = result.Page,
                 PageSize = result.PageSize,
@@ -123,7 +124,8 @@ public class PublicUserController : ControllerBase
                 Surname = user.Surname,
                 FollowerCount = followerCount,
                 FollowingCount = followingCount,
-                CreatedAt = user.CreatedAt
+                CreatedAt = user.CreatedAt,
+                AvatarUrl = user.AvatarUrl
             };
 
             return Ok(response);
@@ -181,7 +183,8 @@ public class PublicUserController : ControllerBase
                 Surname = user.Surname,
                 FollowerCount = followerCount,
                 FollowingCount = followingCount,
-                CreatedAt = user.CreatedAt
+                CreatedAt = user.CreatedAt,
+                AvatarUrl = user.AvatarUrl
             };
 
             return Ok(response);

@@ -7,10 +7,10 @@ public class UserResponse
     public string Username { get; set; }
     public string Name { get; set; }
     public string Surname { get; set; }
+    public string AvatarUrl { get; set; } 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
-
 public class RegisterUserResponse
 {
     public Guid UserId { get; set; }
@@ -18,5 +18,6 @@ public class RegisterUserResponse
     public string Username { get; set; }
     public string Name { get; set; }
     public string Surname { get; set; }
+    public string AvatarUrl { get; set; } 
     public DateTime CreatedAt { get; set; }
 }

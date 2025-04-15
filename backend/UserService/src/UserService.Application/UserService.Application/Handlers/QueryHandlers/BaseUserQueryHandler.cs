@@ -29,6 +29,7 @@ public abstract class BaseUserQueryHandler
             Username = user.Username,
             Name = user.Name,
             Surname = user.Surname,
+            AvatarUrl = user.AvatarUrl,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
         };
