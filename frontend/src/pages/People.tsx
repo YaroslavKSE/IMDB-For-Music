@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Loader, UserPlus, UserCheck, Users } from 'lucide-react';
+import { Search, Loader, UserPlus, UserCheck, Users, User } from 'lucide-react';
 import UsersService, { UserSummary } from '../api/users';
 import useAuthStore from '../store/authStore';
 
 const People = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const { isAuthenticated } = useAuthStore();
+    const { isAuthenticated, user: currentUser } = useAuthStore();
     const searchQuery = searchParams.get('q') || '';
     const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
     const [page, setPage] = useState(1);
@@ -37,6 +37,10 @@ const People = () => {
                     // For better performance, we can do these in parallel
                     const followStatusPromises = response.items.map(async (user) => {
                         try {
+                            // Skip checking follow status for current user
+                            if (currentUser && user.id === currentUser.id) {
+                                return { userId: user.id, isFollowing: false };
+                            }
                             const isFollowing = await UsersService.checkFollowingStatus(user.id);
                             return { userId: user.id, isFollowing };
                         } catch (error) {
@@ -61,7 +65,7 @@ const People = () => {
         };
 
         fetchUsers();
-    }, [page, searchQuery, isAuthenticated]);
+    }, [page, searchQuery, isAuthenticated, currentUser]);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -116,6 +120,20 @@ const People = () => {
         return followingChanges[userId] !== undefined
             ? followingChanges[userId]
             : userFollowingStatus[userId] || false;
+    };
+
+    // Check if the user is the current logged-in user
+    const isCurrentUser = (userId: string) => {
+        return currentUser && currentUser.id === userId;
+    };
+
+    // Function to navigate to profile page or specific user page
+    const navigateToProfile = (userId: string) => {
+        if (isCurrentUser(userId)) {
+            navigate('/profile'); // Go to own profile page
+        } else {
+            navigate(`/people/${userId}`); // Go to specific user's page
+        }
     };
 
     return (
@@ -190,13 +208,13 @@ const People = () => {
                                             <img
                                                 src={user.avatarUrl}
                                                 alt={`${user.name} ${user.surname}`}
-                                                className="h-20 w-20 rounded-full object-cover mb-3 border-2 border-primary-200"
-                                                onClick={() => navigate(`/people/${user.id}`)}
+                                                className="h-20 w-20 rounded-full object-cover mb-3 border-2 border-primary-200 cursor-pointer"
+                                                onClick={() => navigateToProfile(user.id)}
                                             />
                                         ) : (
                                             <div
-                                                className="h-20 w-20 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-2xl font-bold mb-3 border-2 border-primary-200"
-                                                onClick={() => navigate(`/people/${user.id}`)}
+                                                className="h-20 w-20 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-2xl font-bold mb-3 border-2 border-primary-200 cursor-pointer"
+                                                onClick={() => navigateToProfile(user.id)}
                                             >
                                                 {user.name.charAt(0).toUpperCase()}{user.surname.charAt(0).toUpperCase()}
                                             </div>
@@ -206,13 +224,13 @@ const People = () => {
 
                                         <div className="flex space-x-2 mt-2">
                                             <button
-                                                onClick={() => navigate(`/people/${user.id}`)}
+                                                onClick={() => navigateToProfile(user.id)}
                                                 className="px-3 py-1.5 border border-gray-300 rounded text-sm font-medium bg-white hover:bg-gray-50"
                                             >
-                                                View Profile
+                                                {isCurrentUser(user.id) ? 'My Profile' : 'View Profile'}
                                             </button>
 
-                                            {isAuthenticated && (
+                                            {isAuthenticated && !isCurrentUser(user.id) ? (
                                                 <button
                                                     onClick={() => handleFollowToggle(user.id)}
                                                     className={`px-3 py-1.5 border rounded text-sm font-medium flex items-center ${
@@ -233,7 +251,14 @@ const People = () => {
                                                         </>
                                                     )}
                                                 </button>
-                                            )}
+                                            ) : isCurrentUser(user.id) ? (
+                                                <button
+                                                    className="px-3 py-1.5 border border-green-300 rounded text-sm font-medium flex items-center bg-green-50 text-green-700"
+                                                >
+                                                    <User className="h-4 w-4 mr-1" />
+                                                    You
+                                                </button>
+                                            ) : null}
                                         </div>
                                     </div>
                                 </div>
