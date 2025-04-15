@@ -45,7 +45,6 @@ public class S3StorageService : IS3StorageService
                 InputStream = fileStream,
                 BucketName = _settings.AvatarBucketName,
                 Key = objectKey,
-                CannedACL = S3CannedACL.PublicRead,
                 ContentType = file.ContentType
             };
 
