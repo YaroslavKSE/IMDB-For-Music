@@ -27,7 +27,10 @@ const ProfileOverviewTab = ({ user }: ProfileOverviewTabProps) => {
       {isEditing ? (
         <ProfileEditForm onCancel={handleCancelEditing} onSuccess={handleEditSuccess} />
       ) : (
-        <ProfileInfoCard user={user} onEdit={handleStartEditing} />
+        <ProfileInfoCard
+          user={user}
+          onEdit={handleStartEditing}
+        />
       )}
     </div>
   );

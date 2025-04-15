@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, ListMusic, History, Settings, Users, UserPlus, Loader } from 'lucide-react';
+import { User, ListMusic, History, Settings, Users, UserPlus, Loader, Edit } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import UsersService, { UserSubscriptionResponse } from '../api/users';
 import GradingMethodsTab from '../components/Profile/GradingMethodsTab';
@@ -8,6 +8,7 @@ import ProfileTabButton from '../components/Profile/ProfileTabButton';
 import ProfileOverviewTab from '../components/Profile/ProfileOverviewTab';
 import ProfileSettingsTab from '../components/Profile/ProfileSettingsTab';
 import ProfileLoadingState from '../components/Profile/ProfileLoadingState';
+import AvatarUploadModal from '../components/Profile/AvatarUploadModal';
 import { formatDate } from '../utils/formatters';
 
 // Tab types - adding new tabs for following and followers
@@ -21,6 +22,7 @@ const Profile = () => {
   const [followingData, setFollowingData] = useState<UserSubscriptionResponse[]>([]);
   const [socialLoading, setSocialLoading] = useState(false);
   const [socialError, setSocialError] = useState<string | null>(null);
+  const [isAvatarUploadModalOpen, setIsAvatarUploadModalOpen] = useState(false);
 
   // Ensure user data is loaded and user is authenticated
   useEffect(() => {
@@ -68,16 +70,30 @@ const Profile = () => {
     return <ProfileLoadingState />;
   }
 
+  const handleAvatarUploadSuccess = () => {
+    setIsAvatarUploadModalOpen(false);
+    fetchUserProfile();
+  };
+
   // Render a single user card (used in followers and following tabs)
   const renderUserCard = (userData: UserSubscriptionResponse) => (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
       <div className="p-4 flex flex-col items-center text-center">
-        <div
-          className="h-16 w-16 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xl font-bold mb-3"
-          onClick={() => navigate(`/people/${userData.userId}`)}
-        >
-          {userData.name.charAt(0).toUpperCase()}{userData.surname.charAt(0).toUpperCase()}
-        </div>
+        {userData.avatarUrl ? (
+          <img
+            src={userData.avatarUrl}
+            alt={`${userData.name} ${userData.surname}`}
+            className="h-16 w-16 rounded-full object-cover mb-3"
+            onClick={() => navigate(`/people/${userData.userId}`)}
+          />
+        ) : (
+          <div
+            className="h-16 w-16 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xl font-bold mb-3"
+            onClick={() => navigate(`/people/${userData.userId}`)}
+          >
+            {userData.name.charAt(0).toUpperCase()}{userData.surname.charAt(0).toUpperCase()}
+          </div>
+        )}
         <h3 className="font-medium text-gray-900 mb-1">{userData.name} {userData.surname}</h3>
         <p className="text-sm text-gray-600 mb-2">@{userData.username}</p>
         <p className="text-xs text-gray-500">Following since {formatDate(userData.subscribedAt)}</p>
@@ -99,8 +115,26 @@ const Profile = () => {
         <div className="bg-gradient-to-r from-primary-700 to-primary-900 px-6 py-8 text-white">
           <div className="flex flex-col md:flex-row md:items-center">
             <div className="flex-shrink-0 mb-4 md:mb-0 md:mr-6">
-              <div className="h-24 w-24 rounded-full bg-primary-600 flex items-center justify-center text-3xl font-bold border-4 border-white">
-                {user.name.charAt(0).toUpperCase()}{user.surname.charAt(0).toUpperCase()}
+              {/* Avatar with Edit Button */}
+              <div className="relative group">
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt="Profile avatar"
+                    className="h-24 w-24 rounded-full object-cover border-4 border-white"
+                  />
+                ) : (
+                  <div className="h-24 w-24 rounded-full bg-primary-600 flex items-center justify-center text-3xl font-bold border-4 border-white">
+                    {user.name.charAt(0).toUpperCase()}{user.surname.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <button
+                  onClick={() => setIsAvatarUploadModalOpen(true)}
+                  className="absolute bottom-1 right-1 bg-white rounded-full p-1.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  aria-label="Edit profile picture"
+                >
+                  <Edit className="h-3.5 w-3.5 text-primary-700" />
+                </button>
               </div>
             </div>
             <div>
@@ -245,6 +279,16 @@ const Profile = () => {
           </div>
         )}
       </div>
+
+      {/* Avatar Upload Modal */}
+      {isAvatarUploadModalOpen && (
+        <AvatarUploadModal
+          isOpen={isAvatarUploadModalOpen}
+          onClose={() => setIsAvatarUploadModalOpen(false)}
+          onSuccess={handleAvatarUploadSuccess}
+          currentAvatarUrl={user.avatarUrl}
+        />
+      )}
     </div>
   );
 };

@@ -82,11 +82,11 @@ const UserProfile = () => {
 
                 try {
                     if (activeTab === 'followers') {
-                        // Call the new public endpoint for followers
+                        // Call the public endpoint for followers
                         const response = await UsersService.getPublicUserFollowers(id);
                         setFollowersData(response.items);
                     } else {
-                        // Call the new public endpoint for following
+                        // Call the public endpoint for following
                         const response = await UsersService.getPublicUserFollowing(id);
                         setFollowingData(response.items);
                     }
@@ -130,9 +130,21 @@ const UserProfile = () => {
     const renderUserCard = (user: UserSubscriptionResponse) => (
         <div key={user.userId} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
             <div className="p-4 flex flex-col items-center text-center">
-                <div className="h-16 w-16 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xl font-bold mb-3">
-                    {user.name.charAt(0).toUpperCase()}{user.surname.charAt(0).toUpperCase()}
-                </div>
+                {user.avatarUrl ? (
+                    <img
+                        src={user.avatarUrl}
+                        alt={`${user.name} ${user.surname}`}
+                        className="h-16 w-16 rounded-full object-cover mb-3"
+                        onClick={() => navigate(`/people/${user.userId}`)}
+                    />
+                ) : (
+                    <div
+                        className="h-16 w-16 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xl font-bold mb-3"
+                        onClick={() => navigate(`/people/${user.userId}`)}
+                    >
+                        {user.name.charAt(0).toUpperCase()}{user.surname.charAt(0).toUpperCase()}
+                    </div>
+                )}
                 <h3 className="font-medium text-gray-900 mb-1">{user.name} {user.surname}</h3>
                 <p className="text-sm text-gray-600 mb-2">@{user.username}</p>
                 <p className="text-xs text-gray-500">Following since {formatDate(user.subscribedAt)}</p>
@@ -183,9 +195,17 @@ const UserProfile = () => {
                 <div className="bg-gradient-to-r from-primary-700 to-primary-900 px-6 py-8 text-white">
                     <div className="flex flex-col md:flex-row md:items-center">
                         <div className="flex-shrink-0 mb-4 md:mb-0 md:mr-6">
-                            <div className="h-24 w-24 rounded-full bg-primary-600 flex items-center justify-center text-3xl font-bold border-4 border-white">
-                                {userProfile.name.charAt(0).toUpperCase()}{userProfile.surname.charAt(0).toUpperCase()}
-                            </div>
+                            {userProfile.avatarUrl ? (
+                                <img
+                                    src={userProfile.avatarUrl}
+                                    alt={`${userProfile.name} ${userProfile.surname}`}
+                                    className="h-24 w-24 rounded-full object-cover border-4 border-white"
+                                />
+                            ) : (
+                                <div className="h-24 w-24 rounded-full bg-primary-600 flex items-center justify-center text-3xl font-bold border-4 border-white">
+                                    {userProfile.name.charAt(0).toUpperCase()}{userProfile.surname.charAt(0).toUpperCase()}
+                                </div>
+                            )}
                         </div>
                         <div className="flex-grow">
                             <h1 className="text-2xl md:text-3xl font-bold">{userProfile.name} {userProfile.surname}</h1>

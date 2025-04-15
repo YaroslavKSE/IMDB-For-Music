@@ -15,6 +15,7 @@ const getBaseUrl = (path: string): string => {
       '/users': 'http://localhost:5001/api/v1/users',
       '/public/users': 'http://localhost:5001/api/v1/public/users',
       '/users/subscriptions': 'http://localhost:5001/api/v1/users/subscriptions',
+      '/users/avatars': 'http://localhost:5001/api/v1/users/avatars',
       '/catalog': 'http://localhost:5002/api/v1/catalog',
       '/interactions': 'http://localhost:5003/api/v1/interactions',
       '/grading-methods': 'http://localhost:5003/api/v1/grading-methods',
