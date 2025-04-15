@@ -93,7 +93,7 @@ builder.Services.AddAuthentication(options =>
     {
         OnTokenValidated = context =>
         {
-            // We only need this logic if the sub   claim is missing but required
+            // We only need this logic if the sub claim is missing but required
             var identity = context.Principal.Identity as ClaimsIdentity;
             var nameIdClaim = context.Principal.FindFirst(ClaimTypes.NameIdentifier);
 
