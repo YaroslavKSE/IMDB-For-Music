@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, User, Home, Disc, ListMusic, TrendingUp, LogIn, Star, NotebookPen, Users } from 'lucide-react';
+import { Search, Menu, X, User, Home, NotebookPen, ListMusic, LogIn, Star, Users } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
 const Header = () => {
@@ -34,7 +34,7 @@ const Header = () => {
             <div className="flex items-center">
               {/* Logo */}
               <div className="flex-shrink-0 flex items-center">
-                <Link to="/" className="text-2xl font-bold flex items-center">
+                <Link to="/" className="text-xl md:text-2xl font-bold flex items-center">
                   <img
                       src="/BeatRateLogo.png"
                       alt="BeatRate Logo"
@@ -125,10 +125,10 @@ const Header = () => {
                 {isAuthenticated ? (
                     <div className="relative">
                       <div className="flex items-center text-sm font-medium text-zinc-700 hover:text-primary-600">
-                    <span className="mr-2 flex items-center">
-                      <Star className="h-4 w-4 mr-1" />
-                      <span>Profile</span>
-                    </span>
+                        <span className="hidden md:flex mr-2 items-center">
+                          <Star className="h-4 w-4 mr-1" />
+                          <span>Profile</span>
+                        </span>
                         <Link to="/profile" className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-500">
                           {user?.name ? (
                               <span>{user.name.charAt(0).toUpperCase()}</span>
@@ -141,7 +141,7 @@ const Header = () => {
                 ) : (
                     <Link
                         to="/login"
-                        className="flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
+                        className="flex items-center px-3 py-1.5 md:px-4 md:py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
                     >
                       <LogIn className="h-4 w-4 mr-1" />
                       Sign In
@@ -210,26 +210,15 @@ const Header = () => {
                   Home
                 </Link>
                 <Link
-                    to="/search"
+                    to="/diary"
                     className={`block pl-3 pr-4 py-2 border-l-4 ${
-                        location.pathname === '/search'
+                        location.pathname === '/diary'
                             ? 'border-primary-500 text-primary-700 bg-primary-50'
                             : 'border-transparent text-zinc-600 hover:text-zinc-800 hover:bg-zinc-50 hover:border-zinc-300'
                     } text-base font-medium`}
                 >
-                  <Disc className="inline h-5 w-5 mr-1" />
-                  Explore
-                </Link>
-                <Link
-                    to="/charts"
-                    className={`block pl-3 pr-4 py-2 border-l-4 ${
-                        location.pathname === '/charts'
-                            ? 'border-primary-500 text-primary-700 bg-primary-50'
-                            : 'border-transparent text-zinc-600 hover:text-zinc-800 hover:bg-zinc-50 hover:border-zinc-300'
-                    } text-base font-medium`}
-                >
-                  <TrendingUp className="inline h-5 w-5 mr-1" />
-                  Charts
+                  <NotebookPen className="inline h-5 w-5 mr-1" />
+                  Diary
                 </Link>
                 <Link
                     to="/lists"

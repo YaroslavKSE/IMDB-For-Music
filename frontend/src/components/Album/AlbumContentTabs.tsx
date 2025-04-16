@@ -22,49 +22,49 @@ interface AlbumContentTabsProps {
 }
 
 const AlbumContentTabs = ({
-                              activeTab,
-                              setActiveTab,
-                              album,
-                              playingTrack,
-                              hoveredTrack,
-                              setHoveredTrack,
-                              handlePreviewToggle,
-                              handleTrackInteraction,
-                              handleAlbumInteraction,
-                              tracksTotal,
-                              tracksOffset,
-                              loadingMoreTracks,
-                              onLoadMoreTracks
-                          }: AlbumContentTabsProps) => {
+    activeTab,
+    setActiveTab,
+    album,
+    playingTrack,
+    hoveredTrack,
+    setHoveredTrack,
+    handlePreviewToggle,
+    handleTrackInteraction,
+    handleAlbumInteraction,
+    tracksTotal,
+    tracksOffset,
+    loadingMoreTracks,
+    onLoadMoreTracks
+}: AlbumContentTabsProps) => {
     const navigate = useNavigate();
 
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-            <div className="border-b border-gray-200">
-                <nav className="flex -mb-px">
+            <div className="border-b border-gray-200 overflow-x-auto">
+                <nav className="flex -mb-px whitespace-nowrap">
                     <TabButton
                         active={activeTab === 'tracks'}
                         onClick={() => setActiveTab('tracks')}
-                        icon={<Music className="h-4 w-4 mr-2" />}
-                        label="Tracklist"
+                        icon={<Music className="h-4 w-4 mr-1 sm:mr-2" />}
+                        label="Tracks"
                     />
                     <TabButton
                         active={activeTab === 'reviews'}
                         onClick={() => setActiveTab('reviews')}
-                        icon={<MessageSquare className="h-4 w-4 mr-2" />}
+                        icon={<MessageSquare className="h-4 w-4 mr-1 sm:mr-2" />}
                         label="Reviews"
                     />
                     <TabButton
                         active={activeTab === 'lists'}
                         onClick={() => setActiveTab('lists')}
-                        icon={<ListMusic className="h-4 w-4 mr-2" />}
-                        label="In Lists"
+                        icon={<ListMusic className="h-4 w-4 mr-1 sm:mr-2" />}
+                        label="Lists"
                     />
                     <TabButton
                         active={activeTab === 'my-history'}
                         onClick={() => setActiveTab('my-history')}
-                        icon={<History className="h-4 w-4 mr-2" />}
-                        label="My History"
+                        icon={<History className="h-4 w-4 mr-1 sm:mr-2" />}
+                        label="History"
                     />
                 </nav>
             </div>
@@ -87,13 +87,13 @@ const AlbumContentTabs = ({
 
             {/* Reviews Tab Content */}
             {activeTab === 'reviews' && (
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                     <EmptyState
                         title="No reviews yet"
                         message="Be the first to share your thoughts about this album."
-                        icon={<MessageSquare className="h-12 w-12 text-gray-400" />}
+                        icon={<MessageSquare className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />}
                         action={{
-                            label: "Write a Review",
+                            label: "Write Review",
                             onClick: () => handleAlbumInteraction()
                         }}
                     />
@@ -102,13 +102,13 @@ const AlbumContentTabs = ({
 
             {/* Lists Tab Content */}
             {activeTab === 'lists' && (
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                     <EmptyState
                         title="Not in any lists yet"
                         message="This album hasn't been added to any lists yet."
-                        icon={<ListMusic className="h-12 w-12 text-gray-400" />}
+                        icon={<ListMusic className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />}
                         action={{
-                            label: "Create a List",
+                            label: "Create List",
                             onClick: () => navigate('/lists/create')
                         }}
                     />
@@ -117,13 +117,13 @@ const AlbumContentTabs = ({
 
             {/* History Tab Content */}
             {activeTab === 'my-history' && (
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                     <EmptyState
                         title="No history"
                         message="You haven't interacted with this album."
-                        icon={<History className="h-12 w-12 text-gray-400" />}
+                        icon={<History className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />}
                         action={{
-                            label: "Log interaction",
+                            label: "Log Now",
                             onClick: () => handleAlbumInteraction()
                         }}
                     />
@@ -145,7 +145,7 @@ const TabButton = ({ active, onClick, icon, label }: TabButtonProps) => {
     return (
         <button
             onClick={onClick}
-            className={`mr-8 py-4 px-6 border-b-2 font-medium text-sm flex items-center ${
+            className={`py-3 px-3 sm:px-6 border-b-2 font-medium text-xs sm:text-sm flex items-center ${
                 active
                     ? 'border-primary-600 text-primary-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
