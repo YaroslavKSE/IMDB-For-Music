@@ -35,6 +35,8 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
         public DbSet<ReviewEntity> Reviews { get; set; }
         public DbSet<RatingEntity> Ratings { get; set; }
         public DbSet<LikeEntity> Likes { get; set; } // New Likes table
+
+        public DbSet<ItemStatsEntity> ItemStats { get; set; }
         public DbSet<GradeEntity> Grades { get; set; }
         public DbSet<GradingMethodInstanceEntity> GradingMethodInstances { get; set; }
         public DbSet<GradingBlockEntity> GradingBlocks { get; set; }

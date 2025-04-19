@@ -9,12 +9,17 @@ public class UpdateInteractionUseCase : IRequestHandler<UpdateInteractionCommand
 {
     private readonly IInteractionStorage interactionStorage;
     private readonly IGradingMethodStorage gradingMethodStorage;
+    private readonly IItemStatsStorage itemStatsStorage;
     private readonly ComplexInteractionGrader _interactionGrader;
 
-    public UpdateInteractionUseCase(IInteractionStorage interactionStorage, IGradingMethodStorage gradingMethodStorage)
+    public UpdateInteractionUseCase(
+        IInteractionStorage interactionStorage,
+        IGradingMethodStorage gradingMethodStorage,
+        IItemStatsStorage itemStatsStorage)
     {
         this.interactionStorage = interactionStorage;
         this.gradingMethodStorage = gradingMethodStorage;
+        this.itemStatsStorage = itemStatsStorage;
         _interactionGrader = new ComplexInteractionGrader(gradingMethodStorage);
     }
 
@@ -36,6 +41,7 @@ public class UpdateInteractionUseCase : IRequestHandler<UpdateInteractionCommand
         }
 
         result.InteractionId = interactionToUpdate.AggregateId;
+        string itemId = interactionToUpdate.ItemId;
 
         if (request.IsLiked != interactionToUpdate.IsLiked)
         {
@@ -99,7 +105,23 @@ public class UpdateInteractionUseCase : IRequestHandler<UpdateInteractionCommand
         }
 
         await interactionStorage.UpdateInteractionAsync(interactionToUpdate);
+
+        // If any update occurred, mark the item stats as raw
+        if (result.InteractionUpdated)
+        {
+            bool statsExists = await itemStatsStorage.ItemStatsExistsAsync(itemId);
+            if (!statsExists)
+            {
+                // Initialize item stats for this item
+                await itemStatsStorage.InitializeItemStatsAsync(itemId);
+            }
+            else
+            {
+                // Mark existing stats as raw
+                await itemStatsStorage.MarkItemStatsAsRawAsync(itemId);
+            }
+        }
+
         return result;
     }
 }
-
