@@ -73,7 +73,7 @@ public static class RatingMapper
         return rating;
     }
 
-    public static async Task<Rating> OverviewToDomainAsyn(RatingEntity entity, MusicInteractionDbContext dbContext)
+    public static async Task<Rating> OverviewToDomainAsync(RatingEntity entity, MusicInteractionDbContext dbContext)
     {
         // First, reconstruct the gradable component
         Grade grade;
@@ -105,6 +105,7 @@ public static class RatingMapper
         );
 
         rating.RatingId = entity.RatingId;
+        rating.IsComplex = entity.IsComplexGrading;
         return rating;
     }
 }

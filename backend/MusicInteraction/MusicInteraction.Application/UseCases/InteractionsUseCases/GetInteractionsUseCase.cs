@@ -34,9 +34,8 @@ public class GetInteractionsUseCase : IRequestHandler<GetInteractionsCommand, Ge
 
             if (interaction.Rating != null)
             {
-                bool isComplex = interactionStorage.GetGradingTypeByInteractionId(interaction.AggregateId).Result;
                 interactionShowDto.Rating = new RatingNormalizedDTO()
-                    {RatingId = interaction.Rating.RatingId, NormalizedGrade = interaction.Rating.Grade.getNormalizedGrade(), IsComplex = isComplex};
+                    {RatingId = interaction.Rating.RatingId, NormalizedGrade = interaction.Rating.Grade.getNormalizedGrade(), IsComplex = interaction.Rating.IsComplex};
             }
 
             if (interaction.Review != null)

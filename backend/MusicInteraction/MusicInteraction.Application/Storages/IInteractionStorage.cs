@@ -17,5 +17,4 @@ public interface IInteractionStorage
     Task<Rating> GetRatingById(Guid ratingId);
     Task DeleteInteractionAsync(Guid interactionId);
     Task UpdateInteractionAsync(InteractionsAggregate interaction);
-    Task<bool> GetGradingTypeByInteractionId(Guid interactionId);
 }
