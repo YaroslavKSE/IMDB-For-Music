@@ -158,9 +158,12 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             modelBuilder.Entity<InteractionAggregateEntity>()
                 .HasIndex(i => i.ItemId);
 
+            modelBuilder.Entity<InteractionAggregateEntity>()
+                .HasIndex(i => i.CreatedAt);
+
             // Add composite index for (UserId, ItemId)
             modelBuilder.Entity<InteractionAggregateEntity>()
-                .HasIndex(i => new { i.UserId, i.ItemId });
+                .HasIndex(i => new { i.UserId, i.ItemId, i.CreatedAt});
 
             // Set up unique constraints
             modelBuilder.Entity<GradingMethodComponentEntity>()

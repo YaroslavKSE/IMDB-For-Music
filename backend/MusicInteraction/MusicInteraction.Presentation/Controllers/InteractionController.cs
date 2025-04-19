@@ -190,4 +190,27 @@ public class InteractionController : ControllerBase
 
         return Ok();
     }
+
+    [HttpGet("item-stats/{itemId}")]
+    public async Task<IActionResult> GetItemStats(string itemId)
+    {
+        if (string.IsNullOrEmpty(itemId))
+        {
+            return BadRequest("Item ID is required");
+        }
+
+        var command = new GetItemStatsByIdCommand
+        {
+            ItemId = itemId
+        };
+
+        var result = await mediator.Send(command);
+
+        if (!result.Success)
+        {
+            return BadRequest(result.ErrorMessage);
+        }
+
+        return Ok(result.Stats);
+    }
 }

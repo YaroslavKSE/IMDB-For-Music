@@ -37,10 +37,17 @@ namespace MusicInteraction.Infrastructure.PostgreSQL.Migrations
                 table: "Interactions",
                 column: "ItemId");
 
+            // Single column index on CreatedAt
             migrationBuilder.CreateIndex(
-                name: "IX_Interactions_UserId_ItemId",
+                name: "IX_Interactions_CreatedAt",
                 table: "Interactions",
-                columns: new[] { "UserId", "ItemId" });
+                column: "CreatedAt");
+
+            // Composite index for the specific query pattern in ItemStats
+            migrationBuilder.CreateIndex(
+                name: "IX_Interactions_UserId_ItemId_CreatedAt",
+                table: "Interactions",
+                columns: new[] { "UserId", "ItemId", "CreatedAt" });
 
             // 2. Create Likes table with one-to-one relationship to Interactions
             migrationBuilder.CreateTable(
