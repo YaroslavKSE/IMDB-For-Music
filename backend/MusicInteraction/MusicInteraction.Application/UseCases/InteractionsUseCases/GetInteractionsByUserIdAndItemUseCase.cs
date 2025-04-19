@@ -46,7 +46,7 @@ public class GetInteractionsByUserAndItemUseCase : IRequestHandler<GetInteractio
             if (interaction.Review != null)
             {
                 interactionShowDto.Review = new ReviewDTO()
-                    {ReviewId = interaction.Review.ReviewId, ReviewText = interaction.Review.ReviewText};
+                    {ReviewId = interaction.Review.ReviewId, ReviewText = interaction.Review.ReviewText, Likes = interaction.Review.Likes, Comments = interaction.Review.Comments};
             }
 
             interactionAggregateDtos.Add(interactionShowDto);

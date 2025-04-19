@@ -10,7 +10,11 @@ public class ReviewEntity
     public string ReviewText { get; set; }
     public Guid AggregateId { get; set; }
 
-    // Navigation property
+    // Navigation property for parent interaction
     [ForeignKey("AggregateId")]
     public virtual InteractionAggregateEntity Interaction { get; set; }
+
+    // Navigation properties for likes and comments
+    public virtual ICollection<ReviewLikeEntity> Likes { get; set; } = new List<ReviewLikeEntity>();
+    public virtual ICollection<ReviewCommentEntity> Comments { get; set; } = new List<ReviewCommentEntity>();
 }

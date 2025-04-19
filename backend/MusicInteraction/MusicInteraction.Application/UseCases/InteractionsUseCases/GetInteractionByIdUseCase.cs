@@ -38,7 +38,7 @@ public class GetInteractionByIdUseCase : IRequestHandler<GetInteractionByIdComma
         if (interaction.Review != null)
         {
             interactionShowDto.Review = new ReviewDTO()
-                {ReviewId = interaction.Review.ReviewId, ReviewText = interaction.Review.ReviewText};
+                {ReviewId = interaction.Review.ReviewId, ReviewText = interaction.Review.ReviewText, Likes = interaction.Review.Likes, Comments = interaction.Review.Comments};
         }
 
         return new GetInteractionDetailResult() {Success = true, Interaction = interactionShowDto};
