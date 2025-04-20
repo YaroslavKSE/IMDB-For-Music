@@ -405,6 +405,57 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             return new PaginatedResult<InteractionsAggregate>(result, totalCount);
         }
 
+        public async Task<PaginatedResult<InteractionsAggregate>> GetReviewedInteractionsByItemId(string itemId, bool? useHotScore = true, int? limit = null, int? offset = null)
+        {
+            // Start with filtering interactions by itemId
+            IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
+                .Where(i => i.ItemId == itemId)
+                .Where(i => _dbContext.Reviews.Any(r => r.AggregateId == i.AggregateId))
+                .Include(i => i.Review);
+
+            if (useHotScore.Equals(true))
+            {
+                query = query.OrderByDescending(i => i.Review.HotScore);
+            }
+            else
+            {
+                query = query.OrderByDescending(i => i.CreatedAt);
+            }
+
+            // Get total count efficiently
+            int totalCount = await query.CountAsync();
+
+            // Apply pagination
+            if (offset.HasValue)
+            {
+                query = query.Skip(offset.Value);
+            }
+
+            if (limit.HasValue)
+            {
+                query = query.Take(limit.Value);
+            }
+
+            // Include related entities after pagination
+            query = query
+                .Include(i => i.Rating)
+                .Include(i => i.Like);
+
+            // Execute the query to get items
+            var interactionEntities = await query.ToListAsync();
+
+            // Map entities to domain objects
+            List<InteractionsAggregate> result = new List<InteractionsAggregate>();
+            foreach (var entity in interactionEntities)
+            {
+                var interaction = await InteractionMapper.ToDomain(entity, _dbContext);
+                result.Add(interaction);
+            }
+
+            // Return both items and count
+            return new PaginatedResult<InteractionsAggregate>(result, totalCount);
+        }
+
         public async Task<ReviewLike> AddReviewLike(Guid reviewId, string userId)
         {
             // Check if the review exists

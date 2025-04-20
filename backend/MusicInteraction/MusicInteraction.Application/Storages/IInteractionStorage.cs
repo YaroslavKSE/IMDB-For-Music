@@ -9,6 +9,8 @@ public interface IInteractionStorage
     Task<PaginatedResult<InteractionsAggregate>> GetInteractions(int? limit = null, int? offset = null);
     Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByUserId(string userId, int? limit = null, int? offset = null);
     Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByItemId(string itemId, int? limit = null, int? offset = null);
+    Task<PaginatedResult<InteractionsAggregate>> GetReviewedInteractionsByItemId(string itemId, bool? useHotScore = true, int? limit = null,
+        int? offset = null);
     Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByUserAndItem(string userId, string itemId, int? limit = null, int? offset = null);
     Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByUserIds(List<string> userIds, int? limit = null, int? offset = null);
     Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByItemIds(List<string> itemIds, int? limit = null, int? offset = null);

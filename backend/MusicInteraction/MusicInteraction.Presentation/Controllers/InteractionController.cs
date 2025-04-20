@@ -145,6 +145,30 @@ public class InteractionController : ControllerBase
         });
     }
 
+    [HttpGet("reviews-by-item-id/{itemId}")]
+    public async Task<IActionResult> GetReviewedInteractionsByItemId(string itemId, [FromQuery] int? limit = null, [FromQuery] int? offset = null, [FromQuery]bool? useHotScore = true)
+    {
+        var command = new GetReviewedInteractionsByItemIdCommand()
+        {
+            ItemId = itemId,
+            Limit = limit,
+            Offset = offset,
+            UseHotScore = useHotScore
+        };
+
+        var result = await mediator.Send(command);
+
+        if (result.InteractionsEmpty && result.TotalCount == 0)
+        {
+            return NotFound($"No interactions found for item {itemId}");
+        }
+
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
+    }
+
     [HttpGet("by-user-and-item")]
     public async Task<IActionResult> GetInteractionsByUserAndItem(
         [FromQuery] string userId,
