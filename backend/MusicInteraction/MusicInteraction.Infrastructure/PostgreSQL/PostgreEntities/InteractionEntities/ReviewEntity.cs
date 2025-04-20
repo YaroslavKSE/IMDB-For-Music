@@ -9,6 +9,8 @@ public class ReviewEntity
     public Guid ReviewId { get; set; }
     public string ReviewText { get; set; }
     public Guid AggregateId { get; set; }
+    public float HotScore { get; set; } = 0; // Default value is 0
+    public bool IsScoreDirty { get; set; } = false; // Default value is false
 
     // Navigation property for parent interaction
     [ForeignKey("AggregateId")]

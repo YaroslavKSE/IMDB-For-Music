@@ -210,6 +210,17 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
             modelBuilder.Entity<ReviewCommentEntity>()
                 .HasIndex(rc => rc.UserId);
+
+            modelBuilder.Entity<ReviewEntity>()
+                .HasIndex(r => r.HotScore)
+                .HasDatabaseName("IX_Reviews_HotScore")
+                .IsDescending();
+
+            // Index for IsScoreDirty for efficient querying reviews that need HotScore recalculation
+            modelBuilder.Entity<ReviewEntity>()
+                .HasIndex(r => r.IsScoreDirty)
+                .HasDatabaseName("IX_Reviews_IsScoreDirty")
+                .HasFilter("\"IsScoreDirty\" = true");
         }
     }
 }

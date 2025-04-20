@@ -30,8 +30,12 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             // Register the PostgreSQL implementation of IItemStatsStorage
             services.AddScoped<IItemStatsStorage, PostgreSQLItemStatsStorage>();
 
-            // Register the background service
+            // Register the HotScore calculator
+            services.AddSingleton<ReviewHotScoreCalculator>();
+
+            // Register the background services
             services.AddHostedService<ItemStatsUpdateService>();
+            services.AddHostedService<ReviewHotScoreUpdateService>();
 
             return services;
         }

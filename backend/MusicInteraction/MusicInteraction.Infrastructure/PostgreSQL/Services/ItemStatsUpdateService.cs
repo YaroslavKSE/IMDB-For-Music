@@ -9,7 +9,7 @@ public class ItemStatsUpdateService : BackgroundService
 {
     private readonly ILogger<ItemStatsUpdateService> _logger;
     private readonly IServiceProvider _serviceProvider;
-    private readonly TimeSpan _period = TimeSpan.FromMinutes(5);
+    private readonly TimeSpan _period = TimeSpan.FromMinutes(60);
 
     public ItemStatsUpdateService(
         ILogger<ItemStatsUpdateService> logger,
