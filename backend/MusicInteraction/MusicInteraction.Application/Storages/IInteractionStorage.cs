@@ -1,15 +1,15 @@
 namespace MusicInteraction.Application.Interfaces;
 
-using MusicInteraction.Domain;
+using Domain;
 
 public interface IInteractionStorage
 {
     Task<bool> IsEmpty();
     Task AddInteractionAsync(InteractionsAggregate interaction);
-    Task<List<InteractionsAggregate>> GetInteractions();
-    Task<List<InteractionsAggregate>> GetInteractionsByUserId(string userId);
-    Task<List<InteractionsAggregate>> GetInteractionsByItemId(string itemId);
-    Task<List<InteractionsAggregate>> GetInteractionsByUserAndItem(string userId, string itemId);
+    Task<PaginatedResult<InteractionsAggregate>> GetInteractions(int? limit = null, int? offset = null);
+    Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByUserId(string userId, int? limit = null, int? offset = null);
+    Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByItemId(string itemId, int? limit = null, int? offset = null);
+    Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByUserAndItem(string userId, string itemId, int? limit = null, int? offset = null);
     Task<InteractionsAggregate> GetInteractionById(Guid interactionId);
     Task<List<Like>> GetLikes();
     Task<List<Review>> GetReviews();
@@ -23,5 +23,17 @@ public interface IInteractionStorage
     Task<bool> HasUserLikedReview(Guid reviewId, string userId);
     Task<ReviewComment> AddReviewComment(Guid reviewId, string userId, string commentText);
     Task<bool> DeleteReviewComment(Guid commentId, string userId);
-    Task<List<ReviewComment>> GetReviewComments(Guid reviewId, int? limit = null, int? offset = null);
+    Task<PaginatedResult<ReviewComment>> GetReviewComments(Guid reviewId, int? limit = null, int? offset = null);
+}
+
+public class PaginatedResult<T>
+{
+    public List<T> Items { get; }
+    public int TotalCount { get; }
+
+    public PaginatedResult(List<T> items, int totalCount)
+    {
+        Items = items;
+        TotalCount = totalCount;
+    }
 }

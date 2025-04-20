@@ -6,4 +6,6 @@ public class GetInteractionsByUserAndItemCommand : IRequest<GetInteractionsResul
 {
     public string UserId { get; set; }
     public string ItemId { get; set; }
+    public int? Limit { get; set; }
+    public int? Offset { get; set; }
 }

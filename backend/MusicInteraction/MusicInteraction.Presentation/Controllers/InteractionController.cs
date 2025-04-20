@@ -66,11 +66,23 @@ public class InteractionController : ControllerBase
     }
 
     [HttpGet("all")]
-    public async Task<IActionResult> GetInteractions()
+    public async Task<IActionResult> GetInteractions([FromQuery] int? limit = null, [FromQuery] int? offset = null)
     {
-        var result = await mediator.Send(new GetInteractionsCommand());
-        if (result.InteractionsEmpty) return NotFound("There are no interactions");
-        return Ok(result.Interactions);
+        var command = new GetInteractionsCommand
+        {
+            Limit = limit,
+            Offset = offset
+        };
+
+        var result = await mediator.Send(command);
+
+        if (result.InteractionsEmpty && result.TotalCount == 0)
+            return NotFound("There are no interactions");
+
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
     }
 
     [HttpGet("by-id/{id}")]
@@ -88,35 +100,57 @@ public class InteractionController : ControllerBase
     }
 
     [HttpGet("by-user-id/{userId}")]
-    public async Task<IActionResult> GetInteractionsByUserId(string userId)
+    public async Task<IActionResult> GetInteractionsByUserId(string userId, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
     {
-        var command = new GetInteractionsByUserIdCommand() { UserId = userId };
+        var command = new GetInteractionsByUserIdCommand()
+        {
+            UserId = userId,
+            Limit = limit,
+            Offset = offset
+        };
+
         var result = await mediator.Send(command);
 
-        if (result.InteractionsEmpty)
+        if (result.InteractionsEmpty && result.TotalCount == 0)
         {
             return NotFound($"No interactions found for user {userId}");
         }
 
-        return Ok(result.Interactions);
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
     }
 
     [HttpGet("by-item-id/{itemId}")]
-    public async Task<IActionResult> GetInteractionsByItemId(string itemId)
+    public async Task<IActionResult> GetInteractionsByItemId(string itemId, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
     {
-        var command = new GetInteractionsByItemIdCommand() { ItemId = itemId };
+        var command = new GetInteractionsByItemIdCommand()
+        {
+            ItemId = itemId,
+            Limit = limit,
+            Offset = offset
+        };
+
         var result = await mediator.Send(command);
 
-        if (result.InteractionsEmpty)
+        if (result.InteractionsEmpty && result.TotalCount == 0)
         {
             return NotFound($"No interactions found for item {itemId}");
         }
 
-        return Ok(result.Interactions);
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
     }
 
     [HttpGet("by-user-and-item")]
-    public async Task<IActionResult> GetInteractionsByUserAndItem([FromQuery] string userId, [FromQuery] string itemId)
+    public async Task<IActionResult> GetInteractionsByUserAndItem(
+        [FromQuery] string userId,
+        [FromQuery] string itemId,
+        [FromQuery] int? limit = null,
+        [FromQuery] int? offset = null)
     {
         if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(itemId))
         {
@@ -126,17 +160,22 @@ public class InteractionController : ControllerBase
         var command = new GetInteractionsByUserAndItemCommand()
         {
             UserId = userId,
-            ItemId = itemId
+            ItemId = itemId,
+            Limit = limit,
+            Offset = offset
         };
 
         var result = await mediator.Send(command);
 
-        if (result.InteractionsEmpty)
+        if (result.InteractionsEmpty && result.TotalCount == 0)
         {
             return NotFound($"No interactions found for user {userId} and item {itemId}");
         }
 
-        return Ok(result.Interactions);
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
     }
 
     [HttpGet("likes-all")]

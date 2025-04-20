@@ -14,20 +14,19 @@ public class GetInteractionsByUserIdUseCase : IRequestHandler<GetInteractionsByU
 
     public async Task<GetInteractionsResult> Handle(GetInteractionsByUserIdCommand request, CancellationToken cancellationToken)
     {
-        if (await interactionStorage.IsEmpty())
-        {
-            return new GetInteractionsResult() { InteractionsEmpty = true };
-        }
+        var paginatedResult = await interactionStorage.GetInteractionsByUserId(request.UserId, request.Limit, request.Offset);
 
-        var interactions = await interactionStorage.GetInteractionsByUserId(request.UserId);
-        if (interactions.Count == 0)
+        if (paginatedResult.Items.Count == 0)
         {
-            return new GetInteractionsResult() { InteractionsEmpty = true };
+            return new GetInteractionsResult() {
+                InteractionsEmpty = true,
+                TotalCount = paginatedResult.TotalCount
+            };
         }
 
         List<InteractionAggregateShowDto> interactionAggregateDtos = new List<InteractionAggregateShowDto>();
 
-        foreach (var interaction in interactions)
+        foreach (var interaction in paginatedResult.Items)
         {
             InteractionAggregateShowDto interactionShowDto = new InteractionAggregateShowDto();
             interactionShowDto.AggregateId = interaction.AggregateId;
@@ -52,6 +51,10 @@ public class GetInteractionsByUserIdUseCase : IRequestHandler<GetInteractionsByU
             interactionAggregateDtos.Add(interactionShowDto);
         }
 
-        return new GetInteractionsResult() { InteractionsEmpty = false, Interactions = interactionAggregateDtos };
+        return new GetInteractionsResult() {
+            InteractionsEmpty = false,
+            Interactions = interactionAggregateDtos,
+            TotalCount = paginatedResult.TotalCount
+        };
     }
 }

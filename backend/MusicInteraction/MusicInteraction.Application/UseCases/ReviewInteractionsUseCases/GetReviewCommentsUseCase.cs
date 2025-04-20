@@ -16,9 +16,9 @@ public class GetReviewCommentsUseCase : IRequestHandler<GetReviewCommentsCommand
     {
         try
         {
-            var comments = await _interactionStorage.GetReviewComments(request.ReviewId, request.Limit, request.Offset);
+            var paginatedResult = await _interactionStorage.GetReviewComments(request.ReviewId, request.Limit, request.Offset);
 
-            var commentDtos = comments.Select(c => new ReviewCommentDTO
+            var commentDtos = paginatedResult.Items.Select(c => new ReviewCommentDTO
             {
                 CommentId = c.CommentId,
                 ReviewId = c.ReviewId,
@@ -30,7 +30,8 @@ public class GetReviewCommentsUseCase : IRequestHandler<GetReviewCommentsCommand
             return new GetReviewCommentsResult
             {
                 Success = true,
-                Comments = commentDtos
+                Comments = commentDtos,
+                TotalCount = paginatedResult.TotalCount
             };
         }
         catch (KeyNotFoundException ex)

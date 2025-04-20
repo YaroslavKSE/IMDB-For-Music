@@ -14,15 +14,19 @@ public class GetInteractionsUseCase : IRequestHandler<GetInteractionsCommand, Ge
 
     public async Task<GetInteractionsResult> Handle(GetInteractionsCommand request, CancellationToken cancellationToken)
     {
-        if (await interactionStorage.IsEmpty())
+        var paginatedResult = await interactionStorage.GetInteractions(request.Limit, request.Offset);
+
+        if (paginatedResult.Items.Count == 0)
         {
-            return new GetInteractionsResult() {InteractionsEmpty = true};
+            return new GetInteractionsResult() {
+                InteractionsEmpty = true,
+                TotalCount = paginatedResult.TotalCount
+            };
         }
 
-        var interactions = interactionStorage.GetInteractions().Result;
         List<InteractionAggregateShowDto> interactionAggregateDtos = new List<InteractionAggregateShowDto>();
 
-        foreach (var interaction in interactions)
+        foreach (var interaction in paginatedResult.Items)
         {
             InteractionAggregateShowDto interactionShowDto = new InteractionAggregateShowDto();
             interactionShowDto.AggregateId = interaction.AggregateId;
@@ -46,6 +50,11 @@ public class GetInteractionsUseCase : IRequestHandler<GetInteractionsCommand, Ge
 
             interactionAggregateDtos.Add(interactionShowDto);
         }
-        return new GetInteractionsResult() {InteractionsEmpty = false, Interactions = interactionAggregateDtos};
+
+        return new GetInteractionsResult() {
+            InteractionsEmpty = false,
+            Interactions = interactionAggregateDtos,
+            TotalCount = paginatedResult.TotalCount
+        };
     }
 }

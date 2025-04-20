@@ -145,6 +145,9 @@ public class ReviewInteractionController : ControllerBase
             return BadRequest(result.ErrorMessage);
         }
 
-        return Ok(result.Comments);
+        return Ok(new {
+            comments = result.Comments,
+            totalCount = result.TotalCount
+        });
     }
 }
