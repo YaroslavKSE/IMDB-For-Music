@@ -178,6 +178,62 @@ public class InteractionController : ControllerBase
         });
     }
 
+    [HttpGet("by-several-user-ids")]
+    public async Task<IActionResult> GetInteractionsByUserIds([FromBody] List<string> userIds, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
+    {
+        if (userIds == null || userIds.Count == 0)
+        {
+            return BadRequest("At least one userId is required");
+        }
+
+        var command = new GetInteractionsByUserIdsCommand()
+        {
+            UserIds = userIds,
+            Limit = limit,
+            Offset = offset
+        };
+
+        var result = await mediator.Send(command);
+
+        if (result.InteractionsEmpty && result.TotalCount == 0)
+        {
+            return NotFound($"No interactions found for the specified users");
+        }
+
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
+    }
+
+    [HttpGet("by-several-item-ids")]
+    public async Task<IActionResult> GetInteractionsByItemIds([FromBody] List<string> itemIds, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
+    {
+        if (itemIds == null || itemIds.Count == 0)
+        {
+            return BadRequest("At least one itemId is required");
+        }
+
+        var command = new GetInteractionsByItemIdsCommand()
+        {
+            ItemIds = itemIds,
+            Limit = limit,
+            Offset = offset
+        };
+
+        var result = await mediator.Send(command);
+
+        if (result.InteractionsEmpty && result.TotalCount == 0)
+        {
+            return NotFound($"No interactions found for the specified items");
+        }
+
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
+    }
+
     [HttpGet("likes-all")]
     public async Task<IActionResult> GetLikes()
     {

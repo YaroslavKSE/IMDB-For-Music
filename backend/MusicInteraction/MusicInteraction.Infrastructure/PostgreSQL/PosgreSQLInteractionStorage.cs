@@ -151,9 +151,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
         public async Task<PaginatedResult<InteractionsAggregate>> GetInteractions(int? limit = null, int? offset = null)
         {
             IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
-                .Include(i => i.Rating)
-                .Include(i => i.Review)
-                .Include(i => i.Like)
                 .OrderByDescending(i => i.CreatedAt);
 
             // Get total count efficiently
@@ -169,6 +166,10 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             {
                 query = query.Take(limit.Value);
             }
+
+            query.Include(i => i.Rating)
+                .Include(i => i.Review)
+                .Include(i => i.Like);
 
             // Execute the query to get items
             var interactionEntities = await query.ToListAsync();
@@ -213,9 +214,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
         {
             IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
                 .Where(i => i.UserId == userId)
-                .Include(i => i.Rating)
-                .Include(i => i.Review)
-                .Include(i => i.Like)
                 .OrderByDescending(i => i.CreatedAt);
 
             // Get total count efficiently
@@ -231,6 +229,10 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             {
                 query = query.Take(limit.Value);
             }
+
+            query.Include(i => i.Rating)
+                .Include(i => i.Review)
+                .Include(i => i.Like);
 
             // Execute the query to get items
             var interactionEntities = await query.ToListAsync();
@@ -251,9 +253,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
         {
             IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
                 .Where(i => i.ItemId == itemId)
-                .Include(i => i.Rating)
-                .Include(i => i.Review)
-                .Include(i => i.Like)
                 .OrderByDescending(i => i.CreatedAt);
 
             // Get total count efficiently
@@ -269,6 +268,10 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             {
                 query = query.Take(limit.Value);
             }
+
+            query.Include(i => i.Rating)
+                .Include(i => i.Review)
+                .Include(i => i.Like);
 
             // Execute the query to get items
             var interactionEntities = await query.ToListAsync();
@@ -289,9 +292,6 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
         {
             IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
                 .Where(i => i.UserId == userId && i.ItemId == itemId)
-                .Include(i => i.Rating)
-                .Include(i => i.Review)
-                .Include(i => i.Like)
                 .OrderByDescending(i => i.CreatedAt);
 
             // Get total count efficiently
@@ -307,6 +307,88 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             {
                 query = query.Take(limit.Value);
             }
+
+            query.Include(i => i.Rating)
+                .Include(i => i.Review)
+                .Include(i => i.Like);
+
+            // Execute the query to get items
+            var interactionEntities = await query.ToListAsync();
+
+            // Map entities to domain objects
+            List<InteractionsAggregate> result = new List<InteractionsAggregate>();
+            foreach (var entity in interactionEntities)
+            {
+                var interaction = await InteractionMapper.ToDomain(entity, _dbContext);
+                result.Add(interaction);
+            }
+
+            // Return both items and count
+            return new PaginatedResult<InteractionsAggregate>(result, totalCount);
+        }
+
+        public async Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByUserIds(List<string> userIds, int? limit = null, int? offset = null)
+        {
+            IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
+                .Where(i => userIds.Contains(i.UserId))
+                .OrderByDescending(i => i.CreatedAt);
+
+            // Get total count efficiently
+            int totalCount = await query.CountAsync();
+
+            // Apply pagination
+            if (offset.HasValue)
+            {
+                query = query.Skip(offset.Value);
+            }
+
+            if (limit.HasValue)
+            {
+                query = query.Take(limit.Value);
+            }
+
+            query.Include(i => i.Rating)
+                .Include(i => i.Review)
+                .Include(i => i.Like);
+
+            // Execute the query to get items
+            var interactionEntities = await query.ToListAsync();
+
+            // Map entities to domain objects
+            List<InteractionsAggregate> result = new List<InteractionsAggregate>();
+            foreach (var entity in interactionEntities)
+            {
+                var interaction = await InteractionMapper.ToDomain(entity, _dbContext);
+                result.Add(interaction);
+            }
+
+            // Return both items and count
+            return new PaginatedResult<InteractionsAggregate>(result, totalCount);
+        }
+
+        public async Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByItemIds(List<string> itemIds, int? limit = null, int? offset = null)
+        {
+            IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
+                .Where(i => itemIds.Contains(i.ItemId))
+                .OrderByDescending(i => i.CreatedAt);
+
+            // Get total count efficiently
+            int totalCount = await query.CountAsync();
+
+            // Apply pagination
+            if (offset.HasValue)
+            {
+                query = query.Skip(offset.Value);
+            }
+
+            if (limit.HasValue)
+            {
+                query = query.Take(limit.Value);
+            }
+
+            query.Include(i => i.Rating)
+                .Include(i => i.Review)
+                .Include(i => i.Like);
 
             // Execute the query to get items
             var interactionEntities = await query.ToListAsync();
