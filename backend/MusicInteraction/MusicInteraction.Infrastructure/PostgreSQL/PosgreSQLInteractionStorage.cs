@@ -251,6 +251,132 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             return result;
         }
 
+        public async Task<ReviewLike> AddReviewLike(Guid reviewId, string userId)
+        {
+            // Check if the review exists
+            var reviewExists = await _dbContext.Reviews.AnyAsync(r => r.ReviewId == reviewId);
+            if (!reviewExists)
+            {
+                throw new KeyNotFoundException($"Review with ID {reviewId} not found");
+            }
+
+            // Check if user already liked this review
+            var existingLike = await _dbContext.ReviewLikes
+                .FirstOrDefaultAsync(l => l.ReviewId == reviewId && l.UserId == userId);
+
+            if (existingLike != null)
+            {
+                // User already liked this review
+                return ReviewLikeMapper.ToDomain(existingLike);
+            }
+
+            // Create a new like
+            var reviewLike = new ReviewLike(reviewId, userId);
+            var reviewLikeEntity = ReviewLikeMapper.ToEntity(reviewLike);
+
+            await _dbContext.ReviewLikes.AddAsync(reviewLikeEntity);
+            await _dbContext.SaveChangesAsync();
+
+            return reviewLike;
+        }
+
+        public async Task<bool> RemoveReviewLike(Guid reviewId, string userId)
+        {
+            var likeEntity = await _dbContext.ReviewLikes
+                .FirstOrDefaultAsync(rl => rl.ReviewId == reviewId && rl.UserId == userId);
+
+            if (likeEntity == null)
+            {
+                return false;
+            }
+
+            _dbContext.ReviewLikes.Remove(likeEntity);
+            await _dbContext.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> HasUserLikedReview(Guid reviewId, string userId)
+        {
+            return await _dbContext.ReviewLikes
+                .AnyAsync(l => l.ReviewId == reviewId && l.UserId == userId);
+        }
+
+        public async Task<ReviewComment> AddReviewComment(Guid reviewId, string userId, string commentText)
+        {
+            // Check if the review exists
+            var reviewExists = await _dbContext.Reviews.AnyAsync(r => r.ReviewId == reviewId);
+            if (!reviewExists)
+            {
+                throw new KeyNotFoundException($"Review with ID {reviewId} not found");
+            }
+
+            // Create a new comment
+            var reviewComment = new ReviewComment(reviewId, userId, commentText);
+            var commentEntity = ReviewCommentMapper.ToEntity(reviewComment);
+
+            await _dbContext.ReviewComments.AddAsync(commentEntity);
+            await _dbContext.SaveChangesAsync();
+
+            return reviewComment;
+        }
+
+        public async Task<bool> DeleteReviewComment(Guid commentId, string userId)
+        {
+            var commentEntity = await _dbContext.ReviewComments
+                .FirstOrDefaultAsync(c => c.CommentId == commentId);
+
+            if (commentEntity == null)
+            {
+                // Comment not found
+                return false;
+            }
+
+            // Only allow the comment owner to delete it
+            if (commentEntity.UserId != userId)
+            {
+                return false;
+            }
+
+            _dbContext.ReviewComments.Remove(commentEntity);
+            await _dbContext.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<List<ReviewComment>> GetReviewComments(Guid reviewId, int? limit = null, int? offset = null)
+        {
+            // Check if the review exists
+            var reviewExists = await _dbContext.Reviews.AnyAsync(r => r.ReviewId == reviewId);
+            if (!reviewExists)
+            {
+                throw new KeyNotFoundException($"Review with ID {reviewId} not found");
+            }
+
+            // Start with a base query
+            IQueryable<ReviewCommentEntity> query = _dbContext.ReviewComments
+                .Where(c => c.ReviewId == reviewId)
+                .OrderByDescending(c => c.CommentedAt);
+
+            // Apply offset if provided
+            if (offset.HasValue)
+            {
+                query = query.Skip(offset.Value);
+            }
+
+            // Apply limit if provided
+            if (limit.HasValue)
+            {
+                query = query.Take(limit.Value);
+            }
+
+            // Execute the query
+            var commentEntities = await query.ToListAsync();
+
+            // Map entities to domain objects
+            return commentEntities.Select(ReviewCommentMapper.ToDomain).ToList();
+        }
+
         public async Task<List<Like>> GetLikes()
         {
             var likeEntities = await _dbContext.Likes
