@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MusicInteraction.Infrastructure.Services;
+using MusicLists.Infrastructure.DBConfig;
 
 namespace MusicLists.Infrastructure.Extensions
 {
@@ -14,12 +16,28 @@ namespace MusicLists.Infrastructure.Extensions
             // Get configuration
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
             
-            // // Register DB Context
-            // services.AddDbContext<MusicListsDbContext>(options =>
-            //     options.UseNpgsql(configuration.GetConnectionString("PostgreSQL")));
+            // Register DB Context
+            services.AddDbContext<MusicListsDbContext>((serviceProvider, options) =>
+            {
+                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+                var connectionString = configuration.GetConnectionString("PostgreSQL");
+
+                options.UseNpgsql(connectionString, npgsqlOptions =>
+                {
+                    npgsqlOptions.MigrationsAssembly("MusicLists.Infrastructure");
+                });
+            });
+
+            services.BuildServiceProvider().GetRequiredService<MusicListsDbContext>().Database.Migrate();
             //
             // // Register repositories
             // services.AddScoped<IMusicListRepository, MusicListRepository>();
+
+            // Register the HotScore calculator
+            services.AddSingleton<ListHotScoreCalculator>();
+
+            // Register the background services
+            services.AddHostedService<ListHotScoreUpdateService>();
 
             return services;
         }
