@@ -145,6 +145,28 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+      
+  music-lists-service:
+    build:
+      context: ./MusicLists
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ConnectionStrings__PostgreSQL=Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - Cors__AllowedOrigins__0=${FRONTEND_BASE_URL}
+    ports:
+      - "5004:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - music-app-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:80/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   music-app-network:
