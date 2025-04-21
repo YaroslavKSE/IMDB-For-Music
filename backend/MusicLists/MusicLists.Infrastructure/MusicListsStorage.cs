@@ -3,9 +3,6 @@ using MusicLists.Application;
 using MusicLists.Domain;
 using MusicLists.Infrastructure.DBConfig;
 using MusicLists.Infrastructure.Entities;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace MusicLists.Infrastructure;
 
@@ -268,5 +265,272 @@ public class MusicListsStorage : IMusicListsStorage
         await _dbContext.SaveChangesAsync();
 
         return true;
+    }
+
+    public async Task<ListWithItemCount> GetListByIdAsync(Guid listId, int maxItems = 100)
+    {
+        var listEntity = await _dbContext.Lists
+            .Include(l => l.Items.OrderBy(i => i.Number).Take(maxItems))
+            .Include(l => l.Likes)
+            .Include(l => l.Comments)
+            .FirstOrDefaultAsync(l => l.ListId == listId);
+
+        if (listEntity == null)
+        {
+            throw new KeyNotFoundException($"List with ID {listId} not found.");
+        }
+
+        // Count total items without loading them all
+        var totalItems = await _dbContext.ListItems.CountAsync(i => i.ListId == listId);
+
+        // Map items to domain objects
+        var items = listEntity.Items
+            .OrderBy(i => i.Number)
+            .Select(i => new ListItem(i.ItemId, i.Number))
+            .ToList();
+
+        // Create the list domain object
+        var list = new List(
+            listEntity.ListId,
+            listEntity.ListType,
+            listEntity.ListName,
+            listEntity.ListDescription,
+            listEntity.IsRanked,
+            listEntity.Likes.Count,
+            listEntity.Comments.Count,
+            listEntity.CreatedAt,
+            items
+        )
+        {
+            UserId = listEntity.UserId
+        };
+
+        // Return the enhanced list with item count
+        return new ListWithItemCount(list, totalItems);
+    }
+
+    public async Task<PaginatedResult<ListItem>> GetListItemsByIdAsync(Guid listId, int? limit = null, int? offset = null)
+    {
+        if (!await _dbContext.Lists.AnyAsync(l => l.ListId == listId))
+        {
+            throw new KeyNotFoundException($"List with ID {listId} not found.");
+        }
+
+        // Create query for list items
+        IQueryable<ListItemEntity> query = _dbContext.ListItems
+            .Where(i => i.ListId == listId)
+            .OrderBy(i => i.Number);
+
+        // Get total count efficiently
+        int totalCount = await query.CountAsync();
+
+        // Apply pagination
+        if (offset.HasValue)
+        {
+            query = query.Skip(offset.Value);
+        }
+
+        if (limit.HasValue)
+        {
+            query = query.Take(limit.Value);
+        }
+
+        // Execute the query
+        var listItemEntities = await query.ToListAsync();
+
+        // Map to domain objects
+        var listItems = listItemEntities
+            .Select(i => new ListItem(i.ItemId, i.Number))
+            .ToList();
+
+        // Return paginated result
+        return new PaginatedResult<ListItem>(listItems, totalCount);
+    }
+
+    public async Task<PaginatedResult<ListComment>> GetListCommentsByIdAsync(Guid listId, int? limit = null, int? offset = null)
+    {
+        // Check if the list exists
+        if (!await _dbContext.Lists.AnyAsync(l => l.ListId == listId))
+        {
+            throw new KeyNotFoundException($"List with ID {listId} not found.");
+        }
+
+        // Create query for list comments
+        IQueryable<ListCommentEntity> query = _dbContext.ListComments
+            .Where(c => c.ListId == listId)
+            .OrderByDescending(c => c.CommentedAt);
+
+        // Get total count efficiently
+        int totalCount = await query.CountAsync();
+
+        // Apply pagination
+        if (offset.HasValue)
+        {
+            query = query.Skip(offset.Value);
+        }
+
+        if (limit.HasValue)
+        {
+            query = query.Take(limit.Value);
+        }
+
+        // Execute the query
+        var commentEntities = await query.ToListAsync();
+
+        // Map to domain objects
+        var comments = commentEntities
+            .Select(c => new ListComment(
+                c.CommentId,
+                c.ListId,
+                c.UserId,
+                c.CommentedAt,
+                c.CommentText))
+            .ToList();
+
+        // Return paginated result
+        return new PaginatedResult<ListComment>(comments, totalCount);
+    }
+
+    public async Task<PaginatedResult<ListWithItemCount>> GetListsByUserIdAsync(string userId, int? limit = null, int? offset = null)
+    {
+        // Create query for lists by user ID
+        IQueryable<ListEntity> query = _dbContext.Lists
+            .Where(l => l.UserId == userId)
+            .OrderByDescending(l => l.CreatedAt);
+
+        // Get total count efficiently
+        int totalCount = await query.CountAsync();
+
+        // Apply pagination
+        if (offset.HasValue)
+        {
+            query = query.Skip(offset.Value);
+        }
+
+        if (limit.HasValue)
+        {
+            query = query.Take(limit.Value);
+        }
+
+        query.Include(l => l.Likes)
+            .Include(l => l.Comments);
+
+        // Execute the query
+        var listEntities = await query.ToListAsync();
+
+        // Create the result lists
+        List<ListWithItemCount> resultLists = new List<ListWithItemCount>();
+
+        foreach (var listEntity in listEntities)
+        {
+            // For each list, get the first 5 items
+            var previewItems = await _dbContext.ListItems
+                .Where(i => i.ListId == listEntity.ListId)
+                .OrderBy(i => i.Number)
+                .Take(5)
+                .Select(i => new ListItem(i.ItemId, i.Number))
+                .ToListAsync();
+
+            // Count total items for this list
+            var totalItems = await _dbContext.ListItems
+                .CountAsync(i => i.ListId == listEntity.ListId);
+
+            // Create the list domain object
+            var list = new List(
+                listEntity.ListId,
+                listEntity.ListType,
+                listEntity.ListName,
+                listEntity.ListDescription,
+                listEntity.IsRanked,
+                listEntity.Likes.Count,
+                listEntity.Comments.Count,
+                listEntity.CreatedAt,
+                previewItems
+            )
+            {
+                UserId = listEntity.UserId
+            };
+
+            // Add to the result
+            resultLists.Add(new ListWithItemCount(list, totalItems));
+        }
+
+        // Return paginated result
+        return new PaginatedResult<ListWithItemCount>(resultLists, totalCount);
+    }
+
+    public async Task<PaginatedResult<ListWithItemCount>> GetListsBySpotifyIdAsync(string spotifyId, int? limit = null, int? offset = null)
+    {
+        // First, find all list IDs that contain the spotify ID
+        var listIds = await _dbContext.ListItems
+            .Where(i => i.ItemId == spotifyId)
+            .Select(i => i.ListId)
+            .Distinct()
+            .ToListAsync();
+
+        // Create query for lists containing the spotify ID
+        IQueryable<ListEntity> query = _dbContext.Lists
+            .Where(l => listIds.Contains(l.ListId))
+            .OrderByDescending(l => l.HotScore); // Sort by hot score
+
+        // Get total count efficiently
+        int totalCount = await query.CountAsync();
+
+        // Apply pagination
+        if (offset.HasValue)
+        {
+            query = query.Skip(offset.Value);
+        }
+
+        if (limit.HasValue)
+        {
+            query = query.Take(limit.Value);
+        }
+
+        query.Include(l => l.Likes)
+            .Include(l => l.Comments);
+
+        // Execute the query
+        var listEntities = await query.ToListAsync();
+
+        // Create the result lists
+        List<ListWithItemCount> resultLists = new List<ListWithItemCount>();
+
+        foreach (var listEntity in listEntities)
+        {
+            // For each list, get the first 5 items
+            var previewItems = await _dbContext.ListItems
+                .Where(i => i.ListId == listEntity.ListId)
+                .OrderBy(i => i.Number)
+                .Take(5)
+                .Select(i => new ListItem(i.ItemId, i.Number))
+                .ToListAsync();
+
+            // Count total items for this list
+            var totalItems = await _dbContext.ListItems
+                .CountAsync(i => i.ListId == listEntity.ListId);
+
+            // Create the list domain object
+            var list = new List(
+                listEntity.ListId,
+                listEntity.ListType,
+                listEntity.ListName,
+                listEntity.ListDescription,
+                listEntity.IsRanked,
+                listEntity.Likes.Count,
+                listEntity.Comments.Count,
+                listEntity.CreatedAt,
+                previewItems
+            )
+            {
+                UserId = listEntity.UserId
+            };
+
+            // Add to the result
+            resultLists.Add(new ListWithItemCount(list, totalItems));
+        }
+
+        // Return paginated result
+        return new PaginatedResult<ListWithItemCount>(resultLists, totalCount);
     }
 }

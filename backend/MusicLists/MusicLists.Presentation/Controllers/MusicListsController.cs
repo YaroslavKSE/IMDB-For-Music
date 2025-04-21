@@ -161,6 +161,112 @@ public class MusicListsController : ControllerBase
 
         return BadRequest(result);
     }
+
+    [HttpGet("{listId:guid}")]
+    public async Task<IActionResult> GetListById(Guid listId)
+    {
+        var command = new GetListByIdCommand { ListId = listId };
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
+        {
+            return NotFound(result.ErrorMessage);
+        }
+
+        return Ok(result.List);
+    }
+
+    [HttpGet("{listId:guid}/items")]
+    public async Task<IActionResult> GetListItems(Guid listId, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
+    {
+        var command = new GetListItemsCommand
+        {
+            ListId = listId,
+            Limit = limit,
+            Offset = offset
+        };
+
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
+        {
+            return NotFound(result.ErrorMessage);
+        }
+
+        return Ok(new {
+            items = result.Items,
+            totalCount = result.TotalCount
+        });
+    }
+
+    [HttpGet("{listId:guid}/comments")]
+    public async Task<IActionResult> GetListComments(Guid listId, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
+    {
+        var command = new GetListCommentsCommand
+        {
+            ListId = listId,
+            Limit = limit,
+            Offset = offset
+        };
+
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
+        {
+            return NotFound(result.ErrorMessage);
+        }
+
+        return Ok(new {
+            comments = result.Comments,
+            totalCount = result.TotalCount
+        });
+    }
+
+    [HttpGet("by-user/{userId}")]
+    public async Task<IActionResult> GetListsByUserId(string userId, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
+    {
+        var command = new GetListsByUserIdCommand
+        {
+            UserId = userId,
+            Limit = limit,
+            Offset = offset
+        };
+
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
+        {
+            return BadRequest(result.ErrorMessage);
+        }
+
+        return Ok(new {
+            lists = result.Lists,
+            totalCount = result.TotalCount
+        });
+    }
+
+    [HttpGet("by-spotify-id/{spotifyId}")]
+    public async Task<IActionResult> GetListsBySpotifyId(string spotifyId, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
+    {
+        var command = new GetListsBySpotifyIdCommand
+        {
+            SpotifyId = spotifyId,
+            Limit = limit,
+            Offset = offset
+        };
+
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
+        {
+            return BadRequest(result.ErrorMessage);
+        }
+
+        return Ok(new {
+            lists = result.Lists,
+            totalCount = result.TotalCount
+        });
+    }
 }
 
 // Create a request DTO for adding comments
