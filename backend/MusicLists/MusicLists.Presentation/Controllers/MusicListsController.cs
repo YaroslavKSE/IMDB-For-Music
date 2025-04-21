@@ -267,6 +267,26 @@ public class MusicListsController : ControllerBase
             totalCount = result.TotalCount
         });
     }
+
+    [HttpPost("{listId:guid}/items/insert")]
+    public async Task<IActionResult> InsertListItem(Guid listId, [FromBody] InsertListItemRequest request)
+    {
+        var command = new InsertListItemCommand
+        {
+            ListId = listId,
+            SpotifyId = request.SpotifyId,
+            Position = request.Position
+        };
+
+        var result = await _mediator.Send(command);
+
+        if (!result.Success)
+        {
+            return BadRequest(result.ErrorMessage);
+        }
+
+        return Ok(result);
+    }
 }
 
 // Create a request DTO for adding comments
@@ -274,4 +294,10 @@ public class AddCommentRequest
 {
     public string UserId { get; set; }
     public string CommentText { get; set; }
+}
+
+public class InsertListItemRequest
+{
+    public string SpotifyId { get; set; }
+    public int Position { get; set; }
 }

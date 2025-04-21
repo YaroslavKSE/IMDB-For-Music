@@ -533,4 +533,73 @@ public class MusicListsStorage : IMusicListsStorage
         // Return paginated result
         return new PaginatedResult<ListWithItemCount>(resultLists, totalCount);
     }
+
+    public async Task<int> InsertListItemAsync(Guid listId, string spotifyId, int position)
+    {
+        using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        try
+        {
+            // Check if the list exists
+            var list = await _dbContext.Lists.FindAsync(listId);
+            if (list == null)
+            {
+                throw new KeyNotFoundException($"List with ID {listId} not found.");
+            }
+
+            // Get the current items count and max position
+            var existingItems = await _dbContext.ListItems
+                .Where(i => i.ListId == listId)
+                .ToListAsync();
+
+            int maxPosition = 0;
+            if (existingItems.Any())
+            {
+                maxPosition = existingItems.Max(i => i.Number);
+            }
+
+            // Validate the requested position
+            if (position < 1)
+            {
+                position = 1; // If position is less than 1, insert at the beginning
+            }
+            else if (position > maxPosition + 1)
+            {
+                position = maxPosition + 1; // If position is beyond the end, append to the end
+            }
+
+            // Shift all items at and after the insertion position
+            var itemsToShift = existingItems
+                .Where(i => i.Number >= position)
+                .OrderByDescending(i => i.Number) // Process from highest to lowest to avoid conflicts
+                .ToList();
+
+            foreach (var item in itemsToShift)
+            {
+                item.Number += 1;
+            }
+
+            // Create the new item
+            var newItem = new ListItemEntity
+            {
+                ListItemId = Guid.NewGuid(),
+                ListId = listId,
+                ItemId = spotifyId,
+                Number = position
+            };
+
+            await _dbContext.ListItems.AddAsync(newItem);
+
+            // Save all changes
+            await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            // Return the total count of items after insertion
+            return existingItems.Count + 1;
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
 }
