@@ -10,6 +10,7 @@ public interface IMusicListsStorage
     Task<ListLike> AddListLikeAsync(Guid listId, string userId);
     Task<bool> RemoveListLike(Guid listId, string userId);
     Task<bool> HasUserLikedList(Guid listId, string userId);
+    Task<ListComment> AddListCommentAsync(Guid listId, string userId, string commentText);
     Task<bool> DeleteListComment(Guid commentId, string userId);
 }
 

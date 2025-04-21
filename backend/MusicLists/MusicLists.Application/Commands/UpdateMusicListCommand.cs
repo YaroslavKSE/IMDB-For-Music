@@ -1,14 +1,14 @@
 using MediatR;
-using MusicLists.Application;
-using MusicLists.Application.Results;
-using System.Collections.Generic;
 using MusicLists.Application.DTOs;
+using MusicLists.Application.Results;
+using System;
+using System.Collections.Generic;
 
 namespace MusicLists.Application.Commands;
 
-public class CreateMusicListCommand : IRequest<CreateMusicListResult>
+public class UpdateMusicListCommand : IRequest<UpdateMusicListResult>
 {
-    public string UserId { get; set; }
+    public Guid ListId { get; set; }
     public string ListType { get; set; }
     public string ListName { get; set; }
     public string ListDescription { get; set; }
