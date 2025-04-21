@@ -1,4 +1,4 @@
-// MusicListsController.cs
+// MusicListsController.cs (updated)
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MusicLists.Application.Commands;
@@ -120,4 +120,52 @@ public class MusicListsController : ControllerBase
 
         return BadRequest(result);
     }
+
+    // New endpoints for comments
+
+    [HttpPost("{listId:guid}/comment")]
+    public async Task<IActionResult> AddListComment(Guid listId, [FromBody] AddCommentRequest request)
+    {
+        var command = new AddListCommentCommand
+        {
+            ListId = listId,
+            UserId = request.UserId,
+            CommentText = request.CommentText
+        };
+
+        var result = await _mediator.Send(command);
+
+        if (result.Success)
+        {
+            return Ok(result);
+        }
+
+        return BadRequest(result);
+    }
+
+    [HttpDelete("comment/{commentId:guid}")]
+    public async Task<IActionResult> DeleteListComment(Guid commentId, [FromQuery] string userId)
+    {
+        var command = new DeleteListCommentCommand
+        {
+            CommentId = commentId,
+            UserId = userId
+        };
+
+        var result = await _mediator.Send(command);
+
+        if (result.Success)
+        {
+            return Ok(result);
+        }
+
+        return BadRequest(result);
+    }
+}
+
+// Create a request DTO for adding comments
+public class AddCommentRequest
+{
+    public string UserId { get; set; }
+    public string CommentText { get; set; }
 }
