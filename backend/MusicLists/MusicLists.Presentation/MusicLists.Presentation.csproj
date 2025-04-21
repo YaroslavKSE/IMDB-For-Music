@@ -21,4 +21,8 @@
       <ProjectReference Include="..\MusicLists.Infrastructure\MusicLists.Infrastructure.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Controllers\" />
+    </ItemGroup>
+
 </Project>

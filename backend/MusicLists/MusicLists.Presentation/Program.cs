@@ -13,7 +13,7 @@ builder.Services.AddPostgreSQLServices();
 // Register Application services including MediatR
 builder.Services.AddMediatR(cfg => 
 {
-    cfg.RegisterServicesFromAssembly(typeof(MusicLists.Application.AssemblyReference).Assembly);
+    cfg.RegisterServicesFromAssembly(typeof(MusicLists.Application.IMusicListsStorage).Assembly);
 });
 
 builder.Services.AddCors(options =>

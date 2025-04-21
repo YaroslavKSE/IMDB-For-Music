@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MusicInteraction.Infrastructure.Services;
+using MusicLists.Application;
 using MusicLists.Infrastructure.DBConfig;
 
 namespace MusicLists.Infrastructure.Extensions
@@ -31,7 +32,7 @@ namespace MusicLists.Infrastructure.Extensions
             services.BuildServiceProvider().GetRequiredService<MusicListsDbContext>().Database.Migrate();
             //
             // // Register repositories
-            // services.AddScoped<IMusicListRepository, MusicListRepository>();
+            services.AddScoped<IMusicListsStorage, MusicListsStorage>();
 
             // Register the HotScore calculator
             services.AddSingleton<ListHotScoreCalculator>();
