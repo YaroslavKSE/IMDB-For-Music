@@ -223,13 +223,18 @@ public class MusicListsController : ControllerBase
     }
 
     [HttpGet("by-user/{userId}")]
-    public async Task<IActionResult> GetListsByUserId(string userId, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
+    public async Task<IActionResult> GetListsByUserId(
+        string userId,
+        [FromQuery] int? limit = null,
+        [FromQuery] int? offset = null,
+        [FromQuery] string? listType = null)  // Add this parameter
     {
         var command = new GetListsByUserIdCommand
         {
             UserId = userId,
             Limit = limit,
-            Offset = offset
+            Offset = offset,
+            ListType = listType  // Set the list type filter
         };
 
         var result = await _mediator.Send(command);
@@ -246,13 +251,18 @@ public class MusicListsController : ControllerBase
     }
 
     [HttpGet("by-spotify-id/{spotifyId}")]
-    public async Task<IActionResult> GetListsBySpotifyId(string spotifyId, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
+    public async Task<IActionResult> GetListsBySpotifyId(
+        string spotifyId,
+        [FromQuery] int? limit = null,
+        [FromQuery] int? offset = null,
+        [FromQuery] string? listType = null)  // Add this parameter
     {
         var command = new GetListsBySpotifyIdCommand
         {
             SpotifyId = spotifyId,
             Limit = limit,
-            Offset = offset
+            Offset = offset,
+            ListType = listType  // Set the list type filter
         };
 
         var result = await _mediator.Send(command);

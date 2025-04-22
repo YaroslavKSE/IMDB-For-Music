@@ -21,7 +21,7 @@ public class GetListsBySpotifyIdUseCase : IRequestHandler<GetListsBySpotifyIdCom
     {
         try
         {
-            var paginatedLists = await _musicListsStorage.GetListsBySpotifyIdAsync(request.SpotifyId, request.Limit, request.Offset);
+            var paginatedLists = await _musicListsStorage.GetListsBySpotifyIdAsync(request.SpotifyId, request.Limit, request.Offset, request.ListType);
 
             var listDtos = paginatedLists.Items.Select(l => new ListOverviewDto
             {

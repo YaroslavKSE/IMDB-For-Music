@@ -18,8 +18,8 @@ public interface IMusicListsStorage
     Task<ListWithItemCount> GetListByIdAsync(Guid listId, int maxItems = 100);
     Task<PaginatedResult<ListItem>> GetListItemsByIdAsync(Guid listId, int? limit = null, int? offset = null);
     Task<PaginatedResult<ListComment>> GetListCommentsByIdAsync(Guid listId, int? limit = null, int? offset = null);
-    Task<PaginatedResult<ListWithItemCount>> GetListsByUserIdAsync(string userId, int? limit = null, int? offset = null);
-    Task<PaginatedResult<ListWithItemCount>> GetListsBySpotifyIdAsync(string spotifyId, int? limit = null, int? offset = null);
+    Task<PaginatedResult<ListWithItemCount>> GetListsByUserIdAsync(string userId, int? limit = null, int? offset = null, string? listType = null);
+    Task<PaginatedResult<ListWithItemCount>> GetListsBySpotifyIdAsync(string spotifyId, int? limit = null, int? offset = null, string? listType = null);
     Task<int> InsertListItemAsync(Guid listId, string spotifyId, int position);
 }
 

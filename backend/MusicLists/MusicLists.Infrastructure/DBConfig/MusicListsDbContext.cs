@@ -57,6 +57,7 @@ public class MusicListsDbContext : DbContext
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.IsScoreDirty);
             entity.HasIndex(e => e.HotScore);
+            entity.HasIndex(e => e.ListType);
 
             // Configure one-to-many relationship with ListItems with cascade delete
             entity.HasMany(e => e.Items)

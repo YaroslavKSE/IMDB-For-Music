@@ -391,12 +391,18 @@ public class MusicListsStorage : IMusicListsStorage
         return new PaginatedResult<ListComment>(comments, totalCount);
     }
 
-    public async Task<PaginatedResult<ListWithItemCount>> GetListsByUserIdAsync(string userId, int? limit = null, int? offset = null)
+    public async Task<PaginatedResult<ListWithItemCount>> GetListsByUserIdAsync(string userId, int? limit = null, int? offset = null, string? listType = null)
     {
         // Create query for lists by user ID
         IQueryable<ListEntity> query = _dbContext.Lists
-            .Where(l => l.UserId == userId)
-            .OrderByDescending(l => l.CreatedAt);
+            .Where(l => l.UserId == userId);
+
+        if (!string.IsNullOrWhiteSpace(listType))
+        {
+            query = query.Where(l => l.ListType == listType);
+        }
+
+        query = query.OrderByDescending(l => l.CreatedAt);
 
         // Get total count efficiently
         int totalCount = await query.CountAsync();
@@ -459,7 +465,7 @@ public class MusicListsStorage : IMusicListsStorage
         return new PaginatedResult<ListWithItemCount>(resultLists, totalCount);
     }
 
-    public async Task<PaginatedResult<ListWithItemCount>> GetListsBySpotifyIdAsync(string spotifyId, int? limit = null, int? offset = null)
+    public async Task<PaginatedResult<ListWithItemCount>> GetListsBySpotifyIdAsync(string spotifyId, int? limit = null, int? offset = null, string? listType = null)
     {
         // First, find all list IDs that contain the spotify ID
         var listIds = await _dbContext.ListItems
@@ -470,8 +476,16 @@ public class MusicListsStorage : IMusicListsStorage
 
         // Create query for lists containing the spotify ID
         IQueryable<ListEntity> query = _dbContext.Lists
-            .Where(l => listIds.Contains(l.ListId))
-            .OrderByDescending(l => l.HotScore); // Sort by hot score
+            .Where(l => listIds.Contains(l.ListId));
+
+        // Apply list type filter if provided
+        if (!string.IsNullOrWhiteSpace(listType))
+        {
+            query = query.Where(l => l.ListType == listType);
+        }
+
+        // Order by hot score
+        query = query.OrderByDescending(l => l.HotScore);
 
         // Get total count efficiently
         int totalCount = await query.CountAsync();

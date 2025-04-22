@@ -21,7 +21,7 @@ public class GetListsByUserIdUseCase : IRequestHandler<GetListsByUserIdCommand, 
     {
         try
         {
-            var paginatedLists = await _musicListsStorage.GetListsByUserIdAsync(request.UserId, request.Limit, request.Offset);
+            var paginatedLists = await _musicListsStorage.GetListsByUserIdAsync(request.UserId, request.Limit, request.Offset, request.ListType);
 
             var listDtos = paginatedLists.Items.Select(l => new ListOverviewDto
             {
