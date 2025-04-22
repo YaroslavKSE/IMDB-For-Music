@@ -4,6 +4,7 @@ public class Rating: Interaction
 {
     public Guid RatingId { get; set; }
     public IGradable Grade { get; set; }
+    public bool IsComplex { get; set; }
 
     public Rating(IGradable grade, Guid AggregateId, string ItemId, DateTime CreatedAt, string ItemType, string UserId)
         : base(AggregateId, ItemId, CreatedAt, ItemType, UserId)

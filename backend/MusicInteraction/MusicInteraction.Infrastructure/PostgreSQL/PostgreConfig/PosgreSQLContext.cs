@@ -32,13 +32,16 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
         // Tables
         public DbSet<InteractionAggregateEntity> Interactions { get; set; }
-        public DbSet<ReviewEntity> Reviews { get; set; }
         public DbSet<RatingEntity> Ratings { get; set; }
-        public DbSet<LikeEntity> Likes { get; set; } // New Likes table
+        public DbSet<LikeEntity> Likes { get; set; }
+        public DbSet<ReviewEntity> Reviews { get; set; }
+        public DbSet<ReviewLikeEntity> ReviewLikes { get; set; }
+        public DbSet<ReviewCommentEntity> ReviewComments { get; set; }
+
+        public DbSet<ItemStatsEntity> ItemStats { get; set; }
         public DbSet<GradeEntity> Grades { get; set; }
         public DbSet<GradingMethodInstanceEntity> GradingMethodInstances { get; set; }
         public DbSet<GradingBlockEntity> GradingBlocks { get; set; }
-        // Additional one-to-many tables
         public DbSet<GradingMethodComponentEntity> GradingMethodComponents { get; set; }
         public DbSet<GradingBlockComponentEntity> GradingBlockComponents { get; set; }
         public DbSet<GradingMethodActionEntity> GradingMethodActions { get; set; }
@@ -156,9 +159,12 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             modelBuilder.Entity<InteractionAggregateEntity>()
                 .HasIndex(i => i.ItemId);
 
+            modelBuilder.Entity<InteractionAggregateEntity>()
+                .HasIndex(i => i.CreatedAt);
+
             // Add composite index for (UserId, ItemId)
             modelBuilder.Entity<InteractionAggregateEntity>()
-                .HasIndex(i => new { i.UserId, i.ItemId });
+                .HasIndex(i => new { i.UserId, i.ItemId, i.CreatedAt});
 
             // Set up unique constraints
             modelBuilder.Entity<GradingMethodComponentEntity>()
@@ -176,6 +182,45 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             modelBuilder.Entity<GradingBlockActionEntity>()
                 .HasIndex(a => new { a.GradingBlockId, a.ActionNumber })
                 .IsUnique();
+
+            // Configure ReviewLike relationship
+            modelBuilder.Entity<ReviewLikeEntity>()
+                .HasOne(rl => rl.Review)
+                .WithMany(r => r.Likes)
+                .HasForeignKey(rl => rl.ReviewId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure ReviewComment relationship
+            modelBuilder.Entity<ReviewCommentEntity>()
+                .HasOne(rc => rc.Review)
+                .WithMany(r => r.Comments)
+                .HasForeignKey(rc => rc.ReviewId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Create indexes for faster lookups
+            modelBuilder.Entity<ReviewLikeEntity>()
+                .HasIndex(rl => new { rl.ReviewId, rl.UserId })
+                .IsUnique();
+
+            modelBuilder.Entity<ReviewLikeEntity>()
+                .HasIndex(rl => rl.UserId);
+
+            modelBuilder.Entity<ReviewCommentEntity>()
+                .HasIndex(rc => rc.ReviewId);
+
+            modelBuilder.Entity<ReviewCommentEntity>()
+                .HasIndex(rc => rc.UserId);
+
+            modelBuilder.Entity<ReviewEntity>()
+                .HasIndex(r => r.HotScore)
+                .HasDatabaseName("IX_Reviews_HotScore")
+                .IsDescending();
+
+            // Index for IsScoreDirty for efficient querying reviews that need HotScore recalculation
+            modelBuilder.Entity<ReviewEntity>()
+                .HasIndex(r => r.IsScoreDirty)
+                .HasDatabaseName("IX_Reviews_IsScoreDirty")
+                .HasFilter("\"IsScoreDirty\" = true");
         }
     }
 }

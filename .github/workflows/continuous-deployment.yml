@@ -7,6 +7,7 @@ on:
       - Build Music Catalog Service
       - Build User Service
       - Build Music Interaction Service
+      - Build Music Lists Service
     types:
       - completed
     branches:
@@ -15,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       service:
-        description: 'Service to deploy (all, frontend, music-catalog, user-service, music-interaction)'
+        description: 'Service to deploy (all, frontend, music-catalog, user-service, music-interaction, music-lists)'
         required: true
         default: 'all'
         type: choice
@@ -25,6 +26,7 @@ on:
           - music-catalog
           - user-service
           - music-interaction
+          - music-lists
 
 env:
   EC2_INSTANCE_ID: i-06c5b6c0c7c8e1c22
@@ -54,6 +56,8 @@ jobs:
             echo "service=user-service" >> $GITHUB_OUTPUT
           elif [[ "$WORKFLOW" == "Build Music Interaction Service" ]]; then
             echo "service=music-interaction-service" >> $GITHUB_OUTPUT
+          elif [[ "$WORKFLOW" == "Build Music Lists Service" ]]; then
+            echo "service=music-lists-service" >> $GITHUB_OUTPUT
           else
             echo "service=unknown" >> $GITHUB_OUTPUT
           fi
@@ -125,6 +129,8 @@ jobs:
             ACTUAL_SERVICE="user-service"
           elif [ "$SERVICE" == "music-interaction" ]; then
             ACTUAL_SERVICE="music-interaction-service"
+          elif [ "$SERVICE" == "music-lists" ]; then
+            ACTUAL_SERVICE="music-lists-service"
           else
             ACTUAL_SERVICE="$SERVICE"
           fi

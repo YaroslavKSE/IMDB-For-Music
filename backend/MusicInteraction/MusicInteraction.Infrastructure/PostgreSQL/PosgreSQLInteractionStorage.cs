@@ -148,23 +148,42 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             }
         }
 
-        public async Task<List<InteractionsAggregate>> GetInteractions()
+        public async Task<PaginatedResult<InteractionsAggregate>> GetInteractions(int? limit = null, int? offset = null)
         {
-            var interactionEntities = await _dbContext.Interactions
-                .Include(i => i.Rating)
+            IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
+                .OrderByDescending(i => i.CreatedAt);
+
+            // Get total count efficiently
+            int totalCount = await query.CountAsync();
+
+            // Apply pagination
+            if (offset.HasValue)
+            {
+                query = query.Skip(offset.Value);
+            }
+
+            if (limit.HasValue)
+            {
+                query = query.Take(limit.Value);
+            }
+
+            query.Include(i => i.Rating)
                 .Include(i => i.Review)
-                .Include(i => i.Like)
-                .ToListAsync();
+                .Include(i => i.Like);
 
+            // Execute the query to get items
+            var interactionEntities = await query.ToListAsync();
+
+            // Map entities to domain objects
             List<InteractionsAggregate> result = new List<InteractionsAggregate>();
-
             foreach (var entity in interactionEntities)
             {
                 var interaction = await InteractionMapper.ToDomain(entity, _dbContext);
                 result.Add(interaction);
             }
 
-            return result;
+            // Return both items and count
+            return new PaginatedResult<InteractionsAggregate>(result, totalCount);
         }
 
         public async Task<InteractionsAggregate> GetInteractionById(Guid interactionId)
@@ -191,83 +210,381 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             }
         }
 
-        public async Task<List<InteractionsAggregate>> GetInteractionsByUserId(string userId)
+        public async Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByUserId(string userId, int? limit = null, int? offset = null)
         {
-            var interactionEntities = await _dbContext.Interactions
+            IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
                 .Where(i => i.UserId == userId)
-                .Include(i => i.Rating)
+                .OrderByDescending(i => i.CreatedAt);
+
+            // Get total count efficiently
+            int totalCount = await query.CountAsync();
+
+            // Apply pagination
+            if (offset.HasValue)
+            {
+                query = query.Skip(offset.Value);
+            }
+
+            if (limit.HasValue)
+            {
+                query = query.Take(limit.Value);
+            }
+
+            query.Include(i => i.Rating)
                 .Include(i => i.Review)
-                .Include(i => i.Like)
-                .ToListAsync();
+                .Include(i => i.Like);
 
+            // Execute the query to get items
+            var interactionEntities = await query.ToListAsync();
+
+            // Map entities to domain objects
             List<InteractionsAggregate> result = new List<InteractionsAggregate>();
-
             foreach (var entity in interactionEntities)
             {
                 var interaction = await InteractionMapper.ToDomain(entity, _dbContext);
                 result.Add(interaction);
             }
 
-            return result;
+            // Return both items and count
+            return new PaginatedResult<InteractionsAggregate>(result, totalCount);
         }
 
-        public async Task<List<InteractionsAggregate>> GetInteractionsByItemId(string itemId)
+        public async Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByItemId(string itemId, int? limit = null, int? offset = null)
         {
-            var interactionEntities = await _dbContext.Interactions
+            IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
                 .Where(i => i.ItemId == itemId)
-                .Include(i => i.Rating)
+                .OrderByDescending(i => i.CreatedAt);
+
+            // Get total count efficiently
+            int totalCount = await query.CountAsync();
+
+            // Apply pagination
+            if (offset.HasValue)
+            {
+                query = query.Skip(offset.Value);
+            }
+
+            if (limit.HasValue)
+            {
+                query = query.Take(limit.Value);
+            }
+
+            query.Include(i => i.Rating)
                 .Include(i => i.Review)
-                .Include(i => i.Like)
-                .ToListAsync();
+                .Include(i => i.Like);
 
+            // Execute the query to get items
+            var interactionEntities = await query.ToListAsync();
+
+            // Map entities to domain objects
             List<InteractionsAggregate> result = new List<InteractionsAggregate>();
-
             foreach (var entity in interactionEntities)
             {
                 var interaction = await InteractionMapper.ToDomain(entity, _dbContext);
                 result.Add(interaction);
             }
 
-            return result;
+            // Return both items and count
+            return new PaginatedResult<InteractionsAggregate>(result, totalCount);
         }
 
-        public async Task<List<InteractionsAggregate>> GetInteractionsByUserAndItem(string userId, string itemId)
+        public async Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByUserAndItem(string userId, string itemId, int? limit = null, int? offset = null)
         {
-            var interactionEntities = await _dbContext.Interactions
+            IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
                 .Where(i => i.UserId == userId && i.ItemId == itemId)
-                .Include(i => i.Rating)
+                .OrderByDescending(i => i.CreatedAt);
+
+            // Get total count efficiently
+            int totalCount = await query.CountAsync();
+
+            // Apply pagination
+            if (offset.HasValue)
+            {
+                query = query.Skip(offset.Value);
+            }
+
+            if (limit.HasValue)
+            {
+                query = query.Take(limit.Value);
+            }
+
+            query.Include(i => i.Rating)
                 .Include(i => i.Review)
-                .Include(i => i.Like)
-                .ToListAsync();
+                .Include(i => i.Like);
 
+            // Execute the query to get items
+            var interactionEntities = await query.ToListAsync();
+
+            // Map entities to domain objects
             List<InteractionsAggregate> result = new List<InteractionsAggregate>();
-
             foreach (var entity in interactionEntities)
             {
                 var interaction = await InteractionMapper.ToDomain(entity, _dbContext);
                 result.Add(interaction);
             }
 
-            return result;
+            // Return both items and count
+            return new PaginatedResult<InteractionsAggregate>(result, totalCount);
         }
 
-        public async Task<bool> GetGradingTypeByInteractionId(Guid interactionId)
+        public async Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByUserIds(List<string> userIds, int? limit = null, int? offset = null)
         {
-            try
-            {
-                var interactionEntity = await _dbContext.Interactions
-                    .Include(i => i.Rating)
-                    .Include(i => i.Review)
-                    .Include(i => i.Like)
-                    .FirstOrDefaultAsync(i => i.AggregateId == interactionId);
+            IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
+                .Where(i => userIds.Contains(i.UserId))
+                .OrderByDescending(i => i.CreatedAt);
 
-                return interactionEntity.Rating.IsComplexGrading;
-            }
-            catch (Exception ex)
+            // Get total count efficiently
+            int totalCount = await query.CountAsync();
+
+            // Apply pagination
+            if (offset.HasValue)
             {
-                Console.WriteLine($"Error retrieving interaction with ID {interactionId}: {ex.Message}");
-                throw;
+                query = query.Skip(offset.Value);
             }
+
+            if (limit.HasValue)
+            {
+                query = query.Take(limit.Value);
+            }
+
+            query.Include(i => i.Rating)
+                .Include(i => i.Review)
+                .Include(i => i.Like);
+
+            // Execute the query to get items
+            var interactionEntities = await query.ToListAsync();
+
+            // Map entities to domain objects
+            List<InteractionsAggregate> result = new List<InteractionsAggregate>();
+            foreach (var entity in interactionEntities)
+            {
+                var interaction = await InteractionMapper.ToDomain(entity, _dbContext);
+                result.Add(interaction);
+            }
+
+            // Return both items and count
+            return new PaginatedResult<InteractionsAggregate>(result, totalCount);
+        }
+
+        public async Task<PaginatedResult<InteractionsAggregate>> GetInteractionsByItemIds(List<string> itemIds, int? limit = null, int? offset = null)
+        {
+            IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
+                .Where(i => itemIds.Contains(i.ItemId))
+                .OrderByDescending(i => i.CreatedAt);
+
+            // Get total count efficiently
+            int totalCount = await query.CountAsync();
+
+            // Apply pagination
+            if (offset.HasValue)
+            {
+                query = query.Skip(offset.Value);
+            }
+
+            if (limit.HasValue)
+            {
+                query = query.Take(limit.Value);
+            }
+
+            query.Include(i => i.Rating)
+                .Include(i => i.Review)
+                .Include(i => i.Like);
+
+            // Execute the query to get items
+            var interactionEntities = await query.ToListAsync();
+
+            // Map entities to domain objects
+            List<InteractionsAggregate> result = new List<InteractionsAggregate>();
+            foreach (var entity in interactionEntities)
+            {
+                var interaction = await InteractionMapper.ToDomain(entity, _dbContext);
+                result.Add(interaction);
+            }
+
+            // Return both items and count
+            return new PaginatedResult<InteractionsAggregate>(result, totalCount);
+        }
+
+        public async Task<PaginatedResult<InteractionsAggregate>> GetReviewedInteractionsByItemId(string itemId, bool? useHotScore = true, int? limit = null, int? offset = null)
+        {
+            // Start with filtering interactions by itemId
+            IQueryable<InteractionAggregateEntity> query = _dbContext.Interactions
+                .Where(i => i.ItemId == itemId)
+                .Where(i => _dbContext.Reviews.Any(r => r.AggregateId == i.AggregateId))
+                .Include(i => i.Review);
+
+            if (useHotScore.Equals(true))
+            {
+                query = query.OrderByDescending(i => i.Review.HotScore);
+            }
+            else
+            {
+                query = query.OrderByDescending(i => i.CreatedAt);
+            }
+
+            // Get total count efficiently
+            int totalCount = await query.CountAsync();
+
+            // Apply pagination
+            if (offset.HasValue)
+            {
+                query = query.Skip(offset.Value);
+            }
+
+            if (limit.HasValue)
+            {
+                query = query.Take(limit.Value);
+            }
+
+            // Include related entities after pagination
+            query = query
+                .Include(i => i.Rating)
+                .Include(i => i.Like);
+
+            // Execute the query to get items
+            var interactionEntities = await query.ToListAsync();
+
+            // Map entities to domain objects
+            List<InteractionsAggregate> result = new List<InteractionsAggregate>();
+            foreach (var entity in interactionEntities)
+            {
+                var interaction = await InteractionMapper.ToDomain(entity, _dbContext);
+                result.Add(interaction);
+            }
+
+            // Return both items and count
+            return new PaginatedResult<InteractionsAggregate>(result, totalCount);
+        }
+
+        public async Task<ReviewLike> AddReviewLike(Guid reviewId, string userId)
+        {
+            // Check if the review exists
+            var reviewExists = await _dbContext.Reviews.AnyAsync(r => r.ReviewId == reviewId);
+            if (!reviewExists)
+            {
+                throw new KeyNotFoundException($"Review with ID {reviewId} not found");
+            }
+
+            // Check if user already liked this review
+            var existingLike = await _dbContext.ReviewLikes
+                .FirstOrDefaultAsync(l => l.ReviewId == reviewId && l.UserId == userId);
+
+            if (existingLike != null)
+            {
+                // User already liked this review
+                return ReviewLikeMapper.ToDomain(existingLike);
+            }
+
+            // Create a new like
+            var reviewLike = new ReviewLike(reviewId, userId);
+            var reviewLikeEntity = ReviewLikeMapper.ToEntity(reviewLike);
+
+            await _dbContext.ReviewLikes.AddAsync(reviewLikeEntity);
+            await _dbContext.SaveChangesAsync();
+
+            return reviewLike;
+        }
+
+        public async Task<bool> RemoveReviewLike(Guid reviewId, string userId)
+        {
+            var likeEntity = await _dbContext.ReviewLikes
+                .FirstOrDefaultAsync(rl => rl.ReviewId == reviewId && rl.UserId == userId);
+
+            if (likeEntity == null)
+            {
+                return false;
+            }
+
+            _dbContext.ReviewLikes.Remove(likeEntity);
+            await _dbContext.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> HasUserLikedReview(Guid reviewId, string userId)
+        {
+            return await _dbContext.ReviewLikes
+                .AnyAsync(l => l.ReviewId == reviewId && l.UserId == userId);
+        }
+
+        public async Task<ReviewComment> AddReviewComment(Guid reviewId, string userId, string commentText)
+        {
+            // Check if the review exists
+            var reviewExists = await _dbContext.Reviews.AnyAsync(r => r.ReviewId == reviewId);
+            if (!reviewExists)
+            {
+                throw new KeyNotFoundException($"Review with ID {reviewId} not found");
+            }
+
+            // Create a new comment
+            var reviewComment = new ReviewComment(reviewId, userId, commentText);
+            var commentEntity = ReviewCommentMapper.ToEntity(reviewComment);
+
+            await _dbContext.ReviewComments.AddAsync(commentEntity);
+            await _dbContext.SaveChangesAsync();
+
+            return reviewComment;
+        }
+
+        public async Task<bool> DeleteReviewComment(Guid commentId, string userId)
+        {
+            var commentEntity = await _dbContext.ReviewComments
+                .FirstOrDefaultAsync(c => c.CommentId == commentId);
+
+            if (commentEntity == null)
+            {
+                // Comment not found
+                return false;
+            }
+
+            // Only allow the comment owner to delete it
+            if (commentEntity.UserId != userId)
+            {
+                return false;
+            }
+
+            _dbContext.ReviewComments.Remove(commentEntity);
+            await _dbContext.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<PaginatedResult<ReviewComment>> GetReviewComments(Guid reviewId, int? limit = null, int? offset = null)
+        {
+            // Check if the review exists
+            var reviewExists = await _dbContext.Reviews.AnyAsync(r => r.ReviewId == reviewId);
+            if (!reviewExists)
+            {
+                throw new KeyNotFoundException($"Review with ID {reviewId} not found");
+            }
+
+            // Build the query but don't execute it yet
+            IQueryable<ReviewCommentEntity> query = _dbContext.ReviewComments
+                .Where(c => c.ReviewId == reviewId)
+                .OrderByDescending(c => c.CommentedAt);
+
+            // Get total count efficiently
+            int totalCount = await query.CountAsync();
+
+            // Apply pagination
+            if (offset.HasValue)
+            {
+                query = query.Skip(offset.Value);
+            }
+
+            if (limit.HasValue)
+            {
+                query = query.Take(limit.Value);
+            }
+
+            // Execute the query to get items
+            var commentEntities = await query.ToListAsync();
+
+            // Map entities to domain objects
+            var comments = commentEntities.Select(ReviewCommentMapper.ToDomain).ToList();
+
+            // Return both items and count
+            return new PaginatedResult<ReviewComment>(comments, totalCount);
         }
 
         public async Task<List<Like>> GetLikes()

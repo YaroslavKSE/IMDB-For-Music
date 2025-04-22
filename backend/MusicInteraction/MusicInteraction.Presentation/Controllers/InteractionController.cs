@@ -66,11 +66,23 @@ public class InteractionController : ControllerBase
     }
 
     [HttpGet("all")]
-    public async Task<IActionResult> GetInteractions()
+    public async Task<IActionResult> GetInteractions([FromQuery] int? limit = null, [FromQuery] int? offset = null)
     {
-        var result = await mediator.Send(new GetInteractionsCommand());
-        if (result.InteractionsEmpty) return NotFound("There are no interactions");
-        return Ok(result.Interactions);
+        var command = new GetInteractionsCommand
+        {
+            Limit = limit,
+            Offset = offset
+        };
+
+        var result = await mediator.Send(command);
+
+        if (result.InteractionsEmpty && result.TotalCount == 0)
+            return NotFound("There are no interactions");
+
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
     }
 
     [HttpGet("by-id/{id}")]
@@ -88,35 +100,81 @@ public class InteractionController : ControllerBase
     }
 
     [HttpGet("by-user-id/{userId}")]
-    public async Task<IActionResult> GetInteractionsByUserId(string userId)
+    public async Task<IActionResult> GetInteractionsByUserId(string userId, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
     {
-        var command = new GetInteractionsByUserIdCommand() { UserId = userId };
+        var command = new GetInteractionsByUserIdCommand()
+        {
+            UserId = userId,
+            Limit = limit,
+            Offset = offset
+        };
+
         var result = await mediator.Send(command);
 
-        if (result.InteractionsEmpty)
+        if (result.InteractionsEmpty && result.TotalCount == 0)
         {
             return NotFound($"No interactions found for user {userId}");
         }
 
-        return Ok(result.Interactions);
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
     }
 
     [HttpGet("by-item-id/{itemId}")]
-    public async Task<IActionResult> GetInteractionsByItemId(string itemId)
+    public async Task<IActionResult> GetInteractionsByItemId(string itemId, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
     {
-        var command = new GetInteractionsByItemIdCommand() { ItemId = itemId };
+        var command = new GetInteractionsByItemIdCommand()
+        {
+            ItemId = itemId,
+            Limit = limit,
+            Offset = offset
+        };
+
         var result = await mediator.Send(command);
 
-        if (result.InteractionsEmpty)
+        if (result.InteractionsEmpty && result.TotalCount == 0)
         {
             return NotFound($"No interactions found for item {itemId}");
         }
 
-        return Ok(result.Interactions);
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
+    }
+
+    [HttpGet("reviews-by-item-id/{itemId}")]
+    public async Task<IActionResult> GetReviewedInteractionsByItemId(string itemId, [FromQuery] int? limit = null, [FromQuery] int? offset = null, [FromQuery]bool? useHotScore = true)
+    {
+        var command = new GetReviewedInteractionsByItemIdCommand()
+        {
+            ItemId = itemId,
+            Limit = limit,
+            Offset = offset,
+            UseHotScore = useHotScore
+        };
+
+        var result = await mediator.Send(command);
+
+        if (result.InteractionsEmpty && result.TotalCount == 0)
+        {
+            return NotFound($"No interactions found for item {itemId}");
+        }
+
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
     }
 
     [HttpGet("by-user-and-item")]
-    public async Task<IActionResult> GetInteractionsByUserAndItem([FromQuery] string userId, [FromQuery] string itemId)
+    public async Task<IActionResult> GetInteractionsByUserAndItem(
+        [FromQuery] string userId,
+        [FromQuery] string itemId,
+        [FromQuery] int? limit = null,
+        [FromQuery] int? offset = null)
     {
         if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(itemId))
         {
@@ -126,17 +184,78 @@ public class InteractionController : ControllerBase
         var command = new GetInteractionsByUserAndItemCommand()
         {
             UserId = userId,
-            ItemId = itemId
+            ItemId = itemId,
+            Limit = limit,
+            Offset = offset
         };
 
         var result = await mediator.Send(command);
 
-        if (result.InteractionsEmpty)
+        if (result.InteractionsEmpty && result.TotalCount == 0)
         {
             return NotFound($"No interactions found for user {userId} and item {itemId}");
         }
 
-        return Ok(result.Interactions);
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
+    }
+
+    [HttpGet("by-several-user-ids")]
+    public async Task<IActionResult> GetInteractionsByUserIds([FromBody] List<string> userIds, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
+    {
+        if (userIds == null || userIds.Count == 0)
+        {
+            return BadRequest("At least one userId is required");
+        }
+
+        var command = new GetInteractionsByUserIdsCommand()
+        {
+            UserIds = userIds,
+            Limit = limit,
+            Offset = offset
+        };
+
+        var result = await mediator.Send(command);
+
+        if (result.InteractionsEmpty && result.TotalCount == 0)
+        {
+            return NotFound($"No interactions found for the specified users");
+        }
+
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
+    }
+
+    [HttpGet("by-several-item-ids")]
+    public async Task<IActionResult> GetInteractionsByItemIds([FromBody] List<string> itemIds, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
+    {
+        if (itemIds == null || itemIds.Count == 0)
+        {
+            return BadRequest("At least one itemId is required");
+        }
+
+        var command = new GetInteractionsByItemIdsCommand()
+        {
+            ItemIds = itemIds,
+            Limit = limit,
+            Offset = offset
+        };
+
+        var result = await mediator.Send(command);
+
+        if (result.InteractionsEmpty && result.TotalCount == 0)
+        {
+            return NotFound($"No interactions found for the specified items");
+        }
+
+        return Ok(new {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
     }
 
     [HttpGet("likes-all")]
@@ -189,5 +308,28 @@ public class InteractionController : ControllerBase
         }
 
         return Ok();
+    }
+
+    [HttpGet("item-stats/{itemId}")]
+    public async Task<IActionResult> GetItemStats(string itemId)
+    {
+        if (string.IsNullOrEmpty(itemId))
+        {
+            return BadRequest("Item ID is required");
+        }
+
+        var command = new GetItemStatsByIdCommand
+        {
+            ItemId = itemId
+        };
+
+        var result = await mediator.Send(command);
+
+        if (!result.Success)
+        {
+            return BadRequest(result.ErrorMessage);
+        }
+
+        return Ok(result.Stats);
     }
 }

@@ -8,12 +8,17 @@ public class PostInteractionUseCase : IRequestHandler<PostInteractionCommand, Po
 {
     private readonly IInteractionStorage interactionStorage;
     private readonly IGradingMethodStorage gradingMethodStorage;
+    private readonly IItemStatsStorage itemStatsStorage;
     private readonly ComplexInteractionGrader interactionGrader;
 
-    public PostInteractionUseCase(IInteractionStorage interactionStorage, IGradingMethodStorage gradingMethodStorage)
+    public PostInteractionUseCase(
+        IInteractionStorage interactionStorage,
+        IGradingMethodStorage gradingMethodStorage,
+        IItemStatsStorage itemStatsStorage)
     {
         this.interactionStorage = interactionStorage;
         this.gradingMethodStorage = gradingMethodStorage;
+        this.itemStatsStorage = itemStatsStorage;
         interactionGrader = new ComplexInteractionGrader(gradingMethodStorage);
     }
 
@@ -80,6 +85,19 @@ public class PostInteractionUseCase : IRequestHandler<PostInteractionCommand, Po
             }
 
             await interactionStorage.AddInteractionAsync(interaction);
+
+            // Update item stats - first check if item stats exists
+            bool statsExists = await itemStatsStorage.ItemStatsExistsAsync(request.ItemId);
+            if (!statsExists)
+            {
+                // Initialize item stats for this item
+                await itemStatsStorage.InitializeItemStatsAsync(request.ItemId);
+            }
+            else
+            {
+                // Mark existing stats as raw
+                await itemStatsStorage.MarkItemStatsAsRawAsync(request.ItemId);
+            }
         }
         catch (Exception ex)
         {

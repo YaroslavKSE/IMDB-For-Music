@@ -255,7 +255,7 @@ const InteractionService = {
 
   getUserInteractionsByUserId: async (userId: string): Promise<UserInteractionDetail[]> => {
     const response = await interactionApi.get(`/by-user-id/${userId}`);
-    return response.data;
+    return response.data.items;
   },
 
   getItemInteractions: async (itemId: string, itemType: string): Promise<GetInteractionsResult> => {

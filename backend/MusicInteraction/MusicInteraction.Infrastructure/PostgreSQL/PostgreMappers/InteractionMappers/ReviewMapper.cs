@@ -31,6 +31,9 @@ public static class ReviewMapper
             entity.Interaction.ItemType,
             entity.Interaction.UserId
         );
+
+        review.Likes = dbContext.ReviewLikes.Count(i => i.ReviewId == entity.ReviewId);
+        review.Comments = dbContext.ReviewComments.Count(i => i.ReviewId == entity.ReviewId);
         review.ReviewId = entity.ReviewId;
         return review;
     }

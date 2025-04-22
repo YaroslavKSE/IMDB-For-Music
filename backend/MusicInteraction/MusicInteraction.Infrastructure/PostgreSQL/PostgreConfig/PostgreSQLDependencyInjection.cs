@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MusicInteraction.Application.Interfaces;
+using MusicInteraction.Infrastructure.Services;
 
 namespace MusicInteraction.Infrastructure.PostgreSQL
 {
@@ -25,6 +26,16 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
 
             // Register the PostgreSQL implementation of IInteractionStorage
             services.AddScoped<IInteractionStorage, PostgreSQLInteractionStorage>();
+
+            // Register the PostgreSQL implementation of IItemStatsStorage
+            services.AddScoped<IItemStatsStorage, PostgreSQLItemStatsStorage>();
+
+            // Register the HotScore calculator
+            services.AddSingleton<ReviewHotScoreCalculator>();
+
+            // Register the background services
+            services.AddHostedService<ItemStatsUpdateService>();
+            services.AddHostedService<ReviewHotScoreUpdateService>();
 
             return services;
         }
