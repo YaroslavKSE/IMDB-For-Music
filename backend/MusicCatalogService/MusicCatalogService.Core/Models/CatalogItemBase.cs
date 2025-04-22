@@ -19,7 +19,4 @@ public abstract class CatalogItemBase
     public DateTime LastAccessed { get; set; }
 
     public DateTime CacheExpiresAt { get; set; }
-
-    // Store full response data for flexibility
-    public string RawData { get; set; }
 }

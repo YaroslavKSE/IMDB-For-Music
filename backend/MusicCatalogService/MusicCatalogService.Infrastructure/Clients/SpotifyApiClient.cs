@@ -71,7 +71,8 @@ public class SpotifyApiClient : ISpotifyApiClient
         }
     }
 
-    public async Task<SpotifyPagingObject<SpotifyTrackSimplified>?> GetAlbumTracksAsync(string albumId, int limit = 20, int offset = 0, string? market = null)
+    public async Task<SpotifyPagingObject<SpotifyTrackSimplified>?> GetAlbumTracksAsync(string albumId, int limit = 20,
+        int offset = 0, string? market = null)
     {
         try
         {
@@ -82,17 +83,15 @@ public class SpotifyApiClient : ISpotifyApiClient
             var requestUrl = $"albums/{albumId}/tracks?limit={limit}&offset={offset}";
 
             // Add market parameter if provided
-            if (!string.IsNullOrEmpty(market))
-            {
-                requestUrl += $"&market={market}";
-            }
+            if (!string.IsNullOrEmpty(market)) requestUrl += $"&market={market}";
 
             var response = await _httpClient.GetAsync(requestUrl);
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Spotify API error: {StatusCode} when getting album tracks for {AlbumId}. Response: {Response}",
+                _logger.LogError(
+                    "Spotify API error: {StatusCode} when getting album tracks for {AlbumId}. Response: {Response}",
                     response.StatusCode, albumId, errorContent);
 
                 // Parse Spotify error response
@@ -112,10 +111,11 @@ public class SpotifyApiClient : ISpotifyApiClient
             var content = await response.Content.ReadAsStringAsync();
             _logger.LogDebug("Spotify API returned album tracks: {Content}", content);
 
-            return JsonSerializer.Deserialize<SpotifyPagingObject<SpotifyTrackSimplified>>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            return JsonSerializer.Deserialize<SpotifyPagingObject<SpotifyTrackSimplified>>(content,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
         }
         catch (SpotifyException)
         {
@@ -223,7 +223,8 @@ public class SpotifyApiClient : ISpotifyApiClient
         }
     }
 
-    public async Task<SpotifyArtistAlbumsResponse?> GetArtistAlbumsAsync(string artistId, int limit = 20, int offset = 0, string? market = null, string? includeGroups = "album")
+    public async Task<SpotifyArtistAlbumsResponse?> GetArtistAlbumsAsync(string artistId, int limit = 20,
+        int offset = 0, string? market = null, string? includeGroups = "album")
     {
         try
         {
@@ -234,22 +235,17 @@ public class SpotifyApiClient : ISpotifyApiClient
             var requestUrl = $"artists/{artistId}/albums?limit={limit}&offset={offset}";
 
             // Add market parameter if provided
-            if (!string.IsNullOrEmpty(market))
-            {
-                requestUrl += $"&market={market}";
-            }
+            if (!string.IsNullOrEmpty(market)) requestUrl += $"&market={market}";
 
             // Add include_groups parameter if provided
-            if (!string.IsNullOrEmpty(includeGroups))
-            {
-                requestUrl += $"&include_groups={includeGroups}";
-            }
+            if (!string.IsNullOrEmpty(includeGroups)) requestUrl += $"&include_groups={includeGroups}";
 
             var response = await _httpClient.GetAsync(requestUrl);
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Spotify API error: {StatusCode} when getting artist albums for {ArtistId}. Response: {Response}",
+                _logger.LogError(
+                    "Spotify API error: {StatusCode} when getting artist albums for {ArtistId}. Response: {Response}",
                     response.StatusCode, artistId, errorContent);
 
                 // Parse Spotify error response
@@ -303,7 +299,8 @@ public class SpotifyApiClient : ISpotifyApiClient
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Spotify API error: {StatusCode} when getting artist top tracks for {ArtistId}. Response: {Response}",
+                _logger.LogError(
+                    "Spotify API error: {StatusCode} when getting artist top tracks for {ArtistId}. Response: {Response}",
                     response.StatusCode, artistId, errorContent);
 
                 // Parse Spotify error response
@@ -319,6 +316,7 @@ public class SpotifyApiClient : ISpotifyApiClient
                     _ => new SpotifyApiException(spotifyError.Message, response.StatusCode)
                 };
             }
+
             var content = await response.Content.ReadAsStringAsync();
             _logger.LogDebug("Spotify API returned artist top tracks: {Content}", content);
 
@@ -443,15 +441,11 @@ public class SpotifyApiClient : ISpotifyApiClient
     public async Task<SpotifyMultipleAlbumsResponse?> GetMultipleAlbumsAsync(IEnumerable<string> albumIds)
     {
         if (albumIds == null || !albumIds.Any())
-        {
             throw new ArgumentException("Album IDs cannot be null or empty", nameof(albumIds));
-        }
 
         // Spotify API limit is 20 IDs per request
         if (albumIds.Count() > 20)
-        {
             throw new ArgumentException("Maximum number of album IDs per request is 20", nameof(albumIds));
-        }
 
         try
         {
@@ -510,15 +504,11 @@ public class SpotifyApiClient : ISpotifyApiClient
     public async Task<SpotifyMultipleTracksResponse?> GetMultipleTracksAsync(IEnumerable<string> trackIds)
     {
         if (trackIds == null || !trackIds.Any())
-        {
             throw new ArgumentException("Track IDs cannot be null or empty", nameof(trackIds));
-        }
 
         // Spotify API limit is 50 IDs per request
         if (trackIds.Count() > 50)
-        {
             throw new ArgumentException("Maximum number of track IDs per request is 50", nameof(trackIds));
-        }
 
         try
         {

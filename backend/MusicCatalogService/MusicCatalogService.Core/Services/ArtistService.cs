@@ -51,12 +51,8 @@ public class ArtistService : IArtistService
         {
             _logger.LogInformation("Artist {SpotifyId} retrieved from database", spotifyId);
 
-            // Deserialize the raw data to Spotify response
-            var artistResponse = JsonSerializer.Deserialize<SpotifyArtistResponse>(
-                artist.RawData,
-                new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
-
-            var artistDto = MapToArtistDetailDto(artistResponse, artist.Id);
+            // Map entity to DTO directly
+            var artistDto = MapArtistEntityToDto(artist);
 
             // Store in cache
             await _cacheService.SetAsync(
@@ -97,9 +93,11 @@ public class ArtistService : IArtistService
             
             // External URLs
             SpotifyUrl = spotifyArtist.ExternalUrls?.Spotify,
-
-            // Raw data for future flexibility
-            RawData = JsonSerializer.Serialize(spotifyArtist)
+            
+            // Initialize empty lists for related data
+            TopTrackIds = new List<string>(),
+            RelatedArtistIds = new List<string>(),
+            AlbumIds = new List<string>()
         };
 
         // Save to database as a cached item (not permanent)
@@ -146,12 +144,8 @@ public class ArtistService : IArtistService
                 }
             }
             
-            // Deserialize the raw data to Spotify response
-            var artistResponse = JsonSerializer.Deserialize<SpotifyArtistResponse>(
-                artist.RawData,
-                new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
-            
-            return MapToArtistDetailDto(artistResponse, artist.Id);
+            // Map entity to DTO directly
+            return MapArtistEntityToDto(artist);
         }
         catch (Exception ex)
         {
@@ -210,6 +204,24 @@ public class ArtistService : IArtistService
 
             // Map the response to our DTO
             var result = MapToArtistAlbumsResultDto(albumsResponse, spotifyId, artistName, limit, offset);
+
+            // Update artist entity with album IDs if available
+            if (artist != null && albumsResponse.Items != null && albumsResponse.Items.Any())
+            {
+                var albumIds = albumsResponse.Items.Select(a => a.Id).ToList();
+                
+                // Add new album IDs to the artist's collection - avoiding duplicates
+                var existingIds = new HashSet<string>(artist.AlbumIds ?? new List<string>());
+                foreach (var albumId in albumIds.Where(id => !existingIds.Contains(id)))
+                {
+                    existingIds.Add(albumId);
+                }
+                
+                artist.AlbumIds = existingIds.ToList();
+                
+                // Update the artist entity in the database
+                await _catalogRepository.AddOrUpdateArtistAsync(artist);
+            }
 
             // Cache the result
             await _cacheService.SetAsync(
@@ -279,6 +291,16 @@ public class ArtistService : IArtistService
             // Map the response to our DTO
             var result = MapToArtistTopTracksResultDto(topTracksResponse, spotifyId, artistName, market);
 
+            // Update artist entity with top track IDs
+            if (artist != null && topTracksResponse.Tracks != null)
+            {
+                // Store top track IDs in the artist entity
+                artist.TopTrackIds = topTracksResponse.Tracks.Select(t => t.Id).ToList();
+                
+                // Update the artist entity in the database
+                await _catalogRepository.AddOrUpdateArtistAsync(artist);
+            }
+
             // Cache the result
             await _cacheService.SetAsync(
                 cacheKey,
@@ -293,8 +315,6 @@ public class ArtistService : IArtistService
             throw;
         }
     }
-
-
 
     // Save artist permanently
     public async Task<ArtistDetailDto> SaveArtistAsync(string spotifyId)
@@ -347,6 +367,41 @@ public class ArtistService : IArtistService
         return optimalImage.Url;
     }
 
+    // Map Artist entity to DTO directly
+    private ArtistDetailDto MapArtistEntityToDto(Artist artist)
+    {
+        // Create image DTOs (we'll only have the thumbnail URL in the entity)
+        var imageDtos = new List<ImageDto>();
+        if (!string.IsNullOrEmpty(artist.ThumbnailUrl))
+        {
+            imageDtos.Add(new ImageDto
+            {
+                Url = artist.ThumbnailUrl,
+                // These will be null since we only store the URL
+                Height = null,
+                Width = null
+            });
+        }
+        
+        // Create the ArtistDetailDto
+        return new ArtistDetailDto
+        {
+            CatalogItemId = artist.Id,
+            SpotifyId = artist.SpotifyId,
+            Name = artist.Name,
+            ImageUrl = artist.ThumbnailUrl,
+            Images = imageDtos,
+            Popularity = artist.Popularity,
+            Genres = artist.Genres ?? new List<string>(),
+            FollowersCount = artist.FollowersCount ?? 0,
+            ExternalUrls = artist.SpotifyUrl != null ? new List<string> { artist.SpotifyUrl } : null,
+            
+            // Initialize empty lists for related content that would be populated by API calls
+            TopAlbums = new List<AlbumSummaryDto>(),
+            TopTracks = new List<TrackSummaryDto>()
+        };
+    }
+
     // Map Spotify response to DTO
     private ArtistDetailDto MapToArtistDetailDto(SpotifyArtistResponse artist, Guid catalogItemId)
     {
@@ -358,7 +413,7 @@ public class ArtistService : IArtistService
             Width = img.Width
         }).ToList() ?? new List<ImageDto>();
 
-                    return new ArtistDetailDto
+        return new ArtistDetailDto
         {
             CatalogItemId = catalogItemId,
             SpotifyId = artist.Id,
@@ -370,7 +425,11 @@ public class ArtistService : IArtistService
             FollowersCount = artist.FollowersCount,
             ExternalUrls = artist.ExternalUrls?.Spotify != null
                 ? new List<string> {artist.ExternalUrls.Spotify}
-                : null
+                : null,
+                
+            // Initialize empty lists for related content
+            TopAlbums = new List<AlbumSummaryDto>(),
+            TopTracks = new List<TrackSummaryDto>()
         };
     }
 

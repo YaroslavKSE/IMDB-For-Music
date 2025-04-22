@@ -51,12 +51,8 @@ public class TrackService : ITrackService
         {
             _logger.LogInformation("Track {SpotifyId} retrieved from database", spotifyId);
 
-            // Deserialize the raw data to Spotify response
-            var trackResponse = JsonSerializer.Deserialize<SpotifyTrackResponse>(
-                track.RawData,
-                new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
-
-            var trackDto = MapToTrackDetailDto(trackResponse, track.Id);
+            // Create DTO directly from the database entity
+            var trackDto = MapTrackEntityToDto(track);
 
             // Store in cache
             await _cacheService.SetAsync(
@@ -111,10 +107,7 @@ public class TrackService : ITrackService
                 Id = a.Id,
                 Name = a.Name,
                 SpotifyUrl = a.ExternalUrls?.Spotify
-            }).ToList(),
-
-            // Raw data for future flexibility
-            RawData = JsonSerializer.Serialize(spotifyTrack)
+            }).ToList()
         };
 
         // Save to database as a cached item (not permanent)
@@ -131,6 +124,7 @@ public class TrackService : ITrackService
 
         return result;
     }
+
 
     public async Task<MultipleTracksOverviewDto> GetMultipleTracksOverviewAsync(IEnumerable<string> spotifyIds)
     {
@@ -264,9 +258,7 @@ public class TrackService : ITrackService
                                 Id = a.Id,
                                 Name = a.Name,
                                 SpotifyUrl = a.ExternalUrls?.Spotify
-                            }).ToList();
-                            trackEntity.RawData = JsonSerializer.Serialize(spotifyTrack);
-                        }
+                            }).ToList(); }
                         else
                         {
                             // Create new entity for tracks not in database
@@ -294,7 +286,6 @@ public class TrackService : ITrackService
                                     Name = a.Name,
                                     SpotifyUrl = a.ExternalUrls?.Spotify
                                 }).ToList(),
-                                RawData = JsonSerializer.Serialize(spotifyTrack)
                             };
                         }
 
@@ -374,12 +365,8 @@ public class TrackService : ITrackService
                 if (refreshedTrack != null) return refreshedTrack;
             }
 
-            // Deserialize the raw data to Spotify response
-            var trackResponse = JsonSerializer.Deserialize<SpotifyTrackResponse>(
-                track.RawData,
-                new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
-
-            return MapToTrackDetailDto(trackResponse, track.Id);
+            // Map entity to DTO directly
+            return MapTrackEntityToDto(track);
         }
         catch (Exception ex)
         {
@@ -387,6 +374,7 @@ public class TrackService : ITrackService
             throw;
         }
     }
+
 
     // Save track permanently
     public async Task<TrackDetailDto> SaveTrackAsync(string spotifyId)
@@ -502,4 +490,44 @@ public class TrackService : ITrackService
                 : null
         };
     }
+    private TrackDetailDto MapTrackEntityToDto(Track track)
+    {
+        // Create a list of artist DTOs
+        var artistDtos = track.Artists.Select(a => new ArtistSummaryDto
+        {
+            SpotifyId = a.Id,
+            Name = a.Name,
+            ExternalUrls = a.SpotifyUrl != null ? new List<string> { a.SpotifyUrl } : null
+        }).ToList();
+    
+        // Create album DTO
+        var albumDto = new AlbumSummaryDto
+        {
+            SpotifyId = track.AlbumId,
+            Name = track.AlbumName,
+            ArtistName = track.ArtistName,
+            ReleaseDate = track.ReleaseDate,
+            AlbumType = track.AlbumType,
+            ImageUrl = track.ThumbnailUrl,
+            ExternalUrls = track.SpotifyUrl != null ? new List<string> { track.SpotifyUrl } : null
+        };
+
+        // Create and return TrackDetailDto
+        return new TrackDetailDto
+        {
+            CatalogItemId = track.Id,
+            SpotifyId = track.SpotifyId,
+            Name = track.Name,
+            ArtistName = track.ArtistName,
+            ImageUrl = track.ThumbnailUrl,
+            Popularity = track.Popularity,
+            DurationMs = track.DurationMs,
+            IsExplicit = track.IsExplicit,
+            Isrc = track.Isrc,
+            Artists = artistDtos,
+            Album = albumDto,
+            ExternalUrls = track.SpotifyUrl != null ? new List<string> { track.SpotifyUrl } : null
+        };
+    }
+
 }

@@ -8,6 +8,15 @@ public class Track : CatalogItemBase
     public bool IsExplicit { get; set; }
 
     public string Isrc { get; set; }
+    
+    // Add preview URL if needed
+    public string PreviewUrl { get; set; }
+    
+    // Add track number
+    public int TrackNumber { get; set; }
+    
+    // Add disc number
+    public int DiscNumber { get; set; }
 
     // Album information
     public string AlbumId { get; set; }

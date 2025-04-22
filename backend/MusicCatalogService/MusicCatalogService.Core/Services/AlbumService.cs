@@ -51,12 +51,8 @@ public class AlbumService : IAlbumService
         {
             _logger.LogInformation("Album {SpotifyId} retrieved from database", spotifyId);
 
-            // Deserialize the raw data to Spotify response
-            var albumResponse = JsonSerializer.Deserialize<SpotifyAlbumResponse>(
-                album.RawData,
-                new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
-
-            var albumDto = MapToAlbumDetailDto(albumResponse, album.Id);
+            // Map entity to DTO directly
+            var albumDto = MapAlbumEntityToDto(album);
 
             // Store in cache
             await _cacheService.SetAsync(
@@ -110,17 +106,14 @@ public class AlbumService : IAlbumService
                 SpotifyUrl = a.ExternalUrls?.Spotify
             }).ToList(),
 
-            // Genres - Deprecated from Spotify
-            // Genres = spotifyAlbum.Genres?.ToList() ?? new List<string>(),
-
-            // Raw data for future flexibility
-            RawData = JsonSerializer.Serialize(spotifyAlbum)
+            // Track IDs - store track IDs for faster retrieval
+            TrackIds = spotifyAlbum.Tracks?.Items?.Select(t => t.Id).ToList() ?? new List<string>()
         };
 
         // Save to database as a cached item (not permanent)
         await _catalogRepository.AddOrUpdateAlbumAsync(albumEntity);
 
-        // Map to DTO
+        // Map to DTO directly from Spotify response and entity
         var result = MapToAlbumDetailDto(spotifyAlbum, albumEntity.Id);
 
         // Cache the result
@@ -253,19 +246,7 @@ public class AlbumService : IAlbumService
                         existingDbAlbums[spotifyId] = dbAlbum;
 
                         // Map to summary DTO
-                        albumSummaries.Add(new AlbumSummaryDto
-                        {
-                            CatalogItemId = dbAlbum.Id,
-                            SpotifyId = dbAlbum.SpotifyId,
-                            Name = dbAlbum.Name,
-                            ArtistName = dbAlbum.ArtistName,
-                            ImageUrl = dbAlbum.ThumbnailUrl,
-                            ReleaseDate = dbAlbum.ReleaseDate,
-                            AlbumType = dbAlbum.AlbumType,
-                            TotalTracks = dbAlbum.TotalTracks,
-                            Popularity = dbAlbum.Popularity,
-                            ExternalUrls = dbAlbum.SpotifyUrl != null ? new List<string> {dbAlbum.SpotifyUrl} : null
-                        });
+                        albumSummaries.Add(MapToAlbumSummaryDto(dbAlbum));
                     }
                     else
                     {
@@ -302,6 +283,7 @@ public class AlbumService : IAlbumService
                     : null;
 
                 if (spotifyResponse?.Albums != null && spotifyResponse.Albums.Any())
+                {
                     // Process each album from Spotify
                     foreach (var spotifyAlbum in spotifyResponse.Albums)
                     {
@@ -334,7 +316,7 @@ public class AlbumService : IAlbumService
                                 Name = a.Name,
                                 SpotifyUrl = a.ExternalUrls?.Spotify
                             }).ToList();
-                            albumEntity.RawData = JsonSerializer.Serialize(spotifyAlbum);
+                            albumEntity.TrackIds = spotifyAlbum.Tracks?.Items?.Select(t => t.Id).ToList() ?? new List<string>();
                         }
                         else
                         {
@@ -362,7 +344,7 @@ public class AlbumService : IAlbumService
                                     Name = a.Name,
                                     SpotifyUrl = a.ExternalUrls?.Spotify
                                 }).ToList(),
-                                RawData = JsonSerializer.Serialize(spotifyAlbum)
+                                TrackIds = spotifyAlbum.Tracks?.Items?.Select(t => t.Id).ToList() ?? new List<string>()
                             };
                         }
 
@@ -370,30 +352,17 @@ public class AlbumService : IAlbumService
                         await _catalogRepository.AddOrUpdateAlbumAsync(albumEntity);
 
                         // Map to a summary DTO and add to results
-                        var albumSummary = new AlbumSummaryDto
+                        var albumSummary = MapToAlbumSummaryDto(albumEntity);
+                        albumSummary.Images = spotifyAlbum.Images?.Select(img => new ImageDto
                         {
-                            CatalogItemId = albumEntity.Id,
-                            SpotifyId = spotifyAlbum.Id,
-                            Name = spotifyAlbum.Name,
-                            ArtistName = spotifyAlbum.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
-                            ImageUrl = GetOptimalImage(spotifyAlbum.Images),
-                            Images = spotifyAlbum.Images?.Select(img => new ImageDto
-                            {
-                                Url = img.Url,
-                                Height = img.Height,
-                                Width = img.Width
-                            }).ToList(),
-                            ReleaseDate = spotifyAlbum.ReleaseDate,
-                            AlbumType = spotifyAlbum.AlbumType,
-                            TotalTracks = spotifyAlbum.TotalTracks,
-                            Popularity = spotifyAlbum.Popularity,
-                            ExternalUrls = spotifyAlbum.ExternalUrls?.Spotify != null
-                                ? new List<string> {spotifyAlbum.ExternalUrls.Spotify}
-                                : null
-                        };
+                            Url = img.Url,
+                            Height = img.Height,
+                            Width = img.Width
+                        }).ToList();
 
                         albumSummaries.Add(albumSummary);
                     }
+                }
 
                 // Add all album summaries to the result (both from DB and Spotify)
                 result.Albums.AddRange(albumSummaries);
@@ -441,12 +410,8 @@ public class AlbumService : IAlbumService
                 if (refreshedAlbum != null) return refreshedAlbum;
             }
 
-            // Deserialize the raw data to Spotify response
-            var albumResponse = JsonSerializer.Deserialize<SpotifyAlbumResponse>(
-                album.RawData,
-                new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
-
-            return MapToAlbumDetailDto(albumResponse, album.Id);
+            // Map entity to DTO directly
+            return MapAlbumEntityToDto(album);
         }
         catch (Exception ex)
         {
@@ -504,6 +469,55 @@ public class AlbumService : IAlbumService
         if (optimalImage == null) optimalImage = images.OrderByDescending(img => img.Width * img.Height).First();
 
         return optimalImage.Url;
+    }
+
+    // Map Album entity to DTO directly (without requiring raw data)
+    private AlbumDetailDto MapAlbumEntityToDto(Album album)
+    {
+        // Create a list of artist DTOs
+        var artistDtos = album.Artists.Select(a => new ArtistSummaryDto
+        {
+            SpotifyId = a.Id,
+            Name = a.Name,
+            ExternalUrls = a.SpotifyUrl != null ? new List<string> { a.SpotifyUrl } : null
+        }).ToList();
+        
+        // Create image DTOs (we'll only have the thumbnail URL in the entity)
+        var imageDtos = new List<ImageDto>();
+        if (!string.IsNullOrEmpty(album.ThumbnailUrl))
+        {
+            imageDtos.Add(new ImageDto
+            {
+                Url = album.ThumbnailUrl,
+                // These will be null since we only store the URL
+                Height = null,
+                Width = null
+            });
+        }
+        
+        // Create a simple track list (if we have track IDs available)
+        var trackDtos = new List<TrackSummaryDto>();
+        
+        // Create the AlbumDetailDto
+        return new AlbumDetailDto
+        {
+            CatalogItemId = album.Id,
+            SpotifyId = album.SpotifyId,
+            Name = album.Name,
+            ArtistName = album.ArtistName,
+            ImageUrl = album.ThumbnailUrl,
+            Images = imageDtos,
+            Popularity = album.Popularity,
+            ReleaseDate = album.ReleaseDate,
+            ReleaseDatePrecision = album.ReleaseDatePrecision,
+            AlbumType = album.AlbumType,
+            TotalTracks = album.TotalTracks,
+            Label = album.Label,
+            Copyright = album.Copyright,
+            Artists = artistDtos,
+            Tracks = trackDtos,
+            ExternalUrls = album.SpotifyUrl != null ? new List<string> { album.SpotifyUrl } : null
+        };
     }
 
     // Map Spotify response to DTO
@@ -566,10 +580,26 @@ public class AlbumService : IAlbumService
             Copyright = album.Copyright,
             Artists = artistSummaries,
             Tracks = tracks,
-            // Genres = album.Genres?.ToList(),
             ExternalUrls = album.ExternalUrls?.Spotify != null
                 ? new List<string> {album.ExternalUrls.Spotify}
                 : null
+        };
+    }
+
+    private AlbumSummaryDto MapToAlbumSummaryDto(Album album)
+    {
+        return new AlbumSummaryDto
+        {
+            CatalogItemId = album.Id,
+            SpotifyId = album.SpotifyId,
+            Name = album.Name,
+            ArtistName = album.ArtistName,
+            ImageUrl = album.ThumbnailUrl,
+            ReleaseDate = album.ReleaseDate,
+            AlbumType = album.AlbumType,
+            TotalTracks = album.TotalTracks,
+            Popularity = album.Popularity,
+            ExternalUrls = album.SpotifyUrl != null ? new List<string> { album.SpotifyUrl } : null
         };
     }
 

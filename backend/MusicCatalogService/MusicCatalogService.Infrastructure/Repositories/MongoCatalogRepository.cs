@@ -62,15 +62,43 @@ public class MongoCatalogRepository : ICatalogRepository
         await _tracks.Indexes.CreateOneAsync(
             new CreateIndexModel<Track>(
                 Builders<Track>.IndexKeys.Ascending(item => item.CacheExpiresAt)));
-                
+
         await _artists.Indexes.CreateOneAsync(
             new CreateIndexModel<Artist>(
                 Builders<Artist>.IndexKeys.Ascending(item => item.CacheExpiresAt)));
+        // Popularity index for sorting operations
+        await _albums.Indexes.CreateOneAsync(
+            new CreateIndexModel<Album>(
+                Builders<Album>.IndexKeys.Descending(item => item.Popularity)));
+
+        await _tracks.Indexes.CreateOneAsync(
+            new CreateIndexModel<Track>(
+                Builders<Track>.IndexKeys.Descending(item => item.Popularity)));
+
+        await _artists.Indexes.CreateOneAsync(
+            new CreateIndexModel<Artist>(
+                Builders<Artist>.IndexKeys.Descending(item => item.Popularity)));
+        // Release date index for albums
+        await _albums.Indexes.CreateOneAsync(
+            new CreateIndexModel<Album>(
+                Builders<Album>.IndexKeys.Descending(item => item.ReleaseDate)));
 
         // Create index on AlbumId for Tracks to quickly find tracks belonging to an album
         await _tracks.Indexes.CreateOneAsync(
             new CreateIndexModel<Track>(
                 Builders<Track>.IndexKeys.Ascending(track => track.AlbumId)));
+
+        await _tracks.Indexes.CreateOneAsync(
+            new CreateIndexModel<Track>(
+                Builders<Track>.IndexKeys.Ascending(track => track.Isrc),
+                new CreateIndexOptions {Background = true, Sparse = true}));
+        // Track number index for tracks (to sort tracks within an album)
+        await _tracks.Indexes.CreateOneAsync(
+            new CreateIndexModel<Track>(
+                Builders<Track>.IndexKeys
+                    .Ascending(track => track.AlbumId)
+                    .Ascending(track => track.DiscNumber)
+                    .Ascending(track => track.TrackNumber)));
     }
 
     // Existing Album methods by Spotify ID
@@ -113,7 +141,7 @@ public class MongoCatalogRepository : ICatalogRepository
         {
             // For a permanent save, set the cache to a day
             album.CacheExpiresAt = DateTime.UtcNow.AddDays(1);
-            
+
             var filter = Builders<Album>.Filter.Eq(a => a.SpotifyId, album.SpotifyId);
             var options = new ReplaceOptions {IsUpsert = true};
 
@@ -195,7 +223,7 @@ public class MongoCatalogRepository : ICatalogRepository
         {
             // For a permanent save, ensure the result for a day
             track.CacheExpiresAt = DateTime.UtcNow.AddDays(1);
-            
+
             var filter = Builders<Track>.Filter.Eq(t => t.SpotifyId, track.SpotifyId);
             var options = new ReplaceOptions {IsUpsert = true};
 
@@ -306,7 +334,7 @@ public class MongoCatalogRepository : ICatalogRepository
         {
             // For a permanent save, cache the result for a day 
             artist.CacheExpiresAt = DateTime.UtcNow.AddDays(1);
-            
+
             var filter = Builders<Artist>.Filter.Eq(a => a.SpotifyId, artist.SpotifyId);
             var options = new ReplaceOptions {IsUpsert = true};
 
@@ -378,7 +406,7 @@ public class MongoCatalogRepository : ICatalogRepository
             // Delete expired tracks
             var tracksFilter = Builders<Track>.Filter.Lt(t => t.CacheExpiresAt, currentTime);
             var tracksResult = await _tracks.DeleteManyAsync(tracksFilter);
-            
+
             // Delete expired artists
             var artistsFilter = Builders<Artist>.Filter.Lt(a => a.CacheExpiresAt, currentTime);
             var artistsResult = await _artists.DeleteManyAsync(artistsFilter);

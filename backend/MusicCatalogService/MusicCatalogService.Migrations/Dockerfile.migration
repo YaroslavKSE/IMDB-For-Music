@@ -1,0 +1,25 @@
+﻿FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /app
+
+# Copy project files
+COPY ["MusicCatalogService.Migrations/MusicCatalogService.Migrations.csproj", "MusicCatalogService.Migrations/"]
+COPY ["MusicCatalogService.Core/MusicCatalogService.Core.csproj", "MusicCatalogService.Core/"]
+COPY ["MusicCatalogService.Infrastructure/MusicCatalogService.Infrastructure.csproj", "MusicCatalogService.Infrastructure/"]
+
+# Restore dependencies
+WORKDIR /app/MusicCatalogService.Migrations
+RUN dotnet restore
+
+# Copy everything else and build
+WORKDIR /app
+COPY . .
+WORKDIR /app/MusicCatalogService.Migrations
+RUN dotnet build -c Release -o /app/build
+
+# Build runtime image
+FROM mcr.microsoft.com/dotnet/runtime:8.0
+WORKDIR /app
+COPY --from=build /app/build .
+
+# Entry point
+ENTRYPOINT ["dotnet", "MusicCatalogService.Migrations.dll"]
