@@ -1,8 +1,10 @@
-﻿namespace MusicCatalogService.Core.Models;
+﻿using MongoDB.Bson.Serialization.Attributes;
+
+namespace MusicCatalogService.Core.Models;
 
 public class SimplifiedArtist
 {
-    public string Id { get; set; }
+    [BsonElement("_id")] public string Id { get; set; }
 
     public string Name { get; set; }
 
