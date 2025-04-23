@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using MusicCatalogService.Core.Interfaces;
 using MusicCatalogService.Core.Models;
@@ -347,6 +348,38 @@ public class MongoCatalogRepository : ICatalogRepository
             _logger.LogError(ex, "Error permanently saving artist with SpotifyId {SpotifyId}", artist.SpotifyId);
             throw;
         }
+    }
+    public async Task<(List<Album>, int)> SearchAlbumsAsync(string query, int limit, int offset)
+    {
+        var filter = Builders<Album>.Filter.Regex("Name", new BsonRegularExpression(query, "i"));
+        var total = (int)await _albums.CountDocumentsAsync(filter);
+        var results = await _albums.Find(filter)
+            .Skip(offset)
+            .Limit(limit)
+            .ToListAsync();
+        return (results, total);
+    }
+
+    public async Task<(List<Artist>, int)> SearchArtistsAsync(string query, int limit, int offset)
+    {
+        var filter = Builders<Artist>.Filter.Regex("Name", new BsonRegularExpression(query, "i"));
+        var total = (int)await _artists.CountDocumentsAsync(filter);
+        var results = await _artists.Find(filter)
+            .Skip(offset)
+            .Limit(limit)
+            .ToListAsync();
+        return (results, total);
+    }
+
+    public async Task<(List<Track>, int)> SearchTracksAsync(string query, int limit, int offset)
+    {
+        var filter = Builders<Track>.Filter.Regex("Name", new BsonRegularExpression(query, "i"));
+        var total = (int)await _tracks.CountDocumentsAsync(filter);
+        var results = await _tracks.Find(filter)
+            .Skip(offset)
+            .Limit(limit)
+            .ToListAsync();
+        return (results, total);
     }
 
     // Generic method implementation 

@@ -51,6 +51,7 @@ builder.Services.AddScoped<IAlbumService, AlbumService>();
 builder.Services.AddScoped<IArtistService, ArtistService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<IPreviewService, PreviewService>();
+builder.Services.AddScoped<ILocalSearchRepository, LocalSearchRepository>();
 
 // Register Redis Cache
 builder.Services.AddStackExchangeRedisCache(options =>

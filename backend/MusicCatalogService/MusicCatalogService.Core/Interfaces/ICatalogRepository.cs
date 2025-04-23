@@ -25,6 +25,11 @@ public interface ICatalogRepository
     Task<Artist> GetArtistByIdAsync(Guid catalogId);
     Task SaveArtistAsync(Artist artist);
     
+    // Search methods
+    Task<(List<Album>, int)> SearchAlbumsAsync(string query, int limit, int offset);
+    Task<(List<Artist>, int)> SearchArtistsAsync(string query, int limit, int offset);
+    Task<(List<Track>, int)> SearchTracksAsync(string query, int limit, int offset);
+    
     // Generic method updated to support both lookup types
     Task<T> GetBySpotifyIdAsync<T>(string spotifyId) where T : CatalogItemBase;
     Task<T> GetByIdAsync<T>(Guid catalogId) where T : CatalogItemBase;
