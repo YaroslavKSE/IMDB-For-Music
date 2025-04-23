@@ -3,8 +3,9 @@
 namespace MusicCatalogService.Core.Models;
 
 public class SimplifiedArtist
-{
-    [BsonElement("_id")] public string Id { get; set; }
+{ 
+    [BsonElement("Id")]
+    public string SpotifyId { get; set; }
 
     public string Name { get; set; }
 

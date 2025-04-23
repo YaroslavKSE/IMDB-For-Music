@@ -20,7 +20,7 @@ public static class TrackMapper
         // Create a list of artist DTOs
         var artistDtos = track.Artists.Select(a => new ArtistSummaryDto
         {
-            SpotifyId = a.Id,
+            SpotifyId = a.SpotifyId,
             Name = a.Name,
             ExternalUrls = a.SpotifyUrl != null ? new List<string> { a.SpotifyUrl } : null
         }).ToList();
@@ -197,7 +197,7 @@ public static class TrackMapper
         trackEntity.SpotifyUrl = spotifyTrack.ExternalUrls?.Spotify;
         trackEntity.Artists = spotifyTrack.Artists.Select(a => new SimplifiedArtist
         {
-            Id = a.Id,
+            SpotifyId = a.Id,
             Name = a.Name,
             SpotifyUrl = a.ExternalUrls?.Spotify
         }).ToList();
