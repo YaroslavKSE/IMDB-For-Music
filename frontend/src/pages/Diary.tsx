@@ -60,45 +60,40 @@ const Diary = () => {
                 return;
             }
 
-            // Extract album and track ids
-            const albumIds: string[] = [];
-            const trackIds: string[] = [];
+            // Extract all item ids for preview info
+            const itemIds: string[] = [];
 
             paginatedInteractions.forEach(interaction => {
-                if (interaction.itemType === 'Album') {
-                    albumIds.push(interaction.itemId);
-                } else if (interaction.itemType === 'Track') {
-                    trackIds.push(interaction.itemId);
-                }
+                itemIds.push(interaction.itemId);
             });
 
-            // Fetch album and track details in batches
-            const [albumsResponse, tracksResponse] = await Promise.all([
-                albumIds.length > 0 ? CatalogService.getBatchAlbums(albumIds) : { albums: [] },
-                trackIds.length > 0 ? CatalogService.getBatchTracks(trackIds) : { tracks: [] }
-            ]);
+            // Fetch preview information for all items in a single request
+            const previewResponse = await CatalogService.getItemPreviewInfo(itemIds, ['album', 'track']);
 
             // Create lookup maps for quick access
-            const albumsMap = new Map();
-            const tracksMap = new Map();
+            const itemsMap = new Map();
 
-            albumsResponse.albums?.forEach(album => {
-                albumsMap.set(album.spotifyId, album);
-            });
+            // Process results from the preview response
+            previewResponse.results?.forEach(resultGroup => {
+                resultGroup.items?.forEach(item => {
+                    // Create a simplified catalog item with the preview information
+                    const catalogItem = {
+                        spotifyId: item.spotifyId,
+                        name: item.name,
+                        imageUrl: item.imageUrl,
+                        artistName: item.artistName
+                    };
 
-            tracksResponse.tracks?.forEach(track => {
-                tracksMap.set(track.spotifyId, track);
+                    itemsMap.set(item.spotifyId, catalogItem);
+                });
             });
 
             // Combine interactions with catalog items
             const entries = paginatedInteractions.map(interaction => {
                 const entry: DiaryEntry = { interaction };
 
-                if (interaction.itemType === 'Album') {
-                    entry.catalogItem = albumsMap.get(interaction.itemId);
-                } else if (interaction.itemType === 'Track') {
-                    entry.catalogItem = tracksMap.get(interaction.itemId);
-                }
+                // Get the preview info from our map
+                entry.catalogItem = itemsMap.get(interaction.itemId);
 
                 return entry;
             });
