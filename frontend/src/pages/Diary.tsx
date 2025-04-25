@@ -42,30 +42,23 @@ const Diary = () => {
         setNoInteractions(false);
 
         try {
-            // Fetch all interactions for the user to get the total count
-            const interactions = await InteractionService.getUserInteractionsByUserId(user.id);
+            // Calculate the offset for the current page
+            const offset = (currentPage - 1) * itemsPerPage;
+
+            // Fetch paginated interactions for the user
+            const { items: paginatedInteractions, totalCount } =
+                await InteractionService.getUserInteractionsByUserId(user.id, itemsPerPage, offset);
 
             // Calculate total pages and set total interactions
-            const total = interactions.length;
-            setTotalInteractions(total);
-            const pages = Math.ceil(total / itemsPerPage);
+            setTotalInteractions(totalCount);
+            const pages = Math.ceil(totalCount / itemsPerPage);
             setTotalPages(pages || 1);
 
-            if (total === 0) {
+            if (totalCount === 0) {
                 setNoInteractions(true);
                 setLoading(false);
                 return;
             }
-
-            // Sort interactions by date (newest first)
-            const sortedInteractions = [...interactions].sort((a, b) =>
-                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            );
-
-            // Get paginated interactions for current page
-            const startIdx = (currentPage - 1) * itemsPerPage;
-            const endIdx = startIdx + itemsPerPage;
-            const paginatedInteractions = sortedInteractions.slice(startIdx, endIdx);
 
             // Extract album and track ids
             const albumIds: string[] = [];
@@ -116,7 +109,10 @@ const Diary = () => {
             if (err && typeof err === 'object' && 'response' in err &&
                 err.response && typeof err.response === 'object' && 'status' in err.response &&
                 err.response.status === 404) {
+                // When a 404 is received, it means there are no interactions for this user
                 setNoInteractions(true);
+                setTotalInteractions(0);
+                setTotalPages(1);
             } else {
                 setError('Failed to load your diary entries. Please try again later.');
             }
@@ -125,7 +121,7 @@ const Diary = () => {
         }
     }, [user, currentPage, itemsPerPage]);
 
-    // Load diary entries
+    // Load diary entries when authenticated user changes or page changes
     useEffect(() => {
         if (!isAuthenticated || !user) {
             navigate('/login', { state: { from: '/diary' } });
@@ -133,7 +129,7 @@ const Diary = () => {
         }
 
         loadDiaryEntries();
-    }, [isAuthenticated, user, navigate, currentPage, loadDiaryEntries]); // Added currentPage as dependency
+    }, [isAuthenticated, user, navigate, currentPage, loadDiaryEntries]);
 
     // Group entries by date whenever diary entries change
     useEffect(() => {
@@ -333,12 +329,14 @@ const Diary = () => {
 
                                 <div className="flex justify-end space-x-3 mt-6">
                                     <button
+                                        type="button"
                                         onClick={() => setDeleteModalOpen(false)}
                                         className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                                     >
                                         Cancel
                                     </button>
                                     <button
+                                        type="button"
                                         onClick={confirmDelete}
                                         className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
                                     >

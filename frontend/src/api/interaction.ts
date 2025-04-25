@@ -253,9 +253,14 @@ const InteractionService = {
     return response.data;
   },
 
-  getUserInteractionsByUserId: async (userId: string): Promise<UserInteractionDetail[]> => {
-    const response = await interactionApi.get(`/by-user-id/${userId}`);
-    return response.data.items;
+  getUserInteractionsByUserId: async (userId: string, limit: number = 20, offset: number = 0): Promise<{items: UserInteractionDetail[], totalCount: number}> => {
+    const response = await interactionApi.get(`/by-user-id/${userId}`, {
+      params: { limit, offset }
+    });
+    return {
+      items: response.data.items,
+      totalCount: response.data.totalCount
+    };
   },
 
   getItemInteractions: async (itemId: string, itemType: string): Promise<GetInteractionsResult> => {
