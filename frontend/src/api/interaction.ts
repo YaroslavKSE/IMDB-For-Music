@@ -118,6 +118,8 @@ export interface RatingNormalizedDTO {
 export interface ReviewDTO {
   reviewId: string;
   reviewText: string;
+  likes: number;
+  comments: number;
 }
 
 export interface InteractionDetailDTO {
