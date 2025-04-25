@@ -60,7 +60,7 @@ public class Program
         }
     }
 
-    public static IHostBuilder CreateHostBuilder(string[] args)
+    private static IHostBuilder CreateHostBuilder(string[] args)
     {
         return Host.CreateDefaultBuilder(args)
             .ConfigureAppConfiguration((_, config) => 
@@ -105,6 +105,12 @@ public class Program
             BsonClassMap.RegisterClassMap<Artist>();
 
         if (!BsonClassMap.IsClassMapRegistered(typeof(SimplifiedArtist)))
-            BsonClassMap.RegisterClassMap<SimplifiedArtist>();
+            BsonClassMap.RegisterClassMap<SimplifiedArtist>(cm =>
+            {
+                cm.AutoMap();
+                cm.MapMember(c => c.SpotifyId).SetElementName("SpotifyId");
+                cm.MapMember(c => c.Name).SetElementName("Name");
+                cm.MapMember(c => c.SpotifyUrl).SetElementName("SpotifyUrl");
+            });
     }
 }

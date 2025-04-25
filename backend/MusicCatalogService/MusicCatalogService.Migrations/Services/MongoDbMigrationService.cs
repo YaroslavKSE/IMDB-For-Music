@@ -33,6 +33,7 @@ public class MongoDbMigrationService
         await MigrateAlbumsAsync(cancellationToken);
         await MigrateTracksAsync(cancellationToken);
         await MigrateArtistsAsync(cancellationToken);
+        await MigrateSimplifiedArtistFieldsAsync(cancellationToken);
 
         _logger.LogInformation("MongoDB migration completed successfully.");
     }
@@ -290,6 +291,87 @@ public class MongoDbMigrationService
 
         _logger.LogInformation("Completed artist migration: {Count}/{Total} processed", processed, count);
     }
+
+    public async Task MigrateSimplifiedArtistFieldsAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Starting migration of SimplifiedArtist fields...");
+
+        try
+        {
+            // Get the tracks collection - use BsonDocument for migration
+            var tracksCollection = _database.GetCollection<BsonDocument>(_settings.TracksCollectionName);
+
+            // Find all documents that have Artists array
+            var filter = Builders<BsonDocument>.Filter.Exists("Artists", true);
+            var count = await tracksCollection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+
+            _logger.LogInformation("Found {Count} tracks with Artists to migrate", count);
+
+            if (count == 0)
+            {
+                _logger.LogInformation("No tracks require SimplifiedArtist migration. Skipping.");
+                return;
+            }
+
+            // Process in batches
+            var cursor = await tracksCollection.FindAsync(filter,
+                new FindOptions<BsonDocument, BsonDocument> {BatchSize = 100},
+                cancellationToken);
+
+            var processed = 0;
+            var updated = 0;
+
+            while (await cursor.MoveNextAsync(cancellationToken))
+                foreach (var doc in cursor.Current)
+                    try
+                    {
+                        if (doc.Contains("Artists") && doc["Artists"].IsBsonArray)
+                        {
+                            var artistsArray = doc["Artists"].AsBsonArray;
+                            var needsUpdate = false;
+
+                            // Check each artist in the array
+                            foreach (var artistDoc in artistsArray.OfType<BsonDocument>())
+                                // Check if it has "Id" but not "SpotifyId"
+                                if (artistDoc.Contains("Id") && !artistDoc.Contains("SpotifyId"))
+                                {
+                                    artistDoc["SpotifyId"] = artistDoc["Id"];
+                                    artistDoc.Remove("Id");
+                                    needsUpdate = true;
+                                }
+
+                            if (needsUpdate)
+                            {
+                                // Update the document with fixed Artists array
+                                var update = Builders<BsonDocument>.Update.Set("Artists", artistsArray);
+                                await tracksCollection.UpdateOneAsync(
+                                    Builders<BsonDocument>.Filter.Eq("_id", doc["_id"]),
+                                    update,
+                                    cancellationToken: cancellationToken);
+                                updated++;
+                            }
+                        }
+
+                        processed++;
+                        if (processed % 50 == 0)
+                            _logger.LogInformation("Processed {Count}/{Total} tracks, updated {Updated}",
+                                processed, count, updated);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing track document {Id}", doc["_id"]);
+                    }
+
+            _logger.LogInformation("Completed SimplifiedArtist migration: {Count}/{Total} processed, {Updated} updated",
+                processed, count, updated);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during SimplifiedArtist migration");
+            throw;
+        }
+    }
+
 
     private string GetOptimalImage(List<SpotifyImage> images)
     {
