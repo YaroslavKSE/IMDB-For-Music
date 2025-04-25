@@ -1,6 +1,8 @@
-﻿namespace MusicCatalogService.Core.Interfaces;
+﻿using MusicCatalogService.Core.Spotify;
+
+namespace MusicCatalogService.Core.Interfaces;
 
 public interface ISpotifyTokenService
 {
-    Task<string> GetAccessTokenAsync();
+    Task<TokenResult> GetAccessTokenAsync();
 }

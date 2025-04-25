@@ -1,11 +1,10 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MusicCatalogService.Core.DTOs;
 using MusicCatalogService.Core.Interfaces;
+using MusicCatalogService.Core.Mappers;
 using MusicCatalogService.Core.Models;
 using MusicCatalogService.Core.Models.Spotify;
-using MusicCatalogService.Core.Spotify;
 
 namespace MusicCatalogService.Core.Services;
 
@@ -47,81 +46,72 @@ public class AlbumService : IAlbumService
 
         // Try to get from database
         var album = await _catalogRepository.GetAlbumBySpotifyIdAsync(spotifyId);
-        if (album != null && DateTime.UtcNow < album.CacheExpiresAt)
+        
+        // If we have a valid database entry, use it - even if expired
+        // This allows working with data when Spotify is unavailable
+        if (album != null)
         {
-            _logger.LogInformation("Album {SpotifyId} retrieved from database", spotifyId);
+            _logger.LogInformation("Album {SpotifyId} retrieved from database (valid: {IsValid})", 
+                spotifyId, DateTime.UtcNow < album.CacheExpiresAt);
 
-            // Deserialize the raw data to Spotify response
-            var albumResponse = JsonSerializer.Deserialize<SpotifyAlbumResponse>(
-                album.RawData,
-                new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+            // Map entity to DTO directly
+            var albumDto = AlbumMapper.MapAlbumEntityToDto(album);
 
-            var albumDto = MapToAlbumDetailDto(albumResponse, album.Id);
-
-            // Store in cache
+            // Store in cache, regardless of expiration
+            // This ensures we have something in cache for next time
             await _cacheService.SetAsync(
                 cacheKey,
                 albumDto,
                 TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
 
-            return albumDto;
+            // If album is not expired, return it
+            if (DateTime.UtcNow < album.CacheExpiresAt)
+            {
+                return albumDto;
+            }
+            
+            // If album is expired, try to refresh from Spotify
+            // But we already have the data to return as fallback
+            try
+            {
+                _logger.LogInformation("Attempting to refresh expired album {SpotifyId} from Spotify", spotifyId);
+                // Continue to the Spotify API call below
+            }
+            catch (Exception ex) 
+            {
+                // If any error occurs during refresh, still use the stale data
+                _logger.LogWarning(ex, "Error refreshing album {SpotifyId} from Spotify, using expired data", spotifyId);
+                return albumDto;
+            }
         }
 
         // Fetch from Spotify API
         _logger.LogInformation("Fetching album {SpotifyId} from Spotify API", spotifyId);
         var spotifyAlbum = await _spotifyApiClient.GetAlbumAsync(spotifyId);
+        
+        // If Spotify API returns null (which could be due to token failure or other issues),
+        // and we already have data (even if expired), return it
         if (spotifyAlbum == null)
         {
-            _logger.LogWarning("Album {SpotifyId} not found in Spotify", spotifyId);
+            if (album != null)
+            {
+                _logger.LogWarning("Spotify API returned null for {SpotifyId}, using existing data from database", spotifyId);
+                return AlbumMapper.MapAlbumEntityToDto(album);
+            }
+            
+            _logger.LogWarning("Album {SpotifyId} not found in Spotify and no local data available", spotifyId);
             return null;
         }
 
         // Create or update album entity
-        var albumEntity = new Album
-        {
-            Id = album?.Id ?? Guid.NewGuid(),
-            SpotifyId = spotifyAlbum.Id,
-            Name = spotifyAlbum.Name,
-            ArtistName = spotifyAlbum.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
-
-            // Get optimal image (640x640 or closest available)
-            ThumbnailUrl = GetOptimalImage(spotifyAlbum.Images),
-
-            Popularity = spotifyAlbum.Popularity,
-            LastAccessed = DateTime.UtcNow,
-            CacheExpiresAt = DateTime.UtcNow.AddMinutes(_spotifySettings.CacheExpirationMinutes),
-
-            // Album-specific fields
-            ReleaseDate = spotifyAlbum.ReleaseDate,
-            ReleaseDatePrecision = spotifyAlbum.ReleaseDatePrecision,
-            AlbumType = spotifyAlbum.AlbumType,
-            TotalTracks = spotifyAlbum.TotalTracks,
-            Label = spotifyAlbum.Label,
-            Copyright = spotifyAlbum.Copyright,
-
-            // External URLs
-            SpotifyUrl = spotifyAlbum.ExternalUrls?.Spotify,
-
-            // Artists
-            Artists = spotifyAlbum.Artists.Select(a => new SimplifiedArtist
-            {
-                Id = a.Id,
-                Name = a.Name,
-                SpotifyUrl = a.ExternalUrls?.Spotify
-            }).ToList(),
-
-            // Genres - Deprecated from Spotify
-            // Genres = spotifyAlbum.Genres?.ToList() ?? new List<string>(),
-
-            // Raw data for future flexibility
-            RawData = JsonSerializer.Serialize(spotifyAlbum)
-        };
+        var albumEntity = AlbumMapper.MapToAlbumEntity(spotifyAlbum, album);
+        albumEntity.CacheExpiresAt = DateTime.UtcNow.AddMinutes(_spotifySettings.CacheExpirationMinutes);
 
         // Save to database as a cached item (not permanent)
         await _catalogRepository.AddOrUpdateAlbumAsync(albumEntity);
 
-        // Map to DTO
-        var result = MapToAlbumDetailDto(spotifyAlbum, albumEntity.Id);
+        // Map to DTO directly from Spotify response and entity
+        var result = AlbumMapper.MapToAlbumDetailDto(spotifyAlbum, albumEntity.Id);
 
         // Cache the result
         await _cacheService.SetAsync(
@@ -150,10 +140,54 @@ public class AlbumService : IAlbumService
             // Get the album to ensure it exists and to get the name
             var album = await _catalogRepository.GetAlbumBySpotifyIdAsync(spotifyId);
             string albumName = "Unknown Album";
-
+            List<string> trackIds = new List<string>();
+            
             if (album != null)
             {
                 albumName = album.Name;
+                trackIds = album.TrackIds ?? new List<string>();
+                
+                // If we have track IDs stored and Spotify API is unavailable,
+                // we can still return something useful
+                if (trackIds.Any())
+                {
+                    _logger.LogInformation("Using stored track IDs for album {SpotifyId}", spotifyId);
+                    
+                    // Apply paging logic
+                    var pagedTrackIds = trackIds
+                        .Skip(offset)
+                        .Take(limit)
+                        .ToList();
+                    
+                    // Try to get track details from our database
+                    var tracks = await _catalogRepository.GetBatchTracksBySpotifyIdsAsync(pagedTrackIds);
+                    
+                    if (tracks.Any())
+                    {
+                        var trackSummaries = tracks
+                            .Where(t => t != null)
+                            .Select(track => TrackMapper.MapToTrackSummaryDto(track))
+                            .ToList();
+                        
+                        var result = new AlbumTracksResultDto
+                        {
+                            AlbumId = spotifyId,
+                            AlbumName = albumName,
+                            Limit = limit,
+                            Offset = offset,
+                            TotalResults = trackIds.Count,
+                            Tracks = trackSummaries
+                        };
+                        
+                        // Cache the result
+                        await _cacheService.SetAsync(
+                            cacheKey,
+                            result,
+                            TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
+                        
+                        return result;
+                    }
+                }
             }
             else
             {
@@ -168,29 +202,31 @@ public class AlbumService : IAlbumService
             // Fetch tracks from Spotify API
             _logger.LogInformation("Fetching tracks for album {SpotifyId} from Spotify API", spotifyId);
             var tracksResponse = await _spotifyApiClient.GetAlbumTracksAsync(spotifyId, limit, offset, market);
+            
+            // If Spotify API is unavailable and we have no stored data, return a minimal result
             if (tracksResponse == null)
             {
-                _logger.LogWarning("No tracks found for album {SpotifyId}", spotifyId);
+                _logger.LogWarning("No tracks found for album {SpotifyId} from Spotify API", spotifyId);
                 return new AlbumTracksResultDto
                 {
                     AlbumId = spotifyId,
                     AlbumName = albumName,
                     Limit = limit,
                     Offset = offset,
-                    TotalResults = 0
+                    TotalResults = trackIds.Count
                 };
             }
 
             // Map the response to our DTO
-            var result = MapToAlbumTracksResultDto(tracksResponse, spotifyId, albumName, limit, offset);
+            var mappedResult = AlbumMapper.MapToAlbumTracksResultDto(tracksResponse, spotifyId, albumName, limit, offset);
 
             // Cache the result
             await _cacheService.SetAsync(
                 cacheKey,
-                result,
+                mappedResult,
                 TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
 
-            return result;
+            return mappedResult;
         }
         catch (Exception ex)
         {
@@ -243,44 +279,37 @@ public class AlbumService : IAlbumService
                 var albumSummaries = new List<AlbumSummaryDto>();
 
                 // Process database results first and identify missing albums
+                // When Spotify is unavailable, we'll use ANY albums we have, even expired ones
                 foreach (var spotifyId in batch)
                 {
                     var dbAlbum = databaseAlbums.FirstOrDefault(a => a != null && a.SpotifyId == spotifyId);
 
-                    if (dbAlbum != null && DateTime.UtcNow < dbAlbum.CacheExpiresAt)
+                    if (dbAlbum != null)
                     {
                         // Valid album from database - add to result directly
                         existingDbAlbums[spotifyId] = dbAlbum;
 
                         // Map to summary DTO
-                        albumSummaries.Add(new AlbumSummaryDto
+                        albumSummaries.Add(AlbumMapper.MapToAlbumSummaryDto(dbAlbum));
+                        
+                        // If album is expired, we'll still try to refresh it
+                        if (DateTime.UtcNow > dbAlbum.CacheExpiresAt)
                         {
-                            CatalogItemId = dbAlbum.Id,
-                            SpotifyId = dbAlbum.SpotifyId,
-                            Name = dbAlbum.Name,
-                            ArtistName = dbAlbum.ArtistName,
-                            ImageUrl = dbAlbum.ThumbnailUrl,
-                            ReleaseDate = dbAlbum.ReleaseDate,
-                            AlbumType = dbAlbum.AlbumType,
-                            TotalTracks = dbAlbum.TotalTracks,
-                            Popularity = dbAlbum.Popularity,
-                            ExternalUrls = dbAlbum.SpotifyUrl != null ? new List<string> {dbAlbum.SpotifyUrl} : null
-                        });
+                            missingIds.Add(spotifyId);
+                        }
                     }
                     else
                     {
-                        // Album not in database or expired - need to fetch from Spotify
+                        // Album not in database - need to fetch from Spotify
                         missingIds.Add(spotifyId);
-
-                        // Store reference to expired album if it exists (for _id preservation)
-                        if (dbAlbum != null) existingDbAlbums[spotifyId] = dbAlbum;
                     }
                 }
 
-                // If we got all albums from the database, no need to call Spotify API
+                // If we got all VALID albums from the database, no need to call Spotify API
                 if (!missingIds.Any())
                 {
-                    _logger.LogInformation("Retrieved all {Count} album overviews from database", albumSummaries.Count);
+                    _logger.LogInformation("Retrieved all {Count} album overviews from database with valid data", 
+                        albumSummaries.Count);
 
                     // Add to result
                     result.Albums.AddRange(albumSummaries);
@@ -295,108 +324,60 @@ public class AlbumService : IAlbumService
                 }
 
                 // Fetch missing albums from Spotify API
-                _logger.LogInformation("Fetching {Count} missing albums from Spotify API", missingIds.Count);
+                _logger.LogInformation("Fetching {Count} missing/expired albums from Spotify API", missingIds.Count);
 
                 var spotifyResponse = missingIds.Count > 0
                     ? await _spotifyApiClient.GetMultipleAlbumsAsync(missingIds)
                     : null;
 
+                // If Spotify API call fails completely, use whatever we have from database
+                if (spotifyResponse?.Albums == null || !spotifyResponse.Albums.Any())
+                {
+                    _logger.LogWarning("Spotify API returned no albums. Using only database results.");
+                    result.Albums.AddRange(albumSummaries);
+                    
+                    // Cache what we have, even if incomplete
+                    if (albumSummaries.Any())
+                    {
+                        await _cacheService.SetAsync(
+                            batchCacheKey,
+                            albumSummaries,
+                            TimeSpan.FromMinutes(_spotifySettings.CacheExpirationMinutes));
+                    }
+                    
+                    continue;
+                }
+
                 if (spotifyResponse?.Albums != null && spotifyResponse.Albums.Any())
+                {
                     // Process each album from Spotify
                     foreach (var spotifyAlbum in spotifyResponse.Albums)
                     {
                         if (spotifyAlbum == null) continue;
 
-                        Album albumEntity;
-
-                        // Check if we have an existing entity to update
-                        if (existingDbAlbums.TryGetValue(spotifyAlbum.Id, out var existingAlbum))
-                        {
-                            // Update existing entity properties
-                            albumEntity = existingAlbum;
-                            albumEntity.Name = spotifyAlbum.Name;
-                            albumEntity.ArtistName = spotifyAlbum.Artists.FirstOrDefault()?.Name ?? "Unknown Artist";
-                            albumEntity.ThumbnailUrl = GetOptimalImage(spotifyAlbum.Images);
-                            albumEntity.Popularity = spotifyAlbum.Popularity;
-                            albumEntity.LastAccessed = DateTime.UtcNow;
-                            albumEntity.CacheExpiresAt =
-                                DateTime.UtcNow.AddMinutes(_spotifySettings.CacheExpirationMinutes);
-                            albumEntity.ReleaseDate = spotifyAlbum.ReleaseDate;
-                            albumEntity.ReleaseDatePrecision = spotifyAlbum.ReleaseDatePrecision;
-                            albumEntity.AlbumType = spotifyAlbum.AlbumType;
-                            albumEntity.TotalTracks = spotifyAlbum.TotalTracks;
-                            albumEntity.Label = spotifyAlbum.Label;
-                            albumEntity.Copyright = spotifyAlbum.Copyright;
-                            albumEntity.SpotifyUrl = spotifyAlbum.ExternalUrls?.Spotify;
-                            albumEntity.Artists = spotifyAlbum.Artists.Select(a => new SimplifiedArtist
-                            {
-                                Id = a.Id,
-                                Name = a.Name,
-                                SpotifyUrl = a.ExternalUrls?.Spotify
-                            }).ToList();
-                            albumEntity.RawData = JsonSerializer.Serialize(spotifyAlbum);
-                        }
-                        else
-                        {
-                            // Create new entity for albums not in database
-                            albumEntity = new Album
-                            {
-                                Id = Guid.NewGuid(),
-                                SpotifyId = spotifyAlbum.Id,
-                                Name = spotifyAlbum.Name,
-                                ArtistName = spotifyAlbum.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
-                                ThumbnailUrl = GetOptimalImage(spotifyAlbum.Images),
-                                Popularity = spotifyAlbum.Popularity,
-                                LastAccessed = DateTime.UtcNow,
-                                CacheExpiresAt = DateTime.UtcNow.AddMinutes(_spotifySettings.CacheExpirationMinutes),
-                                ReleaseDate = spotifyAlbum.ReleaseDate,
-                                ReleaseDatePrecision = spotifyAlbum.ReleaseDatePrecision,
-                                AlbumType = spotifyAlbum.AlbumType,
-                                TotalTracks = spotifyAlbum.TotalTracks,
-                                Label = spotifyAlbum.Label,
-                                Copyright = spotifyAlbum.Copyright,
-                                SpotifyUrl = spotifyAlbum.ExternalUrls?.Spotify,
-                                Artists = spotifyAlbum.Artists.Select(a => new SimplifiedArtist
-                                {
-                                    Id = a.Id,
-                                    Name = a.Name,
-                                    SpotifyUrl = a.ExternalUrls?.Spotify
-                                }).ToList(),
-                                RawData = JsonSerializer.Serialize(spotifyAlbum)
-                            };
-                        }
+                        // Get existing album entity if available
+                        Album existingAlbum = null;
+                        existingDbAlbums.TryGetValue(spotifyAlbum.Id, out existingAlbum);
+                        
+                        // Create or update album entity
+                        var albumEntity = AlbumMapper.MapToAlbumEntity(spotifyAlbum, existingAlbum);
+                        albumEntity.CacheExpiresAt = DateTime.UtcNow.AddMinutes(_spotifySettings.CacheExpirationMinutes);
 
                         // Save to database
                         await _catalogRepository.AddOrUpdateAlbumAsync(albumEntity);
 
-                        // Map to a summary DTO and add to results
-                        var albumSummary = new AlbumSummaryDto
+                        // Add to albumSummaries if not already there from DB
+                        if (!albumSummaries.Any(a => a.SpotifyId == spotifyAlbum.Id))
                         {
-                            CatalogItemId = albumEntity.Id,
-                            SpotifyId = spotifyAlbum.Id,
-                            Name = spotifyAlbum.Name,
-                            ArtistName = spotifyAlbum.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
-                            ImageUrl = GetOptimalImage(spotifyAlbum.Images),
-                            Images = spotifyAlbum.Images?.Select(img => new ImageDto
-                            {
-                                Url = img.Url,
-                                Height = img.Height,
-                                Width = img.Width
-                            }).ToList(),
-                            ReleaseDate = spotifyAlbum.ReleaseDate,
-                            AlbumType = spotifyAlbum.AlbumType,
-                            TotalTracks = spotifyAlbum.TotalTracks,
-                            Popularity = spotifyAlbum.Popularity,
-                            ExternalUrls = spotifyAlbum.ExternalUrls?.Spotify != null
-                                ? new List<string> {spotifyAlbum.ExternalUrls.Spotify}
-                                : null
-                        };
-
-                        albumSummaries.Add(albumSummary);
+                            var albumSummary = AlbumMapper.MapToAlbumSummaryDto(albumEntity);
+                            albumSummaries.Add(albumSummary);
+                        }
                     }
+                }
 
                 // Add all album summaries to the result (both from DB and Spotify)
-                result.Albums.AddRange(albumSummaries);
+                result.Albums.AddRange(albumSummaries.Where(summary => 
+                    !result.Albums.Any(a => a.SpotifyId == summary.SpotifyId)));
 
                 // Cache this batch
                 await _cacheService.SetAsync(
@@ -430,23 +411,32 @@ public class AlbumService : IAlbumService
                 return null;
             }
 
-            // Check if the cached item has expired but is still in the database
+            // For catalog ID lookups, we still try to refresh expired data
+            // but we'll return what we have regardless
             if (DateTime.UtcNow > album.CacheExpiresAt)
             {
-                _logger.LogInformation("Album with catalog ID {CatalogId} is expired, refreshing from Spotify",
+                _logger.LogInformation("Album with catalog ID {CatalogId} is expired, attempting refresh from Spotify",
                     catalogId);
 
-                // Try to refresh from Spotify
-                var refreshedAlbum = await GetAlbumAsync(album.SpotifyId);
-                if (refreshedAlbum != null) return refreshedAlbum;
+                try 
+                {
+                    // Try to refresh from Spotify
+                    var refreshedAlbum = await GetAlbumAsync(album.SpotifyId);
+                    if (refreshedAlbum != null) 
+                    {
+                        return refreshedAlbum;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // If refresh fails, log and continue with existing data
+                    _logger.LogWarning(ex, "Failed to refresh expired album {SpotifyId}, using existing data", 
+                        album.SpotifyId);
+                }
             }
 
-            // Deserialize the raw data to Spotify response
-            var albumResponse = JsonSerializer.Deserialize<SpotifyAlbumResponse>(
-                album.RawData,
-                new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
-
-            return MapToAlbumDetailDto(albumResponse, album.Id);
+            // Map entity to DTO directly and return what we have
+            return AlbumMapper.MapAlbumEntityToDto(album);
         }
         catch (Exception ex)
         {
@@ -479,6 +469,7 @@ public class AlbumService : IAlbumService
             }
 
             // Permanently save to database with extended expiration
+            album.CacheExpiresAt = DateTime.UtcNow.AddDays(1); // Extended cache time for saved items
             await _catalogRepository.SaveAlbumAsync(album);
 
             // Return the album DTO for the API response
@@ -489,124 +480,5 @@ public class AlbumService : IAlbumService
             _logger.LogError(ex, "Error saving album with Spotify ID {SpotifyId}", spotifyId);
             throw;
         }
-    }
-
-    // Helper method to get the optimal image (640x640 or closest)
-    private string GetOptimalImage(List<SpotifyImage> images)
-    {
-        if (images == null || !images.Any())
-            return null;
-
-        // Try to find a 640x640 image
-        var optimalImage = images.FirstOrDefault(img => img.Width == 640 && img.Height == 640);
-
-        // If no 640x640 image exists, take the largest available
-        if (optimalImage == null) optimalImage = images.OrderByDescending(img => img.Width * img.Height).First();
-
-        return optimalImage.Url;
-    }
-
-    // Map Spotify response to DTO
-    private AlbumDetailDto MapToAlbumDetailDto(SpotifyAlbumResponse album, Guid catalogItemId)
-    {
-        // Get all artists
-        var artistSummaries = album.Artists.Select(artist => new ArtistSummaryDto
-        {
-            SpotifyId = artist.Id,
-            Name = artist.Name,
-            ExternalUrls = artist.ExternalUrls?.Spotify != null
-                ? new List<string> {artist.ExternalUrls.Spotify}
-                : null
-        }).ToList();
-
-        // Get primary artist
-        var primaryArtist = album.Artists.FirstOrDefault()?.Name ?? "Unknown Artist";
-
-        // Get thumbnail URL (optimized for 640x640)
-        var thumbnailUrl = GetOptimalImage(album.Images);
-
-        // Get all images (we'll still provide all available sizes in the DTO)
-        var images = album.Images.Select(img => new ImageDto
-        {
-            Url = img.Url,
-            Height = img.Height,
-            Width = img.Width
-        }).ToList();
-
-        // Map tracks if available
-        var tracks = new List<TrackSummaryDto>();
-        if (album.Tracks?.Items != null)
-            tracks = album.Tracks.Items.Select(track => new TrackSummaryDto
-            {
-                SpotifyId = track.Id,
-                Name = track.Name,
-                ArtistName = track.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
-                DurationMs = track.DurationMs,
-                IsExplicit = track.Explicit,
-                TrackNumber = track.TrackNumber,
-                ExternalUrls = track.ExternalUrls?.Spotify != null
-                    ? new List<string> {track.ExternalUrls.Spotify}
-                    : null
-            }).ToList();
-
-        return new AlbumDetailDto
-        {
-            CatalogItemId = catalogItemId,
-            SpotifyId = album.Id,
-            Name = album.Name,
-            ArtistName = primaryArtist,
-            ImageUrl = thumbnailUrl,
-            Images = images,
-            Popularity = album.Popularity,
-            ReleaseDate = album.ReleaseDate,
-            ReleaseDatePrecision = album.ReleaseDatePrecision,
-            AlbumType = album.AlbumType,
-            TotalTracks = album.TotalTracks,
-            Label = album.Label,
-            Copyright = album.Copyright,
-            Artists = artistSummaries,
-            Tracks = tracks,
-            // Genres = album.Genres?.ToList(),
-            ExternalUrls = album.ExternalUrls?.Spotify != null
-                ? new List<string> {album.ExternalUrls.Spotify}
-                : null
-        };
-    }
-
-    private AlbumTracksResultDto MapToAlbumTracksResultDto(
-        SpotifyPagingObject<SpotifyTrackSimplified> response,
-        string albumId,
-        string albumName,
-        int limit,
-        int offset)
-    {
-        var result = new AlbumTracksResultDto
-        {
-            AlbumId = albumId,
-            AlbumName = albumName,
-            Limit = limit,
-            Offset = offset,
-            TotalResults = response.Total,
-            Next = response.Next,
-            Previous = response.Previous
-        };
-
-        // Map tracks
-        if (response.Items != null)
-        {
-            result.Tracks = response.Items.Select(track => new TrackSummaryDto
-            {
-                SpotifyId = track.Id,
-                Name = track.Name,
-                ArtistName = track.Artists.FirstOrDefault()?.Name ?? "Unknown Artist",
-                DurationMs = track.DurationMs,
-                IsExplicit = track.Explicit,
-                TrackNumber = track.TrackNumber,
-                AlbumId = albumId,
-                ExternalUrls = track.ExternalUrls?.Spotify != null ? new List<string> { track.ExternalUrls.Spotify } : null
-            }).ToList();
-        }
-
-        return result;
     }
 }

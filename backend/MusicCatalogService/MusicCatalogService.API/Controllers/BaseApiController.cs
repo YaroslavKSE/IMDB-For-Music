@@ -68,38 +68,50 @@ public abstract class BaseApiController : ControllerBase
         {
             _logger.LogWarning("Spotify authorization error: {Message}", ex.Message);
             
-            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse
+            // Return a 200 OK status with a warning message
+            // This allows the client to still display cached data without showing an error screen
+            return StatusCode(StatusCodes.Status200OK, new
             {
-                Message = "Authorization error occurred when accessing Spotify API",
+                Message = "Data may not be current due to Spotify API authentication issues",
+                IsStale = true,
                 ErrorCode = ErrorCodes.AuthorizationError,
-                TraceId = HttpContext.TraceIdentifier
+                TraceId = HttpContext.TraceIdentifier,
+                Data = default(T)
             });
         }
         catch (SpotifyRateLimitException ex)
         {
             _logger.LogWarning("Spotify rate limit exceeded: {Message}", ex.Message);
             
-            return StatusCode(StatusCodes.Status429TooManyRequests, new ErrorResponse
+            // Return a 200 OK status with a warning message
+            // This allows the client to still display cached data without showing an error screen
+            return StatusCode(StatusCodes.Status200OK, new
             {
-                Message = "Rate limit exceeded for Spotify API, please try again later",
+                Message = "Data may not be current due to Spotify API rate limiting",
+                IsStale = true, 
                 ErrorCode = ErrorCodes.RateLimitExceeded,
-                TraceId = HttpContext.TraceIdentifier
+                TraceId = HttpContext.TraceIdentifier,
+                Data = default(T)
             });
         }
         catch (SpotifyApiException ex)
         {
             _logger.LogError(ex, "Spotify API error when accessing resource: {ResourceId}", resourceId ?? "unknown");
             
-            return StatusCode(StatusCodes.Status502BadGateway, new ErrorResponse
+            // Return a 200 OK status with a warning message
+            // This allows the client to still display cached data without showing an error screen
+            return StatusCode(StatusCodes.Status200OK, new
             {
-                Message = "Error communicating with Spotify API",
+                Message = "Data may not be current due to Spotify API issues",
+                IsStale = true,
                 ErrorCode = ErrorCodes.SpotifyApiError,
                 TraceId = HttpContext.TraceIdentifier,
                 Details = new SpotifyErrorDetails 
                 { 
                     SpotifyId = resourceId,
                     StatusCode = (int)ex.StatusCode
-                }
+                },
+                Data = default(T)
             });
         }
         catch (Exception ex)
@@ -176,11 +188,11 @@ public abstract class BaseApiController : ControllerBase
         }
         catch (SpotifyAuthorizationException ex)
         {
-            _logger.LogWarning("Spotify authorization error: {Message}", ex.Message);
+            _logger.LogWarning("Spotify authorization error during save: {Message}", ex.Message);
             
-            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new ErrorResponse
             {
-                Message = "Authorization error occurred when accessing Spotify API",
+                Message = "Unable to save item at this time due to Spotify API authentication issues. Please try again later.",
                 ErrorCode = ErrorCodes.AuthorizationError,
                 TraceId = HttpContext.TraceIdentifier
             });
@@ -200,9 +212,9 @@ public abstract class BaseApiController : ControllerBase
         {
             _logger.LogError(ex, "Spotify API error when saving resource: {ResourceId}", resourceId);
             
-            return StatusCode(StatusCodes.Status502BadGateway, new ErrorResponse
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new ErrorResponse
             {
-                Message = "Error communicating with Spotify API",
+                Message = "Unable to save item at this time due to Spotify API issues. Please try again later.",
                 ErrorCode = ErrorCodes.SpotifyApiError,
                 TraceId = HttpContext.TraceIdentifier,
                 Details = new SpotifyErrorDetails 

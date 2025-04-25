@@ -27,8 +27,14 @@ public class SpotifyApiClient : ISpotifyApiClient
     {
         try
         {
-            var token = await _tokenService.GetAccessTokenAsync();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var tokenResult = await _tokenService.GetAccessTokenAsync();
+            if (!tokenResult.IsSuccess)
+            {
+                _logger.LogWarning("Unable to get Spotify token for album {AlbumId}. Working with local data only.", albumId);
+                return null;
+            }
+            
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResult.Token);
             var response = await _httpClient.GetAsync($"albums/{albumId}");
 
             // Handle non-success status codes
@@ -71,28 +77,33 @@ public class SpotifyApiClient : ISpotifyApiClient
         }
     }
 
-    public async Task<SpotifyPagingObject<SpotifyTrackSimplified>?> GetAlbumTracksAsync(string albumId, int limit = 20, int offset = 0, string? market = null)
+    public async Task<SpotifyPagingObject<SpotifyTrackSimplified>?> GetAlbumTracksAsync(string albumId, int limit = 20,
+        int offset = 0, string? market = null)
     {
         try
         {
-            var token = await _tokenService.GetAccessTokenAsync();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var tokenResult = await _tokenService.GetAccessTokenAsync();
+            if (!tokenResult.IsSuccess)
+            {
+                _logger.LogWarning("Unable to get Spotify token for album tracks {AlbumId}. Working with local data only.", albumId);
+                return null;
+            }
+            
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResult.Token);
 
             // Build the request URL with query parameters
             var requestUrl = $"albums/{albumId}/tracks?limit={limit}&offset={offset}";
 
             // Add market parameter if provided
-            if (!string.IsNullOrEmpty(market))
-            {
-                requestUrl += $"&market={market}";
-            }
+            if (!string.IsNullOrEmpty(market)) requestUrl += $"&market={market}";
 
             var response = await _httpClient.GetAsync(requestUrl);
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Spotify API error: {StatusCode} when getting album tracks for {AlbumId}. Response: {Response}",
+                _logger.LogError(
+                    "Spotify API error: {StatusCode} when getting album tracks for {AlbumId}. Response: {Response}",
                     response.StatusCode, albumId, errorContent);
 
                 // Parse Spotify error response
@@ -112,10 +123,11 @@ public class SpotifyApiClient : ISpotifyApiClient
             var content = await response.Content.ReadAsStringAsync();
             _logger.LogDebug("Spotify API returned album tracks: {Content}", content);
 
-            return JsonSerializer.Deserialize<SpotifyPagingObject<SpotifyTrackSimplified>>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            return JsonSerializer.Deserialize<SpotifyPagingObject<SpotifyTrackSimplified>>(content,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
         }
         catch (SpotifyException)
         {
@@ -133,8 +145,14 @@ public class SpotifyApiClient : ISpotifyApiClient
     {
         try
         {
-            var token = await _tokenService.GetAccessTokenAsync();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var tokenResult = await _tokenService.GetAccessTokenAsync();
+            if (!tokenResult.IsSuccess)
+            {
+                _logger.LogWarning("Unable to get Spotify token for track {TrackId}. Working with local data only.", trackId);
+                return null;
+            }
+            
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResult.Token);
             var response = await _httpClient.GetAsync($"tracks/{trackId}");
 
             // Handle non-success status codes
@@ -180,8 +198,14 @@ public class SpotifyApiClient : ISpotifyApiClient
     {
         try
         {
-            var token = await _tokenService.GetAccessTokenAsync();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var tokenResult = await _tokenService.GetAccessTokenAsync();
+            if (!tokenResult.IsSuccess)
+            {
+                _logger.LogWarning("Unable to get Spotify token for artist {ArtistId}. Working with local data only.", artistId);
+                return null;
+            }
+            
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResult.Token);
             var response = await _httpClient.GetAsync($"artists/{artistId}");
 
             // Handle non-success status codes
@@ -223,33 +247,35 @@ public class SpotifyApiClient : ISpotifyApiClient
         }
     }
 
-    public async Task<SpotifyArtistAlbumsResponse?> GetArtistAlbumsAsync(string artistId, int limit = 20, int offset = 0, string? market = null, string? includeGroups = "album")
+    public async Task<SpotifyArtistAlbumsResponse?> GetArtistAlbumsAsync(string artistId, int limit = 20,
+        int offset = 0, string? market = null, string? includeGroups = "album")
     {
         try
         {
-            var token = await _tokenService.GetAccessTokenAsync();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var tokenResult = await _tokenService.GetAccessTokenAsync();
+            if (!tokenResult.IsSuccess)
+            {
+                _logger.LogWarning("Unable to get Spotify token for artist albums {ArtistId}. Working with local data only.", artistId);
+                return null;
+            }
+            
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResult.Token);
 
             // Build the request URL with query parameters
             var requestUrl = $"artists/{artistId}/albums?limit={limit}&offset={offset}";
 
             // Add market parameter if provided
-            if (!string.IsNullOrEmpty(market))
-            {
-                requestUrl += $"&market={market}";
-            }
+            if (!string.IsNullOrEmpty(market)) requestUrl += $"&market={market}";
 
             // Add include_groups parameter if provided
-            if (!string.IsNullOrEmpty(includeGroups))
-            {
-                requestUrl += $"&include_groups={includeGroups}";
-            }
+            if (!string.IsNullOrEmpty(includeGroups)) requestUrl += $"&include_groups={includeGroups}";
 
             var response = await _httpClient.GetAsync(requestUrl);
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Spotify API error: {StatusCode} when getting artist albums for {ArtistId}. Response: {Response}",
+                _logger.LogError(
+                    "Spotify API error: {StatusCode} when getting artist albums for {ArtistId}. Response: {Response}",
                     response.StatusCode, artistId, errorContent);
 
                 // Parse Spotify error response
@@ -290,8 +316,14 @@ public class SpotifyApiClient : ISpotifyApiClient
     {
         try
         {
-            var token = await _tokenService.GetAccessTokenAsync();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var tokenResult = await _tokenService.GetAccessTokenAsync();
+            if (!tokenResult.IsSuccess)
+            {
+                _logger.LogWarning("Unable to get Spotify token for artist top tracks {ArtistId}. Working with local data only.", artistId);
+                return null;
+            }
+            
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResult.Token);
 
             // Build the request URL with query parameters
             // The market is required for this endpoint
@@ -303,7 +335,8 @@ public class SpotifyApiClient : ISpotifyApiClient
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Spotify API error: {StatusCode} when getting artist top tracks for {ArtistId}. Response: {Response}",
+                _logger.LogError(
+                    "Spotify API error: {StatusCode} when getting artist top tracks for {ArtistId}. Response: {Response}",
                     response.StatusCode, artistId, errorContent);
 
                 // Parse Spotify error response
@@ -319,6 +352,7 @@ public class SpotifyApiClient : ISpotifyApiClient
                     _ => new SpotifyApiException(spotifyError.Message, response.StatusCode)
                 };
             }
+
             var content = await response.Content.ReadAsStringAsync();
             _logger.LogDebug("Spotify API returned artist top tracks: {Content}", content);
 
@@ -343,8 +377,14 @@ public class SpotifyApiClient : ISpotifyApiClient
     {
         try
         {
-            var token = await _tokenService.GetAccessTokenAsync();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var tokenResult = await _tokenService.GetAccessTokenAsync();
+            if (!tokenResult.IsSuccess)
+            {
+                _logger.LogWarning("Unable to get Spotify token for search query '{Query}'. Working with local data only.", query);
+                return null;
+            }
+            
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResult.Token);
 
             // Encode the query and build the request URL
             var encodedQuery = Uri.EscapeDataString(query);
@@ -396,8 +436,14 @@ public class SpotifyApiClient : ISpotifyApiClient
     {
         try
         {
-            var token = await _tokenService.GetAccessTokenAsync();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var tokenResult = await _tokenService.GetAccessTokenAsync();
+            if (!tokenResult.IsSuccess)
+            {
+                _logger.LogWarning("Unable to get Spotify token for new releases. Working with local data only.");
+                return null;
+            }
+            
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResult.Token);
             var response = await _httpClient.GetAsync($"browse/new-releases?limit={limit}&offset={offset}");
 
             // Handle non-success status codes
@@ -443,20 +489,22 @@ public class SpotifyApiClient : ISpotifyApiClient
     public async Task<SpotifyMultipleAlbumsResponse?> GetMultipleAlbumsAsync(IEnumerable<string> albumIds)
     {
         if (albumIds == null || !albumIds.Any())
-        {
             throw new ArgumentException("Album IDs cannot be null or empty", nameof(albumIds));
-        }
 
         // Spotify API limit is 20 IDs per request
         if (albumIds.Count() > 20)
-        {
             throw new ArgumentException("Maximum number of album IDs per request is 20", nameof(albumIds));
-        }
 
         try
         {
-            var token = await _tokenService.GetAccessTokenAsync();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var tokenResult = await _tokenService.GetAccessTokenAsync();
+            if (!tokenResult.IsSuccess)
+            {
+                _logger.LogWarning("Unable to get Spotify token for multiple albums. Working with local data only.");
+                return null;
+            }
+            
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResult.Token);
 
             // Join album IDs with comma
             var idsParameter = string.Join(",", albumIds);
@@ -510,20 +558,22 @@ public class SpotifyApiClient : ISpotifyApiClient
     public async Task<SpotifyMultipleTracksResponse?> GetMultipleTracksAsync(IEnumerable<string> trackIds)
     {
         if (trackIds == null || !trackIds.Any())
-        {
             throw new ArgumentException("Track IDs cannot be null or empty", nameof(trackIds));
-        }
 
         // Spotify API limit is 50 IDs per request
         if (trackIds.Count() > 50)
-        {
             throw new ArgumentException("Maximum number of track IDs per request is 50", nameof(trackIds));
-        }
 
         try
         {
-            var token = await _tokenService.GetAccessTokenAsync();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var tokenResult = await _tokenService.GetAccessTokenAsync();
+            if (!tokenResult.IsSuccess)
+            {
+                _logger.LogWarning("Unable to get Spotify token for multiple albums. Working with local data only.");
+                return null;
+            }
+            
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResult.Token);
 
             // Join track IDs with comma
             var idsParameter = string.Join(",", trackIds);

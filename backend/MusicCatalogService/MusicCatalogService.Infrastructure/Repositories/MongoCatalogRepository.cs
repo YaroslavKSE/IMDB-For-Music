@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using MusicCatalogService.Core.Interfaces;
 using MusicCatalogService.Core.Models;
@@ -62,15 +63,43 @@ public class MongoCatalogRepository : ICatalogRepository
         await _tracks.Indexes.CreateOneAsync(
             new CreateIndexModel<Track>(
                 Builders<Track>.IndexKeys.Ascending(item => item.CacheExpiresAt)));
-                
+
         await _artists.Indexes.CreateOneAsync(
             new CreateIndexModel<Artist>(
                 Builders<Artist>.IndexKeys.Ascending(item => item.CacheExpiresAt)));
+        // Popularity index for sorting operations
+        await _albums.Indexes.CreateOneAsync(
+            new CreateIndexModel<Album>(
+                Builders<Album>.IndexKeys.Descending(item => item.Popularity)));
+
+        await _tracks.Indexes.CreateOneAsync(
+            new CreateIndexModel<Track>(
+                Builders<Track>.IndexKeys.Descending(item => item.Popularity)));
+
+        await _artists.Indexes.CreateOneAsync(
+            new CreateIndexModel<Artist>(
+                Builders<Artist>.IndexKeys.Descending(item => item.Popularity)));
+        // Release date index for albums
+        await _albums.Indexes.CreateOneAsync(
+            new CreateIndexModel<Album>(
+                Builders<Album>.IndexKeys.Descending(item => item.ReleaseDate)));
 
         // Create index on AlbumId for Tracks to quickly find tracks belonging to an album
         await _tracks.Indexes.CreateOneAsync(
             new CreateIndexModel<Track>(
                 Builders<Track>.IndexKeys.Ascending(track => track.AlbumId)));
+
+        await _tracks.Indexes.CreateOneAsync(
+            new CreateIndexModel<Track>(
+                Builders<Track>.IndexKeys.Ascending(track => track.Isrc),
+                new CreateIndexOptions {Background = true, Sparse = true}));
+        // Track number index for tracks (to sort tracks within an album)
+        await _tracks.Indexes.CreateOneAsync(
+            new CreateIndexModel<Track>(
+                Builders<Track>.IndexKeys
+                    .Ascending(track => track.AlbumId)
+                    .Ascending(track => track.DiscNumber)
+                    .Ascending(track => track.TrackNumber)));
     }
 
     // Existing Album methods by Spotify ID
@@ -113,7 +142,7 @@ public class MongoCatalogRepository : ICatalogRepository
         {
             // For a permanent save, set the cache to a day
             album.CacheExpiresAt = DateTime.UtcNow.AddDays(1);
-            
+
             var filter = Builders<Album>.Filter.Eq(a => a.SpotifyId, album.SpotifyId);
             var options = new ReplaceOptions {IsUpsert = true};
 
@@ -195,7 +224,7 @@ public class MongoCatalogRepository : ICatalogRepository
         {
             // For a permanent save, ensure the result for a day
             track.CacheExpiresAt = DateTime.UtcNow.AddDays(1);
-            
+
             var filter = Builders<Track>.Filter.Eq(t => t.SpotifyId, track.SpotifyId);
             var options = new ReplaceOptions {IsUpsert = true};
 
@@ -306,7 +335,7 @@ public class MongoCatalogRepository : ICatalogRepository
         {
             // For a permanent save, cache the result for a day 
             artist.CacheExpiresAt = DateTime.UtcNow.AddDays(1);
-            
+
             var filter = Builders<Artist>.Filter.Eq(a => a.SpotifyId, artist.SpotifyId);
             var options = new ReplaceOptions {IsUpsert = true};
 
@@ -319,6 +348,38 @@ public class MongoCatalogRepository : ICatalogRepository
             _logger.LogError(ex, "Error permanently saving artist with SpotifyId {SpotifyId}", artist.SpotifyId);
             throw;
         }
+    }
+    public async Task<(List<Album>, int)> SearchAlbumsAsync(string query, int limit, int offset)
+    {
+        var filter = Builders<Album>.Filter.Regex("Name", new BsonRegularExpression(query, "i"));
+        var total = (int)await _albums.CountDocumentsAsync(filter);
+        var results = await _albums.Find(filter)
+            .Skip(offset)
+            .Limit(limit)
+            .ToListAsync();
+        return (results, total);
+    }
+
+    public async Task<(List<Artist>, int)> SearchArtistsAsync(string query, int limit, int offset)
+    {
+        var filter = Builders<Artist>.Filter.Regex("Name", new BsonRegularExpression(query, "i"));
+        var total = (int)await _artists.CountDocumentsAsync(filter);
+        var results = await _artists.Find(filter)
+            .Skip(offset)
+            .Limit(limit)
+            .ToListAsync();
+        return (results, total);
+    }
+
+    public async Task<(List<Track>, int)> SearchTracksAsync(string query, int limit, int offset)
+    {
+        var filter = Builders<Track>.Filter.Regex("Name", new BsonRegularExpression(query, "i"));
+        var total = (int)await _tracks.CountDocumentsAsync(filter);
+        var results = await _tracks.Find(filter)
+            .Skip(offset)
+            .Limit(limit)
+            .ToListAsync();
+        return (results, total);
     }
 
     // Generic method implementation 
@@ -378,7 +439,7 @@ public class MongoCatalogRepository : ICatalogRepository
             // Delete expired tracks
             var tracksFilter = Builders<Track>.Filter.Lt(t => t.CacheExpiresAt, currentTime);
             var tracksResult = await _tracks.DeleteManyAsync(tracksFilter);
-            
+
             // Delete expired artists
             var artistsFilter = Builders<Artist>.Filter.Lt(a => a.CacheExpiresAt, currentTime);
             var artistsResult = await _artists.DeleteManyAsync(artistsFilter);

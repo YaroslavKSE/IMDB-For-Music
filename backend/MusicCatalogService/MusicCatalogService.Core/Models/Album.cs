@@ -14,6 +14,9 @@ public class Album : CatalogItemBase
     public string Label { get; set; }
 
     public string Copyright { get; set; }
+    
+    // Add track list for faster retrieval without RawData
+    public List<string> TrackIds { get; set; } = new();
 
     // External URLs
     public string SpotifyUrl { get; set; }
