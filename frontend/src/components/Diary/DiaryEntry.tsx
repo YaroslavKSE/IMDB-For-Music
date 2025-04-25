@@ -16,7 +16,7 @@ const DiaryEntryComponent = ({ entry, onReviewClick, onDeleteClick }: DiaryEntry
     const [isComplexRatingModalOpen, setIsComplexRatingModalOpen] = useState(false);
 
     const handleItemClick = () => {
-        //navigate(`/interaction/${entry.interaction.aggregateId}`);
+        navigate(`/interaction/${entry.interaction.aggregateId}`);
     };
 
     const handleAlbumClick = (e: React.MouseEvent) => {

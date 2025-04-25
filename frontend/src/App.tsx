@@ -23,6 +23,7 @@ import Diary from './pages/Diary';
 import PeoplePage from './pages/People';
 import UserProfilePage from './pages/UserProfile';
 import CreateInteractionPage from './pages/CreateInteractionPage';
+import InteractionDetailPage from './pages/InteractionDetailPage'; // Import the new page
 
 // Auth callback handler component
 const AuthCallback = () => {
@@ -88,6 +89,9 @@ function App() {
                     <Route path="album/:id" element={<Album />} />
                     <Route path="track/:id" element={<Song />} />
                     <Route path="artist/:id" element={<Artist />} />
+
+                    {/* Interaction detail page - publicly viewable */}
+                    <Route path="interaction/:id" element={<InteractionDetailPage />} />
 
                     {/* People Routes */}
                     <Route path="people" element={<PeoplePage />} />
