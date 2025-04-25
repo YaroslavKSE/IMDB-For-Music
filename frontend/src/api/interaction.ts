@@ -2,6 +2,7 @@ import { createApiClient } from '../utils/axios-factory';
 
 const interactionApi = createApiClient('/interactions');
 const gradingApi = createApiClient('/grading-methods');
+const reviewApi = createApiClient('/review-interactions');
 
 // Grading Method Interfaces
 export interface GradeComponent {
@@ -197,6 +198,30 @@ export interface UserInteractionDetail {
   isLiked: boolean;
 }
 
+export interface LikeRequest {
+  reviewId: string;
+  userId: string;
+}
+
+export interface ReviewCommentsResult {
+  comments?: ReviewComment[];
+  totalCount: number;
+}
+
+export interface PostReviewComment {
+  reviewId: string;
+  userId: string;
+  commentText: string;
+}
+
+export interface ReviewComment {
+  commentId: string;
+  reviewId: string;
+  userId: string;
+  commentedAt: string;
+  commentText: string;
+}
+
 const InteractionService = {
   // Grading Method Operations
   createGradingMethod: async (gradingMethod: GradingMethodCreate): Promise<GradingMethodResponse> => {
@@ -263,9 +288,70 @@ const InteractionService = {
     };
   },
 
-  getItemInteractions: async (itemId: string, itemType: string): Promise<GetInteractionsResult> => {
-    const response = await interactionApi.get(`/item/${itemType}/${itemId}`);
+  getReviewComments: async (reviewId: string, limit: number, offset: number): Promise<ReviewCommentsResult> => {
+    const response = await reviewApi.get('/comments', {
+      params: {reviewId, limit, offset}
+    })
     return response.data;
+  },
+
+  postReviewComment: async (comment: PostReviewComment): Promise<boolean> => {
+    const response = await reviewApi.post('/comments', comment);
+    if(response.status === 200){
+      return true;
+    }
+    else{
+      console.log(response.data);
+      return false;
+    }
+  },
+
+  deleteReviewComment: async (commentId: string, userId: string): Promise<boolean> => {
+    const response = await reviewApi.delete(`/comments/${commentId}`, {
+      params: {userId}
+    });
+    if(response.status === 200){
+      return true;
+    }
+    else{
+      console.log(response.data);
+      return false;
+    }
+  },
+
+  checkReviewLike: async (reviewId: string, userId: string): Promise<boolean> => {
+    const response = await reviewApi.get('/likes/check', {
+      params: {reviewId, userId}
+    });
+    return response.data.hasLiked;
+  },
+
+  likeReview: async (reviewId: string, userId: string): Promise<boolean> => {
+    const like: LikeRequest = {
+      reviewId: reviewId,
+      userId: userId
+    }
+    const response = await reviewApi.post('/likes', like);
+    if(response.status === 200) {
+      return true;
+    }
+    else{
+      console.log(response.data);
+      return false;
+    }
+  },
+
+  unlikeReview: async (reviewId: string, userId: string): Promise<boolean> => {
+    const response = await reviewApi.delete('/likes', {
+      params: {reviewId, userId}
+    })
+    if(response.status === 200){
+      return true;
+    }
+    else{
+      console.log(response.data);
+      return false;
+    }
   }
 };
 
