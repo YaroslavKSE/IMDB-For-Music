@@ -202,7 +202,7 @@ public class InteractionController : ControllerBase
         });
     }
 
-    [HttpGet("by-several-user-ids")]
+    [HttpPost("by-several-user-ids")]
     public async Task<IActionResult> GetInteractionsByUserIds([FromBody] List<string> userIds, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
     {
         if (userIds == null || userIds.Count == 0)
@@ -230,7 +230,7 @@ public class InteractionController : ControllerBase
         });
     }
 
-    [HttpGet("by-several-item-ids")]
+    [HttpPost("by-several-item-ids")]
     public async Task<IActionResult> GetInteractionsByItemIds([FromBody] List<string> itemIds, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
     {
         if (itemIds == null || itemIds.Count == 0)
