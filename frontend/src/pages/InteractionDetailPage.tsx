@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Heart, MessageSquare, SlidersHorizontal, Trash2, Flag, Send, ThumbsUp, Calendar } from 'lucide-react';
 import InteractionService, { InteractionDetailDTO, ReviewComment } from '../api/interaction';
-import CatalogService from '../api/catalog';
+import CatalogService, { AlbumDetail, TrackDetail } from '../api/catalog';
 import useAuthStore from '../store/authStore';
-import UsersService, { UserSummary } from '../api/users';
+import UsersService, { UserSummary, PublicUserProfile } from '../api/users';
 import { formatDate } from '../utils/formatters';
 import NormalizedStarDisplay from '../components/CreateInteraction/NormalizedStarDisplay';
 import ComplexRatingModal from '../components/Diary/ComplexRatingModal';
+
+// Combined type for catalog items
+type CatalogItemType = AlbumDetail | TrackDetail;
 
 const InteractionDetailPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -17,8 +20,8 @@ const InteractionDetailPage = () => {
     const [interaction, setInteraction] = useState<InteractionDetailDTO | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [catalogItem, setCatalogItem] = useState<any>(null);
-    const [creatorProfile, setCreatorProfile] = useState<any>(null);
+    const [catalogItem, setCatalogItem] = useState<CatalogItemType | null>(null);
+    const [creatorProfile, setCreatorProfile] = useState<PublicUserProfile | null>(null);
     const [comments, setComments] = useState<ReviewComment[]>([]);
     const [commentUsers, setCommentUsers] = useState<Map<string, UserSummary>>(new Map());
     const [commentsLoading, setCommentsLoading] = useState(false);
@@ -47,10 +50,10 @@ const InteractionDetailPage = () => {
                 setInteraction(interactionData);
 
                 // Fetch catalog item (album or track)
-                let itemData;
+                let itemData: CatalogItemType;
                 if (interactionData.itemType === 'Album') {
                     itemData = await CatalogService.getAlbum(interactionData.itemId);
-                } else if (interactionData.itemType === 'Track') {
+                } else {
                     itemData = await CatalogService.getTrack(interactionData.itemId);
                 }
                 setCatalogItem(itemData);
@@ -337,8 +340,8 @@ const InteractionDetailPage = () => {
                 <div className="md:w-2/3">
                     {/* Creator info */}
                     <div className="flex items-center mb-4">
-                        <Link to={`/people/${creatorProfile.id}`} className="flex items-center">
-                            {creatorProfile.avatarUrl ? (
+                        <Link to={`/people/${creatorProfile?.id}`} className="flex items-center">
+                            {creatorProfile?.avatarUrl ? (
                                 <img
                                     src={creatorProfile.avatarUrl}
                                     alt={creatorProfile.name}
@@ -346,12 +349,12 @@ const InteractionDetailPage = () => {
                                 />
                             ) : (
                                 <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-lg font-bold mr-3">
-                                    {creatorProfile.name.charAt(0).toUpperCase()}{creatorProfile.surname.charAt(0).toUpperCase()}
+                                    {creatorProfile?.name.charAt(0).toUpperCase()}{creatorProfile?.surname.charAt(0).toUpperCase()}
                                 </div>
                             )}
                             <div>
-                                <span className="font-medium text-gray-900">{creatorProfile.name} {creatorProfile.surname}</span>
-                                <span className="text-gray-500 text-sm block">@{creatorProfile.username}</span>
+                                <span className="font-medium text-gray-900">{creatorProfile?.name} {creatorProfile?.surname}</span>
+                                <span className="text-gray-500 text-sm block">@{creatorProfile?.username}</span>
                             </div>
                         </Link>
                     </div>
@@ -367,13 +370,25 @@ const InteractionDetailPage = () => {
                             </Link>
                         </h1>
                         <div className="flex items-center text-gray-600 mb-2">
-                            <span className="mr-3">{catalogItem.artistName}</span>
                             <span className="mr-3">
-                {catalogItem.releaseDate ? new Date(catalogItem.releaseDate).getFullYear() : ''}
-              </span>
+                                {interaction.itemType === 'Album'
+                                    ? (catalogItem as AlbumDetail).artistName
+                                    : (catalogItem as TrackDetail).artists?.[0]?.name || 'Unknown Artist'
+                                }
+                            </span>
+                            <span className="mr-3">
+                                {interaction.itemType === 'Album'
+                                    ? ((catalogItem as AlbumDetail).releaseDate
+                                        ? new Date((catalogItem as AlbumDetail).releaseDate!).getFullYear()
+                                        : '')
+                                    : ((catalogItem as TrackDetail).album?.releaseDate
+                                        ? new Date((catalogItem as TrackDetail).album.releaseDate!).getFullYear()
+                                        : '')
+                                }
+                            </span>
                             <span className="bg-gray-200 px-2 py-0.5 rounded-full text-xs">
-                {interaction.itemType}
-              </span>
+                                {interaction.itemType}
+                            </span>
                         </div>
                     </div>
 
@@ -504,13 +519,13 @@ const InteractionDetailPage = () => {
                                     )}
                                 </div>
                                 <div className="flex-grow relative">
-                  <textarea
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="Write a comment..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                      rows={3}
-                  />
+                                    <textarea
+                                        value={newComment}
+                                        onChange={(e) => setNewComment(e.target.value)}
+                                        placeholder="Write a comment..."
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                                        rows={3}
+                                    />
                                     <button
                                         onClick={handleSubmitComment}
                                         disabled={!newComment.trim() || submittingComment}
@@ -583,8 +598,8 @@ const InteractionDetailPage = () => {
                                                                         {commentUser.name} {commentUser.surname}
                                                                         {commentUser.username && (
                                                                             <span className="text-gray-500 text-sm ml-1">
-                                        @{commentUser.username}
-                                      </span>
+                                                                                @{commentUser.username}
+                                                                            </span>
                                                                         )}
                                                                     </>
                                                                 ) : (
@@ -592,8 +607,8 @@ const InteractionDetailPage = () => {
                                                                 )}
                                                             </Link>
                                                             <span className="text-gray-500 text-sm ml-2">
-                                {formatDate(comment.commentedAt)}
-                              </span>
+                                                                {formatDate(comment.commentedAt)}
+                                                            </span>
                                                         </div>
                                                         {user && user.id === comment.userId && (
                                                             <button
@@ -644,7 +659,9 @@ const InteractionDetailPage = () => {
                     onClose={() => setIsRatingModalOpen(false)}
                     ratingId={interaction.rating.ratingId}
                     itemName={catalogItem.name}
-                    artistName={catalogItem.artistName}
+                    artistName={interaction.itemType === 'Album'
+                        ? (catalogItem as AlbumDetail).artistName
+                        : (catalogItem as TrackDetail).artists?.[0]?.name || 'Unknown Artist'}
                     date={formatDate(interaction.createdAt)}
                 />
             )}
