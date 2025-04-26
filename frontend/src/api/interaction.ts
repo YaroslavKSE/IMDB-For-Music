@@ -224,6 +224,16 @@ export interface ReviewComment {
   commentText: string;
 }
 
+export interface ItemStats {
+  itemId: string;
+  totalUsersInteracted: number;
+  totalLikes: number;
+  totalReviews: number;
+  ratingDistribution: number[];
+  averageRating: number;
+  hasRatings: boolean;
+}
+
 const InteractionService = {
   // Grading Method Operations
   createGradingMethod: async (gradingMethod: GradingMethodCreate): Promise<GradingMethodResponse> => {
@@ -283,6 +293,34 @@ const InteractionService = {
   getUserInteractionsByUserId: async (userId: string, limit: number = 20, offset: number = 0): Promise<{items: UserInteractionDetail[], totalCount: number}> => {
     const response = await interactionApi.get(`/by-user-id/${userId}`, {
       params: { limit, offset }
+    });
+    return {
+      items: response.data.items,
+      totalCount: response.data.totalCount
+    };
+  },
+
+  getItemStats: async (itemId: string): Promise<ItemStats> => {
+    const response = await interactionApi.get(`/item-stats/${itemId}`);
+    if(response.status != 200){
+      console.log(response.statusText);
+    }
+    return response.data;
+  },
+
+  getItemReviews: async (itemId: string, limit: number = 20, offset: number = 0): Promise<{items: InteractionDetailDTO[], totalCount: number}> => {
+    const response = await interactionApi.get(`/reviews-by-item-id/${itemId}`, {
+      params: {limit, offset}
+    });
+    return {
+      items: response.data.items,
+      totalCount: response.data.totalCount
+    };
+  },
+
+  getUserItemHistory: async (userId: string, itemId: string, limit: number = 20, offset: number = 0): Promise<{items: InteractionDetailDTO[], totalCount: number}> => {
+    const response = await interactionApi.get(`/by-user-and-item`, {
+      params: {userId, itemId, limit, offset}
     });
     return {
       items: response.data.items,
