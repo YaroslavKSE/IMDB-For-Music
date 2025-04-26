@@ -312,184 +312,200 @@ const InteractionDetailPage = () => {
 
     return (
         <div className="max-w-4xl mx-auto py-8 px-4">
-            <div className="mb-6">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="text-gray-600 hover:text-gray-900 flex items-center"
-                >
-                    <svg className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back
-                </button>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-6 bg-white shadow rounded-lg p-6 mb-8">
-                {/* Left column: Item image */}
-                <div className="md:w-1/3 flex-shrink-0">
-                    <div className="aspect-square w-full rounded-md overflow-hidden shadow-md">
-                        <img
-                            src={catalogItem.imageUrl || '/placeholder-album.jpg'}
-                            alt={catalogItem.name}
-                            className="w-full h-full object-cover"
-                        />
-                    </div>
+            <div className="bg-white shadow rounded-lg p-6 mb-8">
+                {/* Header with back button */}
+                <div className="mb-6">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="text-gray-600 hover:text-gray-900 flex items-center"
+                    >
+                        <svg className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back
+                    </button>
                 </div>
 
-                {/* Right column: Interaction details */}
-                <div className="md:w-2/3">
-                    {/* Creator info */}
-                    <div className="flex items-center mb-4">
-                        <Link to={`/people/${creatorProfile?.id}`} className="flex items-center">
-                            {creatorProfile?.avatarUrl ? (
-                                <img
-                                    src={creatorProfile.avatarUrl}
-                                    alt={creatorProfile.name}
-                                    className="h-10 w-10 rounded-full object-cover mr-3"
-                                />
-                            ) : (
-                                <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-lg font-bold mr-3">
-                                    {creatorProfile?.name.charAt(0).toUpperCase()}{creatorProfile?.surname.charAt(0).toUpperCase()}
-                                </div>
-                            )}
-                            <div>
-                                <span className="font-medium text-gray-900">{creatorProfile?.name} {creatorProfile?.surname}</span>
-                                <span className="text-gray-500 text-sm block">@{creatorProfile?.username}</span>
-                            </div>
-                        </Link>
+                {/* Main interaction info section - flex row on desktop */}
+                <div className="flex flex-col md:flex-row gap-6">
+                    {/* Left column: Item image */}
+                    <div className="md:w-1/3 flex-shrink-0">
+                        <div className="aspect-square w-full rounded-md overflow-hidden shadow-md">
+                            <img
+                                src={catalogItem.imageUrl || '/placeholder-album.jpg'}
+                                alt={catalogItem.name}
+                                className="w-full h-full object-cover"
+                            />
+                        </div>
                     </div>
 
-                    {/* Item info */}
-                    <div className="mb-4">
-                        <h1 className="text-2xl font-bold text-gray-900 mb-1">
-                            <Link
-                                to={`/${interaction.itemType.toLowerCase()}/${catalogItem.spotifyId}`}
-                                className="hover:text-primary-600"
-                            >
-                                {catalogItem.name}
+                    {/* Right column: Interaction details */}
+                    <div className="md:w-2/3">
+                        {/* Creator info */}
+                        <div className="flex items-center mb-4">
+                            <Link to={`/people/${creatorProfile?.id}`} className="flex items-center">
+                                {creatorProfile?.avatarUrl ? (
+                                    <img
+                                        src={creatorProfile.avatarUrl}
+                                        alt={creatorProfile.name}
+                                        className="h-10 w-10 rounded-full object-cover mr-3"
+                                    />
+                                ) : (
+                                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-lg font-bold mr-3">
+                                        {creatorProfile?.name.charAt(0).toUpperCase()}{creatorProfile?.surname.charAt(0).toUpperCase()}
+                                    </div>
+                                )}
+                                <div>
+                                    <span className="font-medium text-gray-900">{creatorProfile?.name} {creatorProfile?.surname}</span>
+                                    <span className="text-gray-500 text-sm block">@{creatorProfile?.username}</span>
+                                </div>
                             </Link>
-                        </h1>
-                        <div className="flex items-center text-gray-600 mb-2">
-                            <span className="mr-3">
+                        </div>
+
+                        {/* Item info */}
+                        <div className="mb-4">
+                            <div className="flex items-center mb-1">
+                                <h1 className="text-2xl font-bold text-gray-900 mr-3">
+                                    <Link
+                                        to={`/${interaction.itemType.toLowerCase()}/${catalogItem.spotifyId}`}
+                                        className="hover:text-primary-600"
+                                    >
+                                        {catalogItem.name}
+                                    </Link>
+                                </h1>
+                                <div className="flex items-center">
+                                    <span className="mr-3 text-gray-600">
+                                        {interaction.itemType === 'Album'
+                                            ? ((catalogItem as AlbumDetail).releaseDate
+                                                ? new Date((catalogItem as AlbumDetail).releaseDate!).getFullYear()
+                                                : '')
+                                            : ((catalogItem as TrackDetail).album?.releaseDate
+                                                ? new Date((catalogItem as TrackDetail).album.releaseDate!).getFullYear()
+                                                : '')
+                                        }
+                                    </span>
+                                    <span className="bg-gray-200 px-2 py-0.5 rounded-full text-xs text-gray-700">
+                                        {interaction.itemType}
+                                    </span>
+                                </div>
+                            </div>
+                            <Link
+                                to={`/artist/${interaction.itemType === 'Album'
+                                    ? (catalogItem as AlbumDetail).artists?.[0]?.spotifyId
+                                    : (catalogItem as TrackDetail).artists?.[0]?.spotifyId}`}
+                                className="text-lg text-gray-600 hover:text-primary-600 hover:underline"
+                            >
                                 {interaction.itemType === 'Album'
                                     ? (catalogItem as AlbumDetail).artistName
                                     : (catalogItem as TrackDetail).artists?.[0]?.name || 'Unknown Artist'
                                 }
-                            </span>
-                            <span className="mr-3">
-                                {interaction.itemType === 'Album'
-                                    ? ((catalogItem as AlbumDetail).releaseDate
-                                        ? new Date((catalogItem as AlbumDetail).releaseDate!).getFullYear()
-                                        : '')
-                                    : ((catalogItem as TrackDetail).album?.releaseDate
-                                        ? new Date((catalogItem as TrackDetail).album.releaseDate!).getFullYear()
-                                        : '')
-                                }
-                            </span>
-                            <span className="bg-gray-200 px-2 py-0.5 rounded-full text-xs">
-                                {interaction.itemType}
-                            </span>
+                            </Link>
+                        </div>
+
+                        {/* Interaction details */}
+                        <div className="mb-4">
+                            {/* Rating and Like in one row */}
+                            <div className="flex items-center mb-3">
+                                {/* Rating */}
+                                <div className="flex items-center">
+                                    {interaction.rating && (
+                                        <>
+                                            <NormalizedStarDisplay
+                                                currentGrade={interaction.rating.normalizedGrade}
+                                                minGrade={1}
+                                                maxGrade={10}
+                                                size="md"
+                                            />
+
+                                            {interaction.rating.isComplex && (
+                                                <button
+                                                    onClick={() => setIsRatingModalOpen(true)}
+                                                    className="ml-2 text-primary-600 hover:text-primary-800 focus:outline-none"
+                                                    title="View detailed rating"
+                                                >
+                                                    <SlidersHorizontal className="h-4 w-4" />
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Like indicator - now placed directly after rating with less spacing */}
+                                {interaction.isLiked && (
+                                    <div className="flex items-center text-red-500 ml-3">
+                                        <Heart className="h-5 w-5 fill-red-500 mr-1" />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Date - moved below rating and like */}
+                            <div className="flex items-center text-gray-600 text-sm">
+                                <Calendar className="h-4 w-4 mr-1" />
+                                <span>{formatDate(interaction.createdAt)}</span>
+                            </div>
                         </div>
                     </div>
-
-                    {/* Interaction details */}
-                    <div className="space-y-3 mb-4">
-                        {/* Date */}
-                        <div className="flex items-center text-gray-600 text-sm">
-                            <Calendar className="h-4 w-4 mr-1" />
-                            <span>{formatDate(interaction.createdAt)}</span>
-                        </div>
-
-                        {/* Rating */}
-                        {interaction.rating && (
-                            <div className="flex items-center">
-                                <NormalizedStarDisplay
-                                    currentGrade={interaction.rating.normalizedGrade}
-                                    minGrade={1}
-                                    maxGrade={10}
-                                    size="md"
-                                />
-
-                                {interaction.rating.isComplex && (
-                                    <button
-                                        onClick={() => setIsRatingModalOpen(true)}
-                                        className="ml-2 text-primary-600 hover:text-primary-800 focus:outline-none"
-                                        title="View detailed rating"
-                                    >
-                                        <SlidersHorizontal className="h-4 w-4" />
-                                    </button>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Like indicator */}
-                        {interaction.isLiked && (
-                            <div className="flex items-center text-red-500">
-                                <Heart className="h-5 w-5 fill-red-500 mr-1" />
-                                <span>Liked</span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Review */}
-                    {interaction.review && (
-                        <div className="mt-6 space-y-3">
-                            <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                                <p className="text-gray-800 whitespace-pre-wrap">{interaction.review.reviewText}</p>
-                            </div>
-
-                            {/* Review actions */}
-                            <div className="flex items-center space-x-4">
-                                {isAuthenticated && (
-                                    <button
-                                        onClick={handleToggleLike}
-                                        disabled={processingLike}
-                                        className={`flex items-center text-sm ${
-                                            hasLikedReview ? 'text-primary-600' : 'text-gray-500 hover:text-primary-600'
-                                        }`}
-                                    >
-                                        <ThumbsUp className={`h-4 w-4 mr-1 ${hasLikedReview ? 'fill-primary-600' : ''}`} />
-                                        <span>{hasLikedReview ? 'Liked' : 'Like'}</span>
-                                        {likeCount > 0 && <span className="ml-1">({likeCount})</span>}
-                                    </button>
-                                )}
-
-                                <button
-                                    onClick={() => document.getElementById('comments-section')?.scrollIntoView({ behavior: 'smooth' })}
-                                    className="flex items-center text-sm text-gray-500 hover:text-primary-600"
-                                >
-                                    <MessageSquare className="h-4 w-4 mr-1" />
-                                    <span>Comments</span>
-                                    {totalComments > 0 && <span className="ml-1">({totalComments})</span>}
-                                </button>
-
-                                {user && user.id === interaction.userId && (
-                                    <button
-                                        onClick={() => {
-                                            alert('Delete functionality to be implemented');
-                                        }}
-                                        className="flex items-center text-sm text-red-500 hover:text-red-700"
-                                    >
-                                        <Trash2 className="h-4 w-4 mr-1" />
-                                        <span>Delete</span>
-                                    </button>
-                                )}
-
-                                {isAuthenticated && user?.id !== interaction.userId && (
-                                    <button
-                                        onClick={() => {
-                                            alert('Report functionality to be implemented');
-                                        }}
-                                        className="flex items-center text-sm text-gray-500 hover:text-gray-700"
-                                    >
-                                        <Flag className="h-4 w-4 mr-1" />
-                                        <span>Report</span>
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    )}
                 </div>
+
+                {/* Review section - Full width below main info */}
+                {interaction.review && (
+                    <div className="mt-6 space-y-3 border-t pt-6">
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Review</h3>
+                        <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                            <p className="text-gray-800 whitespace-pre-wrap">{interaction.review.reviewText}</p>
+                        </div>
+
+                        {/* Review actions */}
+                        <div className="flex items-center space-x-4">
+                            {isAuthenticated && (
+                                <button
+                                    onClick={handleToggleLike}
+                                    disabled={processingLike}
+                                    className={`flex items-center text-sm ${
+                                        hasLikedReview ? 'text-primary-600' : 'text-gray-500 hover:text-primary-600'
+                                    }`}
+                                >
+                                    <ThumbsUp className={`h-4 w-4 mr-1 ${hasLikedReview ? 'fill-primary-600' : ''}`} />
+                                    <span>{hasLikedReview ? 'Liked' : 'Like'}</span>
+                                    {likeCount > 0 && <span className="ml-1">({likeCount})</span>}
+                                </button>
+                            )}
+
+                            <button
+                                onClick={() => document.getElementById('comments-section')?.scrollIntoView({ behavior: 'smooth' })}
+                                className="flex items-center text-sm text-gray-500 hover:text-primary-600"
+                            >
+                                <MessageSquare className="h-4 w-4 mr-1" />
+                                <span>Comments</span>
+                                {totalComments > 0 && <span className="ml-1">({totalComments})</span>}
+                            </button>
+
+                            {user && user.id === interaction.userId && (
+                                <button
+                                    onClick={() => {
+                                        alert('Delete functionality to be implemented');
+                                    }}
+                                    className="flex items-center text-sm text-red-500 hover:text-red-700"
+                                >
+                                    <Trash2 className="h-4 w-4 mr-1" />
+                                    <span>Delete</span>
+                                </button>
+                            )}
+
+                            {isAuthenticated && user?.id !== interaction.userId && (
+                                <button
+                                    onClick={() => {
+                                        alert('Report functionality to be implemented');
+                                    }}
+                                    className="flex items-center text-sm text-gray-500 hover:text-gray-700"
+                                >
+                                    <Flag className="h-4 w-4 mr-1" />
+                                    <span>Report</span>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Comments section */}
