@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Heart, Star, Share, Disc, Calendar } from 'lucide-react';
 import { AlbumDetail } from '../../api/catalog';
 import { formatDate } from '../../utils/formatters';
+import AlbumStats from './AlbumStats';
 
 interface AlbumHeaderProps {
     album: AlbumDetail;
@@ -47,15 +48,15 @@ const AlbumHeader = ({ album, handleAlbumInteraction }: AlbumHeaderProps) => {
             {/* Album Info */}
             <div className="flex-grow">
                 <div className="flex items-center text-gray-500 text-sm mb-2">
-          <span className="uppercase bg-gray-200 rounded px-2 py-0.5">
-            {album.albumType === 'album' ? 'Album' : album.albumType}
-          </span>
+                    <span className="uppercase bg-gray-200 rounded px-2 py-0.5">
+                        {album.albumType === 'album' ? 'Album' : album.albumType}
+                    </span>
 
                     {album.releaseDate && (
                         <span className="ml-2 flex items-center">
-              <Calendar className="h-3.5 w-3.5 mr-1" />
+                            <Calendar className="h-3.5 w-3.5 mr-1" />
                             {formatDate(album.releaseDate)}
-            </span>
+                        </span>
                     )}
                 </div>
 
@@ -106,6 +107,9 @@ const AlbumHeader = ({ album, handleAlbumInteraction }: AlbumHeaderProps) => {
                         </a>
                     </div>
                 )}
+
+                {/* Album Stats - Added below Spotify button */}
+                <AlbumStats albumId={album.spotifyId} />
             </div>
         </div>
     );
