@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Heart, MessageSquare, SlidersHorizontal, Trash2, Flag, Send, ThumbsUp, Calendar } from 'lucide-react';
+import { Heart, MessageSquare, SlidersHorizontal, Trash2, Flag, Send, ThumbsUp, Calendar, Play, Disc } from 'lucide-react';
 import InteractionService, { InteractionDetailDTO, ReviewComment } from '../api/interaction';
 import CatalogService, { AlbumDetail, TrackDetail } from '../api/catalog';
 import useAuthStore from '../store/authStore';
@@ -373,20 +373,26 @@ const InteractionDetailPage = () => {
                                         {catalogItem.name}
                                     </Link>
                                 </h1>
+
+                                {/* For tracks, add preview play button */}
+                                {interaction.itemType === 'Track' && (
+                                    <button
+                                        className="flex items-center justify-center bg-primary-100 hover:bg-primary-200 text-primary-700 rounded-full p-1.5 transition-colors"
+                                        onClick={() => alert('Play preview functionality would be implemented here')}
+                                    >
+                                        <Play className="h-4 w-4 fill-current" />
+                                    </button>
+                                )}
+
                                 <div className="flex items-center">
-                                    <span className="mr-3 text-gray-600">
-                                        {interaction.itemType === 'Album'
-                                            ? ((catalogItem as AlbumDetail).releaseDate
+                                    {/* Display year for albums only here - for tracks it will be with the album */}
+                                    {interaction.itemType === 'Album' && (
+                                        <span className="mr-3 text-gray-600">
+                                            {(catalogItem as AlbumDetail).releaseDate
                                                 ? new Date((catalogItem as AlbumDetail).releaseDate!).getFullYear()
-                                                : '')
-                                            : ((catalogItem as TrackDetail).album?.releaseDate
-                                                ? new Date((catalogItem as TrackDetail).album.releaseDate!).getFullYear()
-                                                : '')
-                                        }
-                                    </span>
-                                    <span className="bg-gray-200 px-2 py-0.5 rounded-full text-xs text-gray-700">
-                                        {interaction.itemType}
-                                    </span>
+                                                : ''}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             <Link
@@ -400,6 +406,26 @@ const InteractionDetailPage = () => {
                                     : (catalogItem as TrackDetail).artists?.[0]?.name || 'Unknown Artist'
                                 }
                             </Link>
+
+                            {/* Album reference line for tracks - with Disc icon instead of "From" text */}
+                            {interaction.itemType === 'Track' && (catalogItem as TrackDetail).album && (
+                                <div className="mt-1 text-sm text-gray-500 flex items-center">
+                                    <Disc className="h-3.5 w-3.5 mr-1.5" />
+                                    <Link
+                                        to={`/album/${(catalogItem as TrackDetail).album.spotifyId}`}
+                                        className="hover:text-primary-600 hover:underline"
+                                    >
+                                        {(catalogItem as TrackDetail).album.name}
+                                    </Link>
+
+                                    {/* Add year for tracks beside album name */}
+                                    {(catalogItem as TrackDetail).album?.releaseDate && (
+                                        <span className="ml-2 text-gray-500">
+                                            {new Date((catalogItem as TrackDetail).album.releaseDate!).getFullYear()}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Interaction details */}
@@ -434,6 +460,7 @@ const InteractionDetailPage = () => {
                                 {interaction.isLiked && (
                                     <div className="flex items-center text-red-500 ml-3">
                                         <Heart className="h-5 w-5 fill-red-500 mr-1" />
+                                        <span>Liked</span>
                                     </div>
                                 )}
                             </div>
