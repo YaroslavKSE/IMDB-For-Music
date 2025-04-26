@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useRef} from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Heart, MessageSquare, SlidersHorizontal, Trash2, Flag, Send, ThumbsUp, Calendar, Play, Disc } from 'lucide-react';
+import { Heart, MessageSquare, SlidersHorizontal, Trash2, Flag, Send, ThumbsUp, Calendar, Play, Pause, Disc } from 'lucide-react';
 import InteractionService, { InteractionDetailDTO, ReviewComment } from '../api/interaction';
-import CatalogService, { AlbumDetail, TrackDetail } from '../api/catalog';
+import CatalogService, {AlbumDetail, TrackDetail, TrackSummary} from '../api/catalog';
 import useAuthStore from '../store/authStore';
 import UsersService, { UserSummary, PublicUserProfile } from '../api/users';
 import { formatDate } from '../utils/formatters';
 import NormalizedStarDisplay from '../components/CreateInteraction/NormalizedStarDisplay';
 import ComplexRatingModal from '../components/Diary/ComplexRatingModal';
+import {getTrackPreviewUrl} from "../utils/preview-extractor.ts";
 
 // Combined type for catalog items
 type CatalogItemType = AlbumDetail | TrackDetail;
@@ -35,6 +36,8 @@ const InteractionDetailPage = () => {
     const [likeCount, setLikeCount] = useState(0);
     const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
     const [processingLike, setProcessingLike] = useState(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
 
     // Fetch interaction data
     useEffect(() => {
@@ -55,6 +58,7 @@ const InteractionDetailPage = () => {
                     itemData = await CatalogService.getAlbum(interactionData.itemId);
                 } else {
                     itemData = await CatalogService.getTrack(interactionData.itemId);
+                    loadTrackPreview(itemData);
                 }
                 setCatalogItem(itemData);
 
@@ -121,6 +125,23 @@ const InteractionDetailPage = () => {
         }
     }, [interaction]);
 
+    // Clean up audio when component unmounts
+    useEffect(() => {
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
+        };
+    }, []);
+
+    const loadTrackPreview = async (track: TrackSummary | null) => {
+        if(track == null) return;
+        const preview = await getTrackPreviewUrl(track.spotifyId);
+        if(preview){
+            track.previewUrl = preview;
+        }
+    }
+
     // Function to fetch user data for comments
     const fetchUsersForComments = async (userIds: string[]) => {
         try {
@@ -146,6 +167,45 @@ const InteractionDetailPage = () => {
             setCommentUsers(usersMap);
         } catch (error) {
             console.error('Error fetching users for comments:', error);
+        }
+    };
+
+    const handlePreviewToggle = async () => {
+        if (!catalogItem) return;
+        const track = catalogItem as TrackSummary;
+        const previewUrl = track.previewUrl;
+        if (!previewUrl) {
+            console.error('No preview URL available for this track');
+            return;
+        }
+
+        if (isPlaying) {
+            // Pause the current track
+            if (audioRef.current) {
+                audioRef.current.pause();
+                setIsPlaying(false);
+            }
+        } else {
+            // Start playing the track
+            try {
+                // If there's already an audio element, pause it
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                }
+
+                // Create a new audio element
+                audioRef.current = new Audio(previewUrl);
+
+                // Set up ended event to clear the playing state
+                audioRef.current.addEventListener('ended', () => {
+                    setIsPlaying(false);
+                });
+
+                await audioRef.current.play();
+                setIsPlaying(true);
+            } catch (error) {
+                console.error('Error playing preview:', error);
+            }
         }
     };
 
@@ -342,7 +402,7 @@ const InteractionDetailPage = () => {
                     {/* Right column: Interaction details */}
                     <div className="md:w-2/3">
                         {/* Creator info */}
-                        <div className="flex items-center mb-4">
+                        <div className="flex items-center mb-4 group">
                             <Link to={`/people/${creatorProfile?.id}`} className="flex items-center">
                                 {creatorProfile?.avatarUrl ? (
                                     <img
@@ -356,7 +416,7 @@ const InteractionDetailPage = () => {
                                     </div>
                                 )}
                                 <div>
-                                    <span className="font-medium text-gray-900">{creatorProfile?.name} {creatorProfile?.surname}</span>
+                                    <span className="font-medium text-gray-900 group-hover:text-primary-600">{creatorProfile?.name} {creatorProfile?.surname}</span>
                                     <span className="text-gray-500 text-sm block">@{creatorProfile?.username}</span>
                                 </div>
                             </Link>
@@ -377,10 +437,18 @@ const InteractionDetailPage = () => {
                                 {/* For tracks, add preview play button */}
                                 {interaction.itemType === 'Track' && (
                                     <button
-                                        className="flex items-center justify-center bg-primary-100 hover:bg-primary-200 text-primary-700 rounded-full p-1.5 transition-colors"
-                                        onClick={() => alert('Play preview functionality would be implemented here')}
+                                        className={`flex items-center justify-center rounded-full p-1.5 text-sm font-medium transition-colors border ${
+                                            isPlaying
+                                                ? 'bg-primary-100 text-primary-700 border-primary-200'
+                                                : 'bg-gray-100 text-gray-800 border-gray-200'
+                                        }`}
+                                        onClick={handlePreviewToggle}
                                     >
-                                        <Play className="h-4 w-4 fill-current" />
+                                        {isPlaying ? (
+                                            <Pause className="h-4 w-4" />
+                                        ) : (
+                                            <Play className="h-4 w-4 fill-gray-800" />
+                                        )}
                                     </button>
                                 )}
 
@@ -457,10 +525,15 @@ const InteractionDetailPage = () => {
                                 </div>
 
                                 {/* Like indicator - now placed directly after rating with less spacing */}
-                                {interaction.isLiked && (
-                                    <div className="flex items-center text-red-500 ml-3">
+                                {interaction.isLiked && interaction.rating && (
+                                    <div className="flex items-center text-red-500 ml-2">
                                         <Heart className="h-5 w-5 fill-red-500 mr-1" />
-                                        <span>Liked</span>
+                                    </div>
+                                )}
+                                {interaction.isLiked && !interaction.rating && (
+                                    <div className="flex items-center text-red-500">
+                                        <Heart className="h-5 w-5 fill-red-500 mr-1"/>
+                                        Liked
                                     </div>
                                 )}
                             </div>
@@ -639,11 +712,6 @@ const InteractionDetailPage = () => {
                                                                 {commentUser ? (
                                                                     <>
                                                                         {commentUser.name} {commentUser.surname}
-                                                                        {commentUser.username && (
-                                                                            <span className="text-gray-500 text-sm ml-1">
-                                                                                @{commentUser.username}
-                                                                            </span>
-                                                                        )}
                                                                     </>
                                                                 ) : (
                                                                     'User'
