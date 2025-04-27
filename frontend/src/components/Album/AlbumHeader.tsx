@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Heart, Star, Share, Disc, Calendar } from 'lucide-react';
 import { AlbumDetail } from '../../api/catalog';
 import { formatDate } from '../../utils/formatters';
-import AlbumStats from './AlbumStats';
+import ItemStatsComponent from '../common/ItemStatsComponent.tsx';
 
 interface AlbumHeaderProps {
     album: AlbumDetail;
@@ -109,7 +109,7 @@ const AlbumHeader = ({ album, handleAlbumInteraction }: AlbumHeaderProps) => {
                 )}
 
                 {/* Album Stats - Added below Spotify button */}
-                <AlbumStats albumId={album.spotifyId} />
+                <ItemStatsComponent itemId={album.spotifyId} />
             </div>
         </div>
     );

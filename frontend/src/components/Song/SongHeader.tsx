@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { TrackDetail } from '../../api/catalog';
 import { formatDuration, formatDate } from '../../utils/formatters';
+import ItemStatsComponent from "../common/ItemStatsComponent.tsx";
 
 interface SongHeaderProps {
     track: TrackDetail;
@@ -175,6 +176,9 @@ const SongHeader = ({
                         )}
                     </button>
                 </div>
+
+                {/* Album Stats - Added below Spotify button */}
+                <ItemStatsComponent itemId={track.spotifyId} />
             </div>
         </div>
     );

@@ -1,0 +1,135 @@
+import { useEffect, useState } from 'react';
+import { Users, Heart, MessageSquare, Star, StarHalf } from 'lucide-react';
+import InteractionService, { ItemStats } from '../../api/interaction.ts';
+
+interface ItemStatsProps {
+    itemId: string;
+}
+
+const ItemStatsComponent = ({ itemId }: ItemStatsProps) => {
+    const [stats, setStats] = useState<ItemStats | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            if (!itemId) return;
+            try {
+                setLoading(true);
+                const response = await InteractionService.getItemStats(itemId);
+                setStats(response);
+            } catch (err) {
+                console.error('Error fetching album stats:', err);
+                setError('Could not load album statistics');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchStats();
+    }, [itemId]);
+
+    if (loading) {
+        return (
+            <div className="animate-pulse bg-gray-100 h-24 rounded-md w-full max-w-md"></div>
+        );
+    }
+
+    if (error || !stats) {
+        return null;
+    }
+
+    const averageRating = stats.hasRatings ? (stats.averageRating / 2).toFixed(1) : '-';
+    const maxBarHeight = 45;
+    const maxDistributionValue = Math.max(...stats.ratingDistribution, 1);
+    const normalizedDistribution = stats.ratingDistribution.map(
+        count => (count / maxDistributionValue) * maxBarHeight
+    );
+    const reversedHeights = [...normalizedDistribution].reverse();
+    const reversedCounts = [...stats.ratingDistribution].reverse();
+
+    return (
+        <div className="pt-3">
+            <div className="flex flex-col items-start">
+                <div className="flex flex-col">
+                    <div className="flex items-end space-x-3 w-fit">
+                        {/* Average Rating */}
+                        <div className="flex flex-col items-center">
+                            <div className="text-2xl font-bold text-gray-900">{averageRating}</div>
+                            <div className="flex text-yellow-400">
+                                {Array(5).fill(0).map((_, idx) => (
+                                    <Star key={idx} className="h-3 w-3 fill-yellow-400" />
+                                ))}
+                            </div>
+                        </div>
+                        {/* Rating Distribution */}
+                        <div className="flex items-end space-x-0.5 h-[50px]">
+                            {stats.hasRatings ? (
+                                reversedHeights.map((height, idx) => {
+                                    const count = reversedCounts[idx];
+                                    const ratingValue = 5 - idx * 0.5;
+                                    const fullStars = Math.floor(ratingValue);
+                                    const hasHalf = ratingValue % 1 !== 0;
+                                    return (
+                                        <div key={idx} className="flex flex-col items-center">
+                                            <div className="relative group">
+                                                <div
+                                                    className="w-5 bg-primary-500 rounded-sm transition-colors group-hover:bg-primary-600"
+                                                    style={{ height: `${height}px`, minHeight: '2px' }}
+                                                ></div>
+                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-white text-black text-xs rounded border border-gray-200 shadow z-10 flex items-center space-x-1 p-1">
+                                                    <span>{count}</span>
+                                                    <div className="flex">
+                                                        {Array(fullStars).fill(0).map((_, i) => (
+                                                            <Star key={i} className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+                                                        ))}
+                                                        {hasHalf && <StarHalf className="h-3 w-3 text-yellow-400 fill-yellow-400" />}
+                                                    </div>
+                                                    {count == 1 ? (
+                                                        <span>rating</span>
+                                                    ) : (
+                                                        <span>ratings</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="text-sm text-gray-500 text-center w-full">No ratings yet</div>
+                            )}
+                        </div>
+                        {/* Single star */}
+                        <div className="flex items-center">
+                            <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+                        </div>
+                    </div>
+                    {/* Stats Summary */}
+                    <div className="flex space-x-6 mt-4 text-xs text-gray-600 self-center">
+                        <div className="flex items-center">
+                            <Users className="h-3 w-3 mr-1" />
+                            <span>{stats.totalUsersInteracted} listened</span>
+                        </div>
+                        <div className="flex items-center">
+                            <Heart className="h-3 w-3 mr-1" />
+                            {stats.totalLikes == 1 ? (
+                                <span>{stats.totalLikes} like</span>
+                            ) : (
+                                <span>{stats.totalLikes} likes</span>
+                            )}
+                        </div>
+                        <div className="flex items-center">
+                            <MessageSquare className="h-3 w-3 mr-1" />
+                            {stats.totalReviews == 1 ? (
+                                <span>{stats.totalReviews} review</span>
+                            ) : (
+                                <span>{stats.totalReviews} reviews</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default ItemStatsComponent;
