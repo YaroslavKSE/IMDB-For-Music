@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Star, Share, Disc, Calendar } from 'lucide-react';
 import { AlbumDetail } from '../../api/catalog';
@@ -10,6 +11,11 @@ interface AlbumHeaderProps {
 }
 
 const AlbumHeader = ({ album, handleAlbumInteraction }: AlbumHeaderProps) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    // Determine if title is likely to be too long (roughly more than one line)
+    const isTitleLong = album.name.length > 40;
+
     return (
         <div className="flex flex-col md:flex-row gap-8 mb-8">
             {/* Album Artwork */}
@@ -60,7 +66,33 @@ const AlbumHeader = ({ album, handleAlbumInteraction }: AlbumHeaderProps) => {
                     )}
                 </div>
 
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{album.name}</h1>
+                <div className="relative mb-2">
+                    {isTitleLong && !isExpanded ? (
+                        <div className="relative">
+                            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 line-clamp-1">{album.name}</h1>
+                            <button
+                                onClick={() => setIsExpanded(true)}
+                                className="absolute right-0 bottom-0 bg-white pl-2 pr-1 text-primary-600 hover:text-primary-800"
+                                aria-label="Show more"
+                            >
+                                <span className="text-sm">...</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <div>
+                            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">{album.name}</h1>
+                            {isTitleLong && isExpanded && (
+                                <button
+                                    onClick={() => setIsExpanded(false)}
+                                    className="text-primary-600 hover:text-primary-800 focus:outline-none text-sm mt-1 inline-block"
+                                    aria-label="Show less"
+                                >
+                                    Show less
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 <div className="flex items-center mb-4">
                     <Link to={`/artist/${album.artists[0]?.spotifyId || '#'}`} className="text-lg font-medium text-primary-600 hover:underline">

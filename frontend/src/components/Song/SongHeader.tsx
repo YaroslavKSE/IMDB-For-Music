@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Heart,
@@ -27,6 +28,11 @@ const SongHeader = ({
                         handlePreviewToggle,
                         handleTrackInteraction
                     }: SongHeaderProps) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    // Determine if title is likely to be too long (roughly more than one line)
+    const isTitleLong = track.name.length > 30;
+
     return (
         <div className="flex flex-col md:flex-row gap-8 mb-8">
             {/* Track Artwork (from album) */}
@@ -81,7 +87,33 @@ const SongHeader = ({
                     </span>
                 </div>
 
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{track.name}</h1>
+                <div className="relative mb-2">
+                    {isTitleLong && !isExpanded ? (
+                        <div className="relative">
+                            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 line-clamp-1">{track.name}</h1>
+                            <button
+                                onClick={() => setIsExpanded(true)}
+                                className="absolute right-0 bottom-0 bg-white pl-2 pr-1 text-primary-600 hover:text-primary-800"
+                                aria-label="Show more"
+                            >
+                                <span className="text-sm">...</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <div>
+                            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">{track.name}</h1>
+                            {isTitleLong && isExpanded && (
+                                <button
+                                    onClick={() => setIsExpanded(false)}
+                                    className="text-primary-600 hover:text-primary-800 focus:outline-none text-sm mt-1 inline-block"
+                                    aria-label="Show less"
+                                >
+                                    Show less
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 <div className="flex items-center mb-4">
                     {track.artists && track.artists.length > 0 ? (
@@ -133,8 +165,10 @@ const SongHeader = ({
                     )}
                 </div>
 
-                {/* External links */}
+                {/* Action buttons */}
                 <div className="mt-4 flex flex-wrap gap-4 border-t border-gray-200 pt-2">
+
+                    {/* Spotify link */}
                     {track.externalUrls && track.externalUrls.length > 0 && (
                         <a
                             href={`https://open.spotify.com/track/${track.spotifyId}`}
@@ -142,7 +176,7 @@ const SongHeader = ({
                             rel="noopener noreferrer"
                             className="inline-flex items-center text-sm text-gray-600 hover:text-primary-600"
                         >
-                            {/* Spotify logo SVG instead of ExternalLink icon */}
+                            {/* Spotify logo SVG */}
                             <svg
                                 className="h-5 w-5 mr-1"
                                 viewBox="0 0 24 24"
@@ -177,7 +211,7 @@ const SongHeader = ({
                     </button>
                 </div>
 
-                {/* Album Stats - Added below Spotify button */}
+                {/* Track Stats */}
                 <ItemStatsComponent itemId={track.spotifyId} />
             </div>
         </div>
