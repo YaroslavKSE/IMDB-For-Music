@@ -2,8 +2,11 @@ import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Music, MessageSquare, ListMusic, History } from 'lucide-react';
 import EmptyState from '../common/EmptyState';
-import {AlbumDetail, TrackSummary} from '../../api/catalog';
+import { AlbumDetail, TrackSummary } from '../../api/catalog';
 import AlbumTrackList from './AlbumTrackList';
+import ItemHistoryComponent from '../common/ItemHistoryComponent';
+import ItemReviewsComponent from '../common/ItemReviewsComponent';
+import useAuthStore from '../../store/authStore';
 
 interface AlbumContentTabsProps {
     activeTab: 'tracks' | 'reviews' | 'lists' | 'my-history';
@@ -22,21 +25,22 @@ interface AlbumContentTabsProps {
 }
 
 const AlbumContentTabs = ({
-    activeTab,
-    setActiveTab,
-    album,
-    playingTrack,
-    hoveredTrack,
-    setHoveredTrack,
-    handlePreviewToggle,
-    handleTrackInteraction,
-    handleAlbumInteraction,
-    tracksTotal,
-    tracksOffset,
-    loadingMoreTracks,
-    onLoadMoreTracks
-}: AlbumContentTabsProps) => {
+                              activeTab,
+                              setActiveTab,
+                              album,
+                              playingTrack,
+                              hoveredTrack,
+                              setHoveredTrack,
+                              handlePreviewToggle,
+                              handleTrackInteraction,
+                              handleAlbumInteraction,
+                              tracksTotal,
+                              tracksOffset,
+                              loadingMoreTracks,
+                              onLoadMoreTracks
+                          }: AlbumContentTabsProps) => {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuthStore();
 
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
@@ -88,14 +92,10 @@ const AlbumContentTabs = ({
             {/* Reviews Tab Content */}
             {activeTab === 'reviews' && (
                 <div className="p-4 sm:p-6">
-                    <EmptyState
-                        title="No reviews yet"
-                        message="Be the first to share your thoughts about this album."
-                        icon={<MessageSquare className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />}
-                        action={{
-                            label: "Write Review",
-                            onClick: () => handleAlbumInteraction()
-                        }}
+                    <ItemReviewsComponent
+                        itemId={album.spotifyId}
+                        itemType="Album"
+                        onWriteReview={handleAlbumInteraction}
                     />
                 </div>
             )}
@@ -118,15 +118,19 @@ const AlbumContentTabs = ({
             {/* History Tab Content */}
             {activeTab === 'my-history' && (
                 <div className="p-4 sm:p-6">
-                    <EmptyState
-                        title="No history"
-                        message="You haven't interacted with this album."
-                        icon={<History className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />}
-                        action={{
-                            label: "Log Now",
-                            onClick: () => handleAlbumInteraction()
-                        }}
-                    />
+                    {isAuthenticated ? (
+                        <ItemHistoryComponent itemId={album.spotifyId} itemType="Album" />
+                    ) : (
+                        <EmptyState
+                            title="Please log in"
+                            message="You need to be logged in to see your history with this album."
+                            icon={<History className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />}
+                            action={{
+                                label: "Log In",
+                                onClick: () => navigate('/login', { state: { from: `/album/${album.spotifyId}` } })
+                            }}
+                        />
+                    )}
                 </div>
             )}
         </div>

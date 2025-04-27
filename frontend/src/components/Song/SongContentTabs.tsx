@@ -1,7 +1,10 @@
 import { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { MessageSquare, History, ListMusic } from 'lucide-react';
 import EmptyState from '../common/EmptyState';
+import ItemHistoryComponent from '../common/ItemHistoryComponent';
+import ItemReviewsComponent from '../common/ItemReviewsComponent';
+import useAuthStore from '../../store/authStore';
 
 interface SongContentTabsProps {
     activeTab: 'reviews' | 'lists' | 'my-history';
@@ -15,6 +18,8 @@ const SongContentTabs = ({
                              handleTrackInteraction
                          }: SongContentTabsProps) => {
     const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>();
+    const { isAuthenticated } = useAuthStore();
 
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
@@ -44,15 +49,19 @@ const SongContentTabs = ({
             {/* Reviews Tab Content */}
             {activeTab === 'reviews' && (
                 <div className="p-6">
-                    <EmptyState
-                        title="No reviews yet"
-                        message="Be the first to share your thoughts about this track."
-                        icon={<MessageSquare className="h-12 w-12 text-gray-400" />}
-                        action={{
-                            label: "Write a Review",
-                            onClick: () => handleTrackInteraction()
-                        }}
-                    />
+                    {id ? (
+                        <ItemReviewsComponent
+                            itemId={id}
+                            itemType="Track"
+                            onWriteReview={handleTrackInteraction}
+                        />
+                    ) : (
+                        <EmptyState
+                            title="Track not found"
+                            message="Unable to load track information."
+                            icon={<MessageSquare className="h-12 w-12 text-gray-400" />}
+                        />
+                    )}
                 </div>
             )}
 
@@ -74,15 +83,23 @@ const SongContentTabs = ({
             {/* History Tab Content */}
             {activeTab === 'my-history' && (
                 <div className="p-6">
-                    <EmptyState
-                        title="No history"
-                        message="You haven't interacted with this track yet."
-                        icon={<History className="h-12 w-12 text-gray-400" />}
-                        action={{
-                            label: "Log interaction",
-                            onClick: () => handleTrackInteraction()
-                        }}
-                    />
+                    {isAuthenticated && id ? (
+                        <ItemHistoryComponent itemId={id} itemType="Track" />
+                    ) : (
+                        <EmptyState
+                            title={isAuthenticated ? "No history" : "Please log in"}
+                            message={isAuthenticated
+                                ? "You haven't interacted with this track yet."
+                                : "You need to be logged in to see your history with this track."}
+                            icon={<History className="h-12 w-12 text-gray-400" />}
+                            action={{
+                                label: isAuthenticated ? "Log interaction" : "Log In",
+                                onClick: isAuthenticated
+                                    ? handleTrackInteraction
+                                    : () => navigate('/login', { state: { from: `/track/${id}` } })
+                            }}
+                        />
+                    )}
                 </div>
             )}
         </div>

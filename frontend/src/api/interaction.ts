@@ -182,24 +182,6 @@ export interface ErrorResponse {
   success: boolean;
 }
 
-export interface UserInteractionDetail {
-  aggregateId: string;
-  userId: string;
-  itemId: string;
-  itemType: string;
-  createdAt: string;
-  rating?: {
-    ratingId: string;
-    normalizedGrade: number;
-    isComplex: boolean;
-  };
-  review?: {
-    reviewId: string;
-    reviewText: string;
-  };
-  isLiked: boolean;
-}
-
 export interface LikeRequest {
   reviewId: string;
   userId: string;
@@ -290,7 +272,7 @@ const InteractionService = {
     return response.data;
   },
 
-  getUserInteractionsByUserId: async (userId: string, limit: number = 20, offset: number = 0): Promise<{items: UserInteractionDetail[], totalCount: number}> => {
+  getUserInteractionsByUserId: async (userId: string, limit: number = 20, offset: number = 0): Promise<{items: InteractionDetailDTO[], totalCount: number}> => {
     const response = await interactionApi.get(`/by-user-id/${userId}`, {
       params: { limit, offset }
     });
