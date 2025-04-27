@@ -52,7 +52,7 @@ const ItemStatsComponent = ({ itemId }: ItemStatsProps) => {
                     <div className="flex items-end space-x-3 w-fit">
                         {/* Average Rating */}
                         <div className="flex flex-col items-center">
-                            <div className="text-2xl font-bold text-gray-900">{averageRating}</div>
+                            <div className="text-2xl text-gray-900">{averageRating}</div>
                             <div className="flex text-yellow-400">
                                 {Array(5)
                                     .fill(0)

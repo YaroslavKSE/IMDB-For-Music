@@ -202,8 +202,10 @@ const SongHeader = ({
                     </button>
                 </div>
 
-                {/* Track Stats */}
-                <ItemStatsComponent itemId={track.spotifyId} />
+                {/* Album Stats - Added below Spotify button */}
+                <div className="scale-[1.3] origin-top-left">
+                    <ItemStatsComponent itemId={track.spotifyId} />
+                </div>
             </div>
         </div>
     );

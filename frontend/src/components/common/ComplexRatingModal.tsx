@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { X, ChevronDown, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import InteractionService, { GradedComponentDTO, RatingDetailDTO } from '../../api/interaction';
-import NormalizedStarDisplay from '../CreateInteraction/NormalizedStarDisplay';
-import { getGradeGradient } from '../../utils/GradeColorUtils';
+import InteractionService, { GradedComponentDTO, RatingDetailDTO } from '../../api/interaction.ts';
+import NormalizedStarDisplay from '../CreateInteraction/NormalizedStarDisplay.tsx';
+import { getGradeGradient } from '../../utils/GradeColorUtils.tsx';
 
 interface ComplexRatingModalProps {
     isOpen: boolean;

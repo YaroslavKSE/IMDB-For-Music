@@ -141,7 +141,9 @@ const AlbumHeader = ({ album, handleAlbumInteraction }: AlbumHeaderProps) => {
                 )}
 
                 {/* Album Stats - Added below Spotify button */}
-                <ItemStatsComponent itemId={album.spotifyId} />
+                <div className="scale-[1.3] origin-top-left">
+                    <ItemStatsComponent itemId={album.spotifyId} />
+                </div>
             </div>
         </div>
     );

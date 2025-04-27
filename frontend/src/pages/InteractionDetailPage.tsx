@@ -7,7 +7,7 @@ import useAuthStore from '../store/authStore';
 import UsersService, { UserSummary, PublicUserProfile } from '../api/users';
 import { formatDate } from '../utils/formatters';
 import NormalizedStarDisplay from '../components/CreateInteraction/NormalizedStarDisplay';
-import ComplexRatingModal from '../components/Diary/ComplexRatingModal';
+import ComplexRatingModal from '../components/common/ComplexRatingModal.tsx';
 import {getTrackPreviewUrl} from "../utils/preview-extractor.ts";
 
 // Combined type for catalog items

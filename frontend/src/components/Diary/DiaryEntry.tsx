@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Music, Disc, Heart, Star, MessageSquare, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { DiaryEntry } from './types';
-import ComplexRatingModal from './ComplexRatingModal';
+import ComplexRatingModal from '../common/ComplexRatingModal.tsx';
 
 interface DiaryEntryProps {
     entry: DiaryEntry;
