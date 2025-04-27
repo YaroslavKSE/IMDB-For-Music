@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, Heart, MessageSquare, Star, StarHalf } from 'lucide-react';
+import { Users, Heart, MessageSquare, Star } from 'lucide-react';
 import InteractionService, { ItemStats } from '../../api/interaction.ts';
 
 interface ItemStatsProps {
@@ -83,20 +83,37 @@ const ItemStatsComponent = ({ itemId }: ItemStatsProps) => {
                                                 style={{ height: barHeight, minHeight: '2px' }}
                                             />
                                             {stats.hasRatings && (
-                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-white text-black text-xs rounded border border-gray-200 shadow z-10 flex items-center space-x-1 p-1">
+                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 pointer-events-none bg-white text-black text-xs rounded border border-gray-200 shadow z-10 whitespace-nowrap p-1">
                                                     <span>{count}</span>
-                                                    <div className="flex">
+                                                    <div className="inline-flex items-center align-middle mx-1">
                                                         {Array(fullStars)
                                                             .fill(0)
                                                             .map((_, i) => (
-                                                                <Star
-                                                                    key={i}
-                                                                    className="h-3 w-3 text-yellow-400 fill-yellow-400"
-                                                                />
+                                                                <div key={i} className="relative translate-y-[-0.5px]">
+                                                                    <Star
+                                                                        className="h-3 w-3 text-yellow-400"
+                                                                        fill="currentColor"
+                                                                    />
+                                                                </div>
                                                             ))}
                                                         {hasHalf && (
-                                                            <StarHalf className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+                                                            <div className="relative translate-y-[-0.5px]">
+                                                                <Star
+                                                                    className="h-3 w-3 text-gray-300"
+                                                                    fill="none"
+                                                                />
+                                                                <div className="absolute inset-0 overflow-hidden w-1/2">
+                                                                    <Star className="h-3 w-3 text-yellow-400" fill="currentColor" />
+                                                                </div>
+                                                            </div>
                                                         )}
+                                                        {Array(5 - fullStars - (hasHalf ? 1 : 0))
+                                                            .fill(0)
+                                                            .map((_, i) => (
+                                                                <div key={i} className="relative translate-y-[-0.5px]">
+                                                                    <Star className="h-3 w-3 text-gray-300" fill="none" />
+                                                                </div>
+                                                            ))}
                                                     </div>
                                                     <span>{count === 1 ? 'rating' : 'ratings'}</span>
                                                 </div>
@@ -122,14 +139,14 @@ const ItemStatsComponent = ({ itemId }: ItemStatsProps) => {
                         <div className="flex items-center">
                             <Heart className="h-3 w-3 mr-1" />
                             <span>
-                {stats.totalLikes} {stats.totalLikes === 1 ? 'like' : 'likes'}
-              </span>
+                                {stats.totalLikes} {stats.totalLikes === 1 ? 'like' : 'likes'}
+                            </span>
                         </div>
                         <div className="flex items-center">
                             <MessageSquare className="h-3 w-3 mr-1" />
                             <span>
-                {stats.totalReviews} {stats.totalReviews === 1 ? 'review' : 'reviews'}
-              </span>
+                                {stats.totalReviews} {stats.totalReviews === 1 ? 'review' : 'reviews'}
+                            </span>
                         </div>
                     </div>
                 </div>
