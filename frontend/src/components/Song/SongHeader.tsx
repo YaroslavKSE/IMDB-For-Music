@@ -7,7 +7,6 @@ import {
     Disc,
     Calendar,
     Clock,
-    Music,
     Play,
     Pause
 } from 'lucide-react';
@@ -137,30 +136,22 @@ const SongHeader = ({
 
                 <div className="mb-6">
                     <div className="flex items-center text-gray-600 mb-2">
-                        <Disc className="h-4 w-4 mr-2" />
-                        <span className="mr-1">From the album:</span>
+                        <Disc className="h-4 w-4 mr-2"/>
+                        <span className="mr-1">Track {track.trackNumber} from</span>
                         <Link
                             to={`/album/${track.album?.spotifyId || track.albumId}`}
                             className="font-medium text-primary-600 hover:underline"
                         >
-                            {track.album?.name || "Unknown Album"}
+                            {(track.album?.name?.length > 50
+                                ? `${track.album.name.slice(0, 50)}...`
+                                : track.album?.name) || "Unknown Album"}
                         </Link>
                     </div>
 
-                    {track.trackNumber && (
-                        <div className="flex items-center text-gray-600">
-                            <Music className="h-4 w-4 mr-2" />
-                            <span>Track {track.trackNumber}</span>
-                            {track.discNumber && track.discNumber > 1 && (
-                                <span className="ml-1">on Disc {track.discNumber}</span>
-                            )}
-                        </div>
-                    )}
-
                     {track.album?.releaseDate && (
                         <div className="flex items-center text-gray-600 mt-2">
-                            <Calendar className="h-4 w-4 mr-2" />
-                            <span>Released: {formatDate(track.album.releaseDate)}</span>
+                            <Calendar className="h-4 w-4 mr-2"/>
+                            <span>{formatDate(track.album.releaseDate)}</span>
                         </div>
                     )}
                 </div>
