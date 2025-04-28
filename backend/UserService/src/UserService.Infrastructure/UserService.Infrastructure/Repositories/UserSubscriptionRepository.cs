@@ -59,6 +59,24 @@ public class UserSubscriptionRepository : IUserSubscriptionRepository
         return await _context.UserSubscriptions
             .AnyAsync(s => s.FollowerId == followerId && s.FollowedId == followedId);
     }
+    public async Task<Dictionary<Guid, bool>> AreBatchFollowingAsync(Guid followerId, List<Guid> followedIds)
+    {
+        // Get all subscriptions that exist between this follower and any of the followed IDs
+        var existingSubscriptions = await _context.UserSubscriptions
+            .Where(s => s.FollowerId == followerId && followedIds.Contains(s.FollowedId))
+            .Select(s => s.FollowedId)
+            .ToListAsync();
+        
+        // Build result dictionary
+        var result = new Dictionary<Guid, bool>();
+        foreach (var followedId in followedIds)
+        {
+            result[followedId] = existingSubscriptions.Contains(followedId);
+        }
+        
+        return result;
+    }
+
 
     public async Task AddAsync(UserSubscription subscription)
     {

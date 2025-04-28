@@ -38,6 +38,21 @@ public class UserRepository : IUserRepository
     {
         await _context.Users.AddAsync(user);
     }
+    public async Task<List<Guid>> GetExistingUserIdsAsync(List<Guid> userIds)
+    {
+        return await _context.Users
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => u.Id)
+            .ToListAsync();
+    }
+    
+    public async Task<List<User>> GetUsersByIdsAsync(List<Guid> userIds)
+    {
+        return await _context.Users
+            .Where(u => userIds.Contains(u.Id))
+            .ToListAsync();
+    }
+
 
     public async Task SaveChangesAsync()
     {

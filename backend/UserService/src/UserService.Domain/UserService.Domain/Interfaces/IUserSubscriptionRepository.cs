@@ -10,6 +10,8 @@ public interface IUserSubscriptionRepository
     Task<int> GetFollowersCountAsync(Guid userId);
     Task<int> GetFollowingCountAsync(Guid userId);
     Task<bool> IsFollowingAsync(Guid followerId, Guid followedId);
+    Task<Dictionary<Guid, bool>> AreBatchFollowingAsync(Guid followerId, List<Guid> followedIds);
+
     Task AddAsync(UserSubscription subscription);
     Task RemoveAsync(UserSubscription subscription);
     Task SaveChangesAsync();

@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UserService.API.Models.Requests;
 using UserService.API.Models.Responses;
 using UserService.Application.Queries.Subscriptions;
 using UserService.Application.Queries.Users;
@@ -504,6 +505,64 @@ public class PublicUserController : ControllerBase
                 {
                     Code = "InternalServerError",
                     Message = "An unexpected error occurred while fetching following",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+        }
+    }
+
+    [HttpPost("batch")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(BatchUserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetBatchUserProfiles([FromBody] BatchUserRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Processing batch user profiles request for {Count} users", request.UserIds.Count);
+
+            var query = new GetBatchUsersQuery(request.UserIds);
+            var result = await _mediator.Send(query);
+
+            var response = new BatchUserResponse
+            {
+                Users = result.Users.Select(u => new BatchUserProfileResponse
+                {
+                    Id = u.Id,
+                    Username = u.Username,
+                    Name = u.Name,
+                    Surname = u.Surname,
+                    FollowerCount = u.FollowerCount,
+                    FollowingCount = u.FollowingCount,
+                    AvatarUrl = u.AvatarUrl,
+                    CreatedAt = u.CreatedAt
+                }).ToList()
+            };
+
+            return Ok(response);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning("Validation failed when processing batch user profiles: {Errors}",
+                string.Join(", ", ex.Errors.Select(e => e.ErrorMessage)));
+
+            return BadRequest(new ErrorResponse
+            {
+                Code = "ValidationError",
+                Message = string.Join("; ", ex.Errors.Select(e => e.ErrorMessage)),
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing batch user profiles");
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponse
+                {
+                    Code = "InternalServerError",
+                    Message = "An unexpected error occurred while fetching user profiles",
                     TraceId = HttpContext.TraceIdentifier
                 });
         }
