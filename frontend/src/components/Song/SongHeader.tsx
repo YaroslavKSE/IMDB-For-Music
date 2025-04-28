@@ -13,6 +13,7 @@ import {
 import { TrackDetail } from '../../api/catalog';
 import { formatDuration, formatDate } from '../../utils/formatters';
 import ItemStatsComponent from "../common/ItemStatsComponent.tsx";
+import LatestInteractionComponent from "../common/LatestInteractionComponent.tsx";
 
 interface SongHeaderProps {
     track: TrackDetail;
@@ -202,9 +203,15 @@ const SongHeader = ({
                     </button>
                 </div>
 
-                {/* Album Stats - Added below Spotify button */}
-                <div className="scale-[1.3] origin-top-left">
-                    <ItemStatsComponent itemId={track.spotifyId} />
+                {/* Song Stats and Latest Interaction in a flex row */}
+                <div className="flex flex-col md:flex-row gap-3 items-start">
+                    <div className="md:w-1/2 scale-[1.3] origin-top-left">
+                        <ItemStatsComponent itemId={track.spotifyId} />
+                    </div>
+
+                    <div className="md:w-1/2 scale-[0.9]">
+                        <LatestInteractionComponent itemId={track.spotifyId} itemType="Track" />
+                    </div>
                 </div>
             </div>
         </div>

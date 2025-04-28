@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { Heart, Star, Share, Disc, Calendar } from 'lucide-react';
 import { AlbumDetail } from '../../api/catalog';
 import { formatDate } from '../../utils/formatters';
-import ItemStatsComponent from '../common/ItemStatsComponent.tsx';
+import ItemStatsComponent from '../common/ItemStatsComponent';
+import LatestInteractionComponent from '../common/LatestInteractionComponent';
 
 interface AlbumHeaderProps {
     album: AlbumDetail;
@@ -140,9 +141,15 @@ const AlbumHeader = ({ album, handleAlbumInteraction }: AlbumHeaderProps) => {
                     </div>
                 )}
 
-                {/* Album Stats - Added below Spotify button */}
-                <div className="scale-[1.3] origin-top-left">
-                    <ItemStatsComponent itemId={album.spotifyId} />
+                {/* Album Stats and Latest Interaction in a flex row */}
+                <div className="flex flex-col md:flex-row gap-3 items-start">
+                    <div className="md:w-1/2 scale-[1.3] origin-top-left">
+                        <ItemStatsComponent itemId={album.spotifyId} />
+                    </div>
+
+                    <div className="md:w-1/2 scale-[0.9]">
+                        <LatestInteractionComponent itemId={album.spotifyId} itemType="Album" />
+                    </div>
                 </div>
             </div>
         </div>
