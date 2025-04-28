@@ -77,11 +77,6 @@ const ItemHistoryEntryComponent = ({ entry, onReviewClick, onViewClick }: ItemHi
                                 `${entry.userProfile.name} ${entry.userProfile.surname}` :
                                 'Unknown User'}
                         </h3>
-                        {entry.userProfile?.username && (
-                            <span className="ml-2 text-sm text-gray-500">
-                                @{entry.userProfile.username}
-                            </span>
-                        )}
                     </div>
 
                     <div className="mt-1 text-xs text-gray-500">
