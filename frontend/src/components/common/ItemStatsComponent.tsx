@@ -37,7 +37,7 @@ const ItemStatsComponent = ({ itemId }: ItemStatsProps) => {
     }
 
     const averageRating = stats.hasRatings ? (stats.averageRating / 2).toFixed(1) : '-';
-    const maxBarHeight = 45;
+    const maxBarHeight = 50;
     const maxDistributionValue = Math.max(...stats.ratingDistribution, 1);
     const normalizedDistribution = stats.ratingDistribution.map(
         (count) => (count / maxDistributionValue) * maxBarHeight

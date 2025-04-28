@@ -115,12 +115,12 @@ const DiaryEntryComponent = ({ entry, onReviewClick, onDeleteClick }: DiaryEntry
                                 return (
                                     <div key={star} className="relative">
                                         <Star
-                                            className={`h-5 w-5 ${isFilled || isHalf ? 'text-yellow-500' : 'text-gray-300'}`}
-                                            fill={isFilled ? '#EAB308' : 'none'}
+                                            className={`h-5 w-5 ${isFilled || isHalf ? 'text-yellow-400' : 'text-gray-300'}`}
+                                            fill={isFilled ? 'currentColor' : 'none'}
                                         />
                                         {isHalf && (
                                             <div className="absolute inset-0 overflow-hidden w-1/2">
-                                                <Star className="h-5 w-5 text-yellow-500" fill="#EAB308" />
+                                                <Star className="h-5 w-5 text-yellow-400" fill='currentColor' />
                                             </div>
                                         )}
                                     </div>
