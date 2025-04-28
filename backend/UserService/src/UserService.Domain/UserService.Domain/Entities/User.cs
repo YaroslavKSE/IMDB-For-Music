@@ -27,7 +27,8 @@ public class User
     {
     } // For EF Core
 
-    public static User Create(string email, string username, string name, string surname, string auth0Id, string avatarUrl = null)
+    public static User Create(string email, string username, string name, string surname, string auth0Id,
+        string avatarUrl = null)
     {
         return new User
         {
@@ -50,6 +51,7 @@ public class User
         Surname = surname;
         UpdatedAt = DateTime.UtcNow;
     }
+
     public void UpdateAvatar(string avatarUrl)
     {
         AvatarUrl = avatarUrl;

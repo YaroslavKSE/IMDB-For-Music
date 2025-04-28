@@ -3,7 +3,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UserService.API.Models.Responses;
-using UserService.Application.Queries;
+using UserService.Application.Queries.Subscriptions;
+using UserService.Application.Queries.Users;
 
 namespace UserService.API.Controllers;
 

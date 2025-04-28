@@ -1,12 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
-using MediatR;
-using FluentValidation;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UserService.API.Models.Requests;
 using UserService.API.Models.Responses;
 using UserService.Application.Commands;
-using UserService.Application.Queries;
+using UserService.Application.Queries.Subscriptions;
+using UserService.Application.Queries.Users;
 using UserService.Domain.Exceptions;
 using ValidationException = FluentValidation.ValidationException;
 

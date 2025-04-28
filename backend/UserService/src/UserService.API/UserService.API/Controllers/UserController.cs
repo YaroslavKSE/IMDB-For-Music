@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using UserService.API.Models.Requests;
 using UserService.API.Models.Responses;
 using UserService.Application.Commands;
-using UserService.Application.Queries;
+using UserService.Application.Queries.Users;
 using UserService.Domain.Exceptions;
 
 namespace UserService.API.Controllers;

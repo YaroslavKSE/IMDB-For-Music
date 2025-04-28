@@ -11,6 +11,7 @@ using FluentValidation.AspNetCore;
 using UserService.Application.Validators;
 using UserService.Application.Commands;
 using UserService.Application.Interfaces;
+using UserService.Application.Validators.Auth;
 using UserService.Domain.Interfaces;
 using UserService.Infrastructure.Configuration;
 using UserService.Infrastructure.Data;
@@ -52,6 +53,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
+builder.Services.AddScoped<IUserPreferenceRepository, UserPreferenceRepository>();
 
 // Add AWS Configuration
 builder.Services.Configure<AWSSettings>(
