@@ -22,6 +22,7 @@ interface AlbumContentTabsProps {
     tracksOffset: number;
     loadingMoreTracks: boolean;
     onLoadMoreTracks: () => void;
+    refreshTrigger?: number; // New prop to trigger refresh
 }
 
 const AlbumContentTabs = ({
@@ -37,7 +38,8 @@ const AlbumContentTabs = ({
                               tracksTotal,
                               tracksOffset,
                               loadingMoreTracks,
-                              onLoadMoreTracks
+                              onLoadMoreTracks,
+                              refreshTrigger = 0 // Default value to avoid undefined
                           }: AlbumContentTabsProps) => {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuthStore();
@@ -119,7 +121,12 @@ const AlbumContentTabs = ({
             {activeTab === 'my-history' && (
                 <div className="p-4 sm:p-6">
                     {isAuthenticated ? (
-                        <ItemHistoryComponent itemId={album.spotifyId} itemType="Album" onLogInteraction={handleAlbumInteraction}/>
+                        <ItemHistoryComponent
+                            itemId={album.spotifyId}
+                            itemType="Album"
+                            onLogInteraction={handleAlbumInteraction}
+                            refreshTrigger={refreshTrigger}
+                        />
                     ) : (
                         <EmptyState
                             title="Please log in"

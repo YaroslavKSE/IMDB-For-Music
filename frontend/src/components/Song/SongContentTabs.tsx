@@ -10,12 +10,14 @@ interface SongContentTabsProps {
     activeTab: 'reviews' | 'lists' | 'my-history';
     setActiveTab: (tab: 'reviews' | 'lists' | 'my-history') => void;
     handleTrackInteraction: () => void;
+    refreshTrigger?: number; // New prop to trigger refresh
 }
 
 const SongContentTabs = ({
                              activeTab,
                              setActiveTab,
-                             handleTrackInteraction
+                             handleTrackInteraction,
+                             refreshTrigger = 0 // Default value to avoid undefined
                          }: SongContentTabsProps) => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
@@ -84,7 +86,12 @@ const SongContentTabs = ({
             {activeTab === 'my-history' && (
                 <div className="p-6">
                     {isAuthenticated && id ? (
-                        <ItemHistoryComponent itemId={id} itemType="Track" onLogInteraction={handleTrackInteraction} />
+                        <ItemHistoryComponent
+                            itemId={id}
+                            itemType="Track"
+                            onLogInteraction={handleTrackInteraction}
+                            refreshTrigger={refreshTrigger}
+                        />
                     ) : (
                         <EmptyState
                             title={isAuthenticated ? "No history" : "Please log in"}

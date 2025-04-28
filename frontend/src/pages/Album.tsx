@@ -202,11 +202,6 @@ const Album = () => {
         // Trigger refresh of the latest interaction component
         setRefreshLatestInteraction(prev => prev + 1);
 
-        // After a successful interaction, make sure we're on the appropriate tab
-        if (isAlbumInteraction) {
-            setActiveTab('reviews');
-        }
-
         // Show success message briefly
         setTimeout(() => {
             setInteractionSuccess(false);
@@ -273,6 +268,7 @@ const Album = () => {
                 tracksOffset={tracksOffset}
                 loadingMoreTracks={loadingMoreTracks}
                 onLoadMoreTracks={loadMoreTracks}
+                refreshTrigger={refreshLatestInteraction}
             />
 
             {/* Modal for Album interaction */}

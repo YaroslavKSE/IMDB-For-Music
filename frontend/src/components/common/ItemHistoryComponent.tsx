@@ -13,9 +13,15 @@ interface ItemHistoryComponentProps {
     itemId: string;
     itemType: 'Album' | 'Track';
     onLogInteraction?: () => void;
+    refreshTrigger?: number; // New prop to trigger refresh
 }
 
-const ItemHistoryComponent = ({ itemId, itemType, onLogInteraction }: ItemHistoryComponentProps) => {
+const ItemHistoryComponent = ({
+                                  itemId,
+                                  itemType,
+                                  onLogInteraction,
+                                  refreshTrigger = 0 // Default value to avoid undefined
+                              }: ItemHistoryComponentProps) => {
     const { user, isAuthenticated } = useAuthStore();
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -104,7 +110,7 @@ const ItemHistoryComponent = ({ itemId, itemType, onLogInteraction }: ItemHistor
         };
 
         loadItemHistory();
-    }, [user, itemId, itemType, isAuthenticated]);
+    }, [user, itemId, itemType, isAuthenticated, refreshTrigger]); // Added refreshTrigger dependency
 
     // Load more history entries
     const loadMoreHistory = async () => {

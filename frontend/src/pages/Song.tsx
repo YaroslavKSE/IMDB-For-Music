@@ -121,9 +121,6 @@ const Song = () => {
         // Trigger refresh of the latest interaction component
         setRefreshLatestInteraction(prev => prev + 1);
 
-        // After a successful interaction, make sure we're on the reviews tab
-        setActiveTab('reviews');
-
         // Show success message briefly
         setTimeout(() => {
             setInteractionSuccess(false);
@@ -162,6 +159,7 @@ const Song = () => {
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 handleTrackInteraction={handleTrackInteraction}
+                refreshTrigger={refreshLatestInteraction}
             />
 
             {track && (
