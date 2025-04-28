@@ -9,9 +9,15 @@ interface LatestInteractionComponentProps {
     itemId: string;
     itemType: 'Album' | 'Track';
     onCreateInteraction?: () => void;
+    refreshTrigger?: number; // New prop to trigger refresh
 }
 
-const LatestInteractionComponent = ({ itemId, itemType, onCreateInteraction }: LatestInteractionComponentProps) => {
+const LatestInteractionComponent = ({
+                                        itemId,
+                                        itemType,
+                                        onCreateInteraction,
+                                        refreshTrigger = 0 // Default value to avoid undefined
+                                    }: LatestInteractionComponentProps) => {
     const { user, isAuthenticated } = useAuthStore();
     const navigate = useNavigate();
     const [latestInteraction, setLatestInteraction] = useState<InteractionDetailDTO | null>(null);
@@ -51,7 +57,7 @@ const LatestInteractionComponent = ({ itemId, itemType, onCreateInteraction }: L
         };
 
         fetchUserLatestInteraction();
-    }, [user, itemId, itemType, isAuthenticated]);
+    }, [user, itemId, itemType, isAuthenticated, refreshTrigger]); // Added refreshTrigger dependency
 
     if (loading) {
         return (

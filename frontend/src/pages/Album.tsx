@@ -27,6 +27,7 @@ const Album = () => {
     const [isAlbumInteraction, setIsAlbumInteraction] = useState(true);
     const [tracksOffset, setTracksOffset] = useState(0);
     const [tracksTotal, setTracksTotal] = useState(0);
+    const [refreshLatestInteraction, setRefreshLatestInteraction] = useState(0); // New state for refresh trigger
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const animationFrameRef = useRef<number | null>(null);
 
@@ -194,9 +195,12 @@ const Album = () => {
     };
 
     const handleInteractionSuccess = (interactionId: string) => {
-        console.log('ItemHistory created with ID:', interactionId);
+        console.log('Interaction created with ID:', interactionId);
         setIsInteractionModalOpen(false);
         setInteractionSuccess(true);
+
+        // Trigger refresh of the latest interaction component
+        setRefreshLatestInteraction(prev => prev + 1);
 
         // After a successful interaction, make sure we're on the appropriate tab
         if (isAlbumInteraction) {
@@ -252,6 +256,7 @@ const Album = () => {
             <AlbumHeader
                 album={album}
                 handleAlbumInteraction={handleAlbumInteraction}
+                refreshTrigger={refreshLatestInteraction} // Pass refresh trigger to AlbumHeader
             />
 
             <AlbumContentTabs

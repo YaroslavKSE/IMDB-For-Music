@@ -20,13 +20,15 @@ interface SongHeaderProps {
     isPlaying: boolean;
     handlePreviewToggle: () => Promise<void>;
     handleTrackInteraction: () => void;
+    refreshTrigger?: number; // New prop to trigger refresh
 }
 
 const SongHeader = ({
                         track,
                         isPlaying,
                         handlePreviewToggle,
-                        handleTrackInteraction
+                        handleTrackInteraction,
+                        refreshTrigger = 0 // Default value to avoid undefined
                     }: SongHeaderProps) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -203,14 +205,19 @@ const SongHeader = ({
                     </button>
                 </div>
 
-                {/* Song Stats and Latest ItemHistory in a flex row */}
+                {/* Song Stats and Latest Interaction in a flex row */}
                 <div className="flex flex-col md:flex-row gap-3 items-start">
                     <div className="md:w-1/2 scale-[1.3] origin-top-left">
                         <ItemStatsComponent itemId={track.spotifyId} />
                     </div>
 
                     <div className="md:w-1/2 scale-[0.9]">
-                        <LatestInteractionComponent itemId={track.spotifyId} itemType="Track" />
+                        <LatestInteractionComponent
+                            itemId={track.spotifyId}
+                            itemType="Track"
+                            onCreateInteraction={handleTrackInteraction}
+                            refreshTrigger={refreshTrigger}
+                        />
                     </div>
                 </div>
             </div>
