@@ -37,17 +37,17 @@ public class GetBatchUsersQueryHandler : IRequestHandler<GetBatchUsersQuery, Bat
 
         // Get all users in a single query
         var userEntities = await _userRepository.GetUsersByIdsAsync(request.UserIds);
-        
+
         // Prepare the results list
         var users = new List<PublicUserProfileDto>();
-        
+
         // For each found user, get their follower and following counts
         foreach (var user in userEntities)
         {
             // Get follower and following counts
             var followerCount = await _subscriptionRepository.GetFollowersCountAsync(user.Id);
             var followingCount = await _subscriptionRepository.GetFollowingCountAsync(user.Id);
-            
+
             users.Add(new PublicUserProfileDto
             {
                 Id = user.Id,
@@ -64,6 +64,6 @@ public class GetBatchUsersQueryHandler : IRequestHandler<GetBatchUsersQuery, Bat
         _logger.LogInformation("Retrieved information for {Count} users out of {Requested} requested",
             users.Count, request.UserIds.Count);
 
-        return new BatchUserResponseDto { Users = users };
+        return new BatchUserResponseDto {Users = users};
     }
 }

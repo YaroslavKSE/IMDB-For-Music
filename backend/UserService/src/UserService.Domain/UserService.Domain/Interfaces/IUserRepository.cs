@@ -12,7 +12,7 @@ public interface IUserRepository
     Task<User> GetByAuth0IdAsync(string auth0Id);
     Task<List<Guid>> GetExistingUserIdsAsync(List<Guid> userIds);
     Task<List<User>> GetUsersByIdsAsync(List<Guid> userIds);
-    
+
 
     Task<(List<User> Users, int TotalCount)> GetPaginatedUsersAsync(int page, int pageSize, string searchTerm = null,
         CancellationToken cancellationToken = default);

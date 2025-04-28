@@ -7,7 +7,9 @@ using UserService.Domain.Interfaces;
 
 namespace UserService.Application.Handlers.Subscriptions;
 
-public class CheckBatchSubscriptionStatusQueryHandler : IRequestHandler<CheckBatchSubscriptionStatusQuery, BatchSubscriptionResponseDto>
+public class
+    CheckBatchSubscriptionStatusQueryHandler : IRequestHandler<CheckBatchSubscriptionStatusQuery,
+    BatchSubscriptionResponseDto>
 {
     private readonly IUserRepository _userRepository;
     private readonly IUserSubscriptionRepository _subscriptionRepository;
@@ -26,7 +28,8 @@ public class CheckBatchSubscriptionStatusQueryHandler : IRequestHandler<CheckBat
         _validator = validator;
     }
 
-    public async Task<BatchSubscriptionResponseDto> Handle(CheckBatchSubscriptionStatusQuery query, CancellationToken cancellationToken)
+    public async Task<BatchSubscriptionResponseDto> Handle(CheckBatchSubscriptionStatusQuery query,
+        CancellationToken cancellationToken)
     {
         // Validate query
         var validationResult = await _validator.ValidateAsync(query, cancellationToken);
@@ -46,49 +49,41 @@ public class CheckBatchSubscriptionStatusQueryHandler : IRequestHandler<CheckBat
 
         // For non-existent users and self-references, initialize results dictionary
         var results = new Dictionary<Guid, bool>();
-        
+
         // Handle self-references: user cannot follow themselves
-        foreach (var targetId in query.TargetUserIds.Where(id => id == query.FollowerId))
-        {
-            results[targetId] = false;
-        }
-        
+        foreach (var targetId in query.TargetUserIds.Where(id => id == query.FollowerId)) results[targetId] = false;
+
         // Filter out self-references for the database query
         var filteredTargetIds = query.TargetUserIds
             .Where(id => id != query.FollowerId)
             .ToList();
-            
+
         if (filteredTargetIds.Count > 0)
         {
             // Check which target users exist
             var existingUserIds = await _userRepository.GetExistingUserIdsAsync(filteredTargetIds);
-            
+
             // Mark non-existent users as not followed
             foreach (var targetId in filteredTargetIds.Where(id => !existingUserIds.Contains(id)))
-            {
                 results[targetId] = false;
-            }
-            
+
             // For existing users, check subscription status in a single operation
             var existingTargetIds = filteredTargetIds
                 .Where(id => existingUserIds.Contains(id))
                 .ToList();
-                
+
             if (existingTargetIds.Count > 0)
             {
                 var subscriptionResults = await _subscriptionRepository.AreBatchFollowingAsync(
                     query.FollowerId, existingTargetIds);
-                    
+
                 // Merge results
-                foreach (var kvp in subscriptionResults)
-                {
-                    results[kvp.Key] = kvp.Value;
-                }
+                foreach (var kvp in subscriptionResults) results[kvp.Key] = kvp.Value;
             }
         }
 
         _logger.LogInformation("Completed batch subscription check for follower {FollowerId}", query.FollowerId);
 
-        return new BatchSubscriptionResponseDto { Results = results };
+        return new BatchSubscriptionResponseDto {Results = results};
     }
 }

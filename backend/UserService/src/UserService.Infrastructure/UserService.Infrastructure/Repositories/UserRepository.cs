@@ -38,6 +38,7 @@ public class UserRepository : IUserRepository
     {
         await _context.Users.AddAsync(user);
     }
+
     public async Task<List<Guid>> GetExistingUserIdsAsync(List<Guid> userIds)
     {
         return await _context.Users
@@ -45,7 +46,7 @@ public class UserRepository : IUserRepository
             .Select(u => u.Id)
             .ToListAsync();
     }
-    
+
     public async Task<List<User>> GetUsersByIdsAsync(List<Guid> userIds)
     {
         return await _context.Users

@@ -30,7 +30,6 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Auth0Id).IsRequired();
             entity.Property(e => e.AvatarUrl).IsRequired(false);
             entity.Property(e => e.Bio).IsRequired(false).HasMaxLength(500); // Configure Bio property with max length
-
         });
         modelBuilder.Entity<UserSubscription>(entity =>
         {

@@ -379,6 +379,7 @@ public class UserController : ControllerBase
                 });
         }
     }
+
     [HttpPut("me/bio")]
     [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
