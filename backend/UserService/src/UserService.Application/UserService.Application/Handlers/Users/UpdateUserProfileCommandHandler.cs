@@ -67,6 +67,7 @@ public class UpdateUserProfileCommandHandler : IRequestHandler<UpdateUserProfile
             Username = user.Username,
             Name = user.Name,
             Surname = user.Surname,
+            Bio = user.Bio,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
         };

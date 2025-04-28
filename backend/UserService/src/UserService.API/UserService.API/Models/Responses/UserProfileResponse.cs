@@ -10,5 +10,5 @@ public class UserProfileResponse
     public string Username { get; set; }
 
     public string AvatarUrl { get; set; }
-    // Additional properties can be added later (bio, preferences, etc.)
+    public string Bio { get; set; }
 }

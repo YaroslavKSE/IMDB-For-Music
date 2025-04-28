@@ -9,5 +9,6 @@ public class PublicUserProfileResponse
     public int FollowerCount { get; set; }
     public int FollowingCount { get; set; }
     public string AvatarUrl { get; set; }
+    public string Bio { get; set; } 
     public DateTime CreatedAt { get; set; }
 }

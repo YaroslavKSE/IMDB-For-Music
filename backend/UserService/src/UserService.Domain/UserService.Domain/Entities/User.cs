@@ -13,6 +13,7 @@ public class User
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
     public string AvatarUrl { get; private set; }
+    public string Bio { get; private set; }
 
     private readonly List<UserSubscription> _followers = new();
     private readonly List<UserSubscription> _following = new();
@@ -28,7 +29,7 @@ public class User
     } // For EF Core
 
     public static User Create(string email, string username, string name, string surname, string auth0Id,
-        string avatarUrl = null)
+        string avatarUrl = null, string bio = null)
     {
         return new User
         {
@@ -39,6 +40,7 @@ public class User
             Surname = surname,
             Auth0Id = auth0Id,
             AvatarUrl = avatarUrl,
+            Bio = bio,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -55,6 +57,12 @@ public class User
     public void UpdateAvatar(string avatarUrl)
     {
         AvatarUrl = avatarUrl;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateBio(string bio)
+    {
+        Bio = bio;
         UpdatedAt = DateTime.UtcNow;
     }
 }

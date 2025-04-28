@@ -77,6 +77,7 @@ public class UserController : ControllerBase
                 Name = userProfile.Name,
                 Username = userProfile.Username,
                 Surname = userProfile.Surname,
+                Bio = userProfile.Bio,
                 AvatarUrl = userProfile.AvatarUrl
             };
 
@@ -149,6 +150,7 @@ public class UserController : ControllerBase
                 Name = updatedProfile.Name,
                 Surname = updatedProfile.Surname,
                 Username = updatedProfile.Username,
+                Bio = updatedProfile.Bio,
                 AvatarUrl = updatedProfile.AvatarUrl
             };
 
@@ -221,6 +223,7 @@ public class UserController : ControllerBase
                 Name = userProfile.Name,
                 Username = userProfile.Username,
                 Surname = userProfile.Surname,
+                Bio = userProfile.Bio,
                 AvatarUrl = userProfile.AvatarUrl
             };
 
@@ -282,6 +285,7 @@ public class UserController : ControllerBase
                 Name = userProfile.Name,
                 Username = userProfile.Username,
                 Surname = userProfile.Surname,
+                Bio = userProfile.Bio,
                 AvatarUrl = userProfile.AvatarUrl
             };
 
@@ -343,6 +347,7 @@ public class UserController : ControllerBase
                 Name = userProfile.Name,
                 Username = userProfile.Username,
                 Surname = userProfile.Surname,
+                Bio = userProfile.Bio,
                 AvatarUrl = userProfile.AvatarUrl
             };
 
@@ -370,6 +375,157 @@ public class UserController : ControllerBase
                 {
                     Code = "InternalServerError",
                     Message = "An unexpected error occurred while fetching user profile",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+        }
+    }
+    [HttpPut("me/bio")]
+    [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpdateBio(UpdateBioRequest request)
+    {
+        try
+        {
+            // Extract the Auth0 user ID from claims
+            var auth0UserId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value
+                              ?? User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(auth0UserId))
+            {
+                _logger.LogWarning("Auth0 user ID not found in token claims during bio update");
+
+                return Unauthorized(new ErrorResponse
+                {
+                    Code = "InvalidToken",
+                    Message = "User identifier not found in token",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+            }
+
+            _logger.LogInformation("Updating bio for Auth0 user: {Auth0UserId}", auth0UserId);
+
+            var command = new UpdateUserBioCommand(auth0UserId, request.Bio);
+            var updatedProfile = await _mediator.Send(command);
+
+            var response = new UserProfileResponse
+            {
+                Id = updatedProfile.Id,
+                Email = updatedProfile.Email,
+                Name = updatedProfile.Name,
+                Surname = updatedProfile.Surname,
+                Username = updatedProfile.Username,
+                Bio = updatedProfile.Bio,
+                AvatarUrl = updatedProfile.AvatarUrl
+            };
+
+            return Ok(response);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning("Validation failed during bio update: {Errors}",
+                string.Join(", ", ex.Errors.Select(e => e.ErrorMessage)));
+
+            return BadRequest(new ErrorResponse
+            {
+                Code = "ValidationError",
+                Message = string.Join("; ", ex.Errors.Select(e => e.ErrorMessage)),
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning("User not found during bio update: {Message}", ex.Message);
+
+            return NotFound(new ErrorResponse
+            {
+                Code = "UserNotFound",
+                Message = ex.Message,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user bio");
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponse
+                {
+                    Code = "InternalServerError",
+                    Message = "An unexpected error occurred while updating bio",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+        }
+    }
+
+    [HttpDelete("me/bio")]
+    [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeleteBio()
+    {
+        try
+        {
+            // Extract the Auth0 user ID from claims
+            var auth0UserId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value
+                              ?? User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(auth0UserId))
+            {
+                _logger.LogWarning("Auth0 user ID not found in token claims during bio deletion");
+
+                return Unauthorized(new ErrorResponse
+                {
+                    Code = "InvalidToken",
+                    Message = "User identifier not found in token",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+            }
+
+            _logger.LogInformation("Deleting bio for Auth0 user: {Auth0UserId}", auth0UserId);
+
+            // Pass null as the bio value to delete it
+            var command = new UpdateUserBioCommand(auth0UserId, null);
+            var updatedProfile = await _mediator.Send(command);
+
+            var response = new UserProfileResponse
+            {
+                Id = updatedProfile.Id,
+                Email = updatedProfile.Email,
+                Name = updatedProfile.Name,
+                Surname = updatedProfile.Surname,
+                Username = updatedProfile.Username,
+                Bio = updatedProfile.Bio, // Should be null after deletion
+                AvatarUrl = updatedProfile.AvatarUrl
+            };
+
+            return Ok(response);
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning("User not found during bio deletion: {Message}", ex.Message);
+
+            return NotFound(new ErrorResponse
+            {
+                Code = "UserNotFound",
+                Message = ex.Message,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting user bio");
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponse
+                {
+                    Code = "InternalServerError",
+                    Message = "An unexpected error occurred while deleting bio",
                     TraceId = HttpContext.TraceIdentifier
                 });
         }

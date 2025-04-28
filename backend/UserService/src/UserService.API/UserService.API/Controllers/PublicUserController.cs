@@ -126,6 +126,7 @@ public class PublicUserController : ControllerBase
                 Surname = user.Surname,
                 FollowerCount = followerCount,
                 FollowingCount = followingCount,
+                Bio = user.Bio,
                 CreatedAt = user.CreatedAt,
                 AvatarUrl = user.AvatarUrl
             };
@@ -185,6 +186,7 @@ public class PublicUserController : ControllerBase
                 Surname = user.Surname,
                 FollowerCount = followerCount,
                 FollowingCount = followingCount,
+                Bio = user.Bio,
                 CreatedAt = user.CreatedAt,
                 AvatarUrl = user.AvatarUrl
             };
