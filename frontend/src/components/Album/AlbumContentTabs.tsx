@@ -119,7 +119,7 @@ const AlbumContentTabs = ({
             {activeTab === 'my-history' && (
                 <div className="p-4 sm:p-6">
                     {isAuthenticated ? (
-                        <ItemHistoryComponent itemId={album.spotifyId} itemType="Album" />
+                        <ItemHistoryComponent itemId={album.spotifyId} itemType="Album" onLogInteraction={handleAlbumInteraction}/>
                     ) : (
                         <EmptyState
                             title="Please log in"

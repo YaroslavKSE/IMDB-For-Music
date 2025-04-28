@@ -399,7 +399,7 @@ const InteractionDetailPage = () => {
                         </div>
                     </div>
 
-                    {/* Right column: Interaction details */}
+                    {/* Right column: ItemHistory details */}
                     <div className="md:w-2/3">
                         {/* Creator info */}
                         <div className="flex items-center mb-4 group">
@@ -496,7 +496,7 @@ const InteractionDetailPage = () => {
                             )}
                         </div>
 
-                        {/* Interaction details */}
+                        {/* ItemHistory details */}
                         <div className="mb-4">
                             {/* Rating and Like in one row */}
                             <div className="flex items-center mb-3">

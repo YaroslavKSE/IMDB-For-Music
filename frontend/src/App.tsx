@@ -90,7 +90,7 @@ function App() {
                     <Route path="track/:id" element={<Song />} />
                     <Route path="artist/:id" element={<Artist />} />
 
-                    {/* Interaction detail page - publicly viewable */}
+                    {/* ItemHistory detail page - publicly viewable */}
                     <Route path="interaction/:id" element={<InteractionDetailPage />} />
 
                     {/* People Routes */}

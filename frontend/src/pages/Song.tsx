@@ -113,7 +113,7 @@ const Song = () => {
     };
 
     const handleInteractionSuccess = (interactionId: string) => {
-        console.log('Interaction created with ID:', interactionId);
+        console.log('ItemHistory created with ID:', interactionId);
         setIsInteractionModalOpen(false);
         setInteractionSuccess(true);
 

@@ -141,7 +141,7 @@ const AlbumHeader = ({ album, handleAlbumInteraction }: AlbumHeaderProps) => {
                     </div>
                 )}
 
-                {/* Album Stats and Latest Interaction in a flex row */}
+                {/* Album Stats and Latest ItemHistory in a flex row */}
                 <div className="flex flex-col md:flex-row gap-3 items-start">
                     <div className="md:w-1/2 scale-[1.3] origin-top-left">
                         <ItemStatsComponent itemId={album.spotifyId} />

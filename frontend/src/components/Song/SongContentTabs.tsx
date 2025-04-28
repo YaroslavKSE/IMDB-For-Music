@@ -41,7 +41,7 @@ const SongContentTabs = ({
                         active={activeTab === 'my-history'}
                         onClick={() => setActiveTab('my-history')}
                         icon={<History className="h-4 w-4 mr-2" />}
-                        label="My History"
+                        label="History"
                     />
                 </nav>
             </div>
@@ -84,7 +84,7 @@ const SongContentTabs = ({
             {activeTab === 'my-history' && (
                 <div className="p-6">
                     {isAuthenticated && id ? (
-                        <ItemHistoryComponent itemId={id} itemType="Track" />
+                        <ItemHistoryComponent itemId={id} itemType="Track" onLogInteraction={handleTrackInteraction} />
                     ) : (
                         <EmptyState
                             title={isAuthenticated ? "No history" : "Please log in"}

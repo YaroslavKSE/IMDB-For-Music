@@ -103,7 +103,7 @@ const LatestInteractionComponent = ({ itemId, itemType, onCreateInteraction }: L
         <div className="bg-white shadow rounded-lg overflow-hidden">
             <div className="p-4">
                 <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-sm font-medium text-gray-700">Latest Activity</h3>
+                    <h3 className="text-sm font-medium text-gray-700">Your Latest Activity</h3>
                     <span className="text-xs text-gray-500">{interactionDate}</span>
                 </div>
 
@@ -111,7 +111,7 @@ const LatestInteractionComponent = ({ itemId, itemType, onCreateInteraction }: L
                     to={`/interaction/${latestInteraction.aggregateId}`}
                     className="flex items-center space-x-4 hover:bg-gray-50 p-2 rounded-md transition-colors"
                 >
-                    {/* Interaction indicators */}
+                    {/* ItemHistory indicators */}
                     <div className="flex items-center space-x-3">
                         {/* Rating */}
                         {latestInteraction.rating && (

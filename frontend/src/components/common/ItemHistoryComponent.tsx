@@ -1,24 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Loader, RefreshCw } from 'lucide-react';
+import {Loader, RefreshCw, History} from 'lucide-react';
 import InteractionService from '../../api/interaction';
 import CatalogService from '../../api/catalog';
-import { DiaryEntry, GroupedEntries } from '../Diary/types';
-import DiaryDateGroup from '../Diary/DiaryDateGroup';
+import UsersService from '../../api/users';
+import { ItemHistoryEntry, GroupedHistoryEntries } from '../ItemHistory/ItemHistoryTypes';
+import HistoryDateGroup from '../ItemHistory/HistoryDateGroup';
 import ReviewModal from "../Diary/ReviewModal";
 import useAuthStore from '../../store/authStore';
+import EmptyState from "./EmptyState.tsx";
 
 interface ItemHistoryComponentProps {
     itemId: string;
     itemType: 'Album' | 'Track';
+    onLogInteraction?: () => void;
 }
 
-const ItemHistoryComponent = ({ itemId, itemType }: ItemHistoryComponentProps) => {
+const ItemHistoryComponent = ({ itemId, itemType, onLogInteraction }: ItemHistoryComponentProps) => {
     const { user, isAuthenticated } = useAuthStore();
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
-    const [groupedEntries, setGroupedEntries] = useState<GroupedEntries[]>([]);
+    const [historyEntries, setHistoryEntries] = useState<ItemHistoryEntry[]>([]);
+    const [groupedEntries, setGroupedEntries] = useState<GroupedHistoryEntries[]>([]);
     const [offset, setOffset] = useState(0);
     const [, setTotalInteractions] = useState(0);
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -31,7 +34,7 @@ const ItemHistoryComponent = ({ itemId, itemType }: ItemHistoryComponentProps) =
     const [hasMore, setHasMore] = useState(true);
     const itemsPerPage = 10;
 
-    // Load the user's history for this item
+    // Load item interactions history
     useEffect(() => {
         const loadItemHistory = async () => {
             if (!isAuthenticated || !user || !itemId) return;
@@ -40,7 +43,7 @@ const ItemHistoryComponent = ({ itemId, itemType }: ItemHistoryComponentProps) =
             setError(null);
 
             try {
-                // Fetch interactions for this user and item
+                // Fetch user's interactions with this item
                 const { items: interactions, totalCount } =
                     await InteractionService.getUserItemHistory(user.id, itemId, itemsPerPage, 0);
 
@@ -52,43 +55,49 @@ const ItemHistoryComponent = ({ itemId, itemType }: ItemHistoryComponentProps) =
                     return;
                 }
 
-                // Use the same approach as the Diary page to construct entries
-                // Extract all item ids for preview info
+                // No need to fetch user profiles since we're showing the current user's history
+                // But we'll still create a map with the current user's profile
+                const userProfiles = new Map();
+                if (user) {
+                    try {
+                        const profile = await UsersService.getUserProfileById(user.id);
+                        userProfiles.set(user.id, profile);
+                    } catch (error) {
+                        console.error(`Failed to fetch profile for user ${user.id}:`, error);
+                    }
+                }
+
+                // Fetch catalog item preview
                 const itemIds: string[] = interactions.map(interaction => interaction.itemId);
-
-                // Fetch preview information for all items in a single request
                 const previewResponse = await CatalogService.getItemPreviewInfo(itemIds, [itemType.toLowerCase()]);
-
-                // Create lookup maps for quick access
                 const itemsMap = new Map();
 
-                // Process results from the preview response
                 previewResponse.results?.forEach(resultGroup => {
                     resultGroup.items?.forEach(item => {
-                        // Create a simplified catalog item with the preview information
                         const catalogItem = {
                             spotifyId: item.spotifyId,
                             name: item.name,
                             imageUrl: item.imageUrl,
                             artistName: item.artistName
                         };
-
                         itemsMap.set(item.spotifyId, catalogItem);
                     });
                 });
 
-                // Combine interactions with catalog items
+                // Combine interactions with user profiles and catalog items
                 const entries = interactions.map(interaction => {
-                    const entry: DiaryEntry = { interaction };
-                    entry.catalogItem = itemsMap.get(interaction.itemId);
+                    const entry: ItemHistoryEntry = {
+                        interaction,
+                        userProfile: userProfiles.get(interaction.userId),
+                        catalogItem: itemsMap.get(interaction.itemId)
+                    };
                     return entry;
                 });
 
-                setDiaryEntries(entries);
+                setHistoryEntries(entries);
                 setOffset(interactions.length);
             } catch (err) {
                 console.error('Error loading item history:', err);
-                setError('Failed to load your history for this item. Please try again later.');
             } finally {
                 setLoading(false);
             }
@@ -115,34 +124,39 @@ const ItemHistoryComponent = ({ itemId, itemType }: ItemHistoryComponentProps) =
                 return;
             }
 
-            // Extract all item ids for preview info
+            // Fetch catalog item preview
             const itemIds: string[] = interactions.map(interaction => interaction.itemId);
-
-            // Fetch preview information for all items in a single request
             const previewResponse = await CatalogService.getItemPreviewInfo(itemIds, [itemType.toLowerCase()]);
-
-            // Create lookup maps for quick access
             const itemsMap = new Map();
 
-            // Process results from the preview response
             previewResponse.results?.forEach(resultGroup => {
                 resultGroup.items?.forEach(item => {
-                    // Create a simplified catalog item with the preview information
                     const catalogItem = {
                         spotifyId: item.spotifyId,
                         name: item.name,
                         imageUrl: item.imageUrl,
                         artistName: item.artistName
                     };
-
                     itemsMap.set(item.spotifyId, catalogItem);
                 });
             });
 
-            // Combine interactions with catalog items
+            // Use the same user profile as before since it's all for the current user
             const newEntries = interactions.map(interaction => {
-                const entry: DiaryEntry = { interaction };
-                entry.catalogItem = itemsMap.get(interaction.itemId);
+                const entry: ItemHistoryEntry = {
+                    interaction,
+                    userProfile: user ? {
+                        id: user.id,
+                        username: user.username || '',
+                        name: user.name,
+                        surname: user.surname,
+                        avatarUrl: user.avatarUrl,
+                        followerCount: 0,
+                        followingCount: 0,
+                        createdAt: ''
+                    } : undefined,
+                    catalogItem: itemsMap.get(interaction.itemId)
+                };
                 return entry;
             });
 
@@ -152,23 +166,22 @@ const ItemHistoryComponent = ({ itemId, itemType }: ItemHistoryComponentProps) =
             setHasMore(newHasMore);
 
             // Append new entries to existing entries
-            setDiaryEntries(prevEntries => [...prevEntries, ...newEntries]);
+            setHistoryEntries(prevEntries => [...prevEntries, ...newEntries]);
             setOffset(newOffset);
         } catch (err) {
             console.error('Error loading more history entries:', err);
-            setError('Failed to load more entries. Please try again later.');
         } finally {
             setLoadingMore(false);
         }
     };
 
-    // Group entries by date whenever diary entries change
+    // Group entries by date whenever history entries change
     useEffect(() => {
-        if (diaryEntries.length === 0) return;
+        if (historyEntries.length === 0) return;
 
         // Group entries by date
-        const grouped: Record<string, DiaryEntry[]> = {};
-        diaryEntries.forEach(entry => {
+        const grouped: Record<string, ItemHistoryEntry[]> = {};
+        historyEntries.forEach(entry => {
             const date = new Date(entry.interaction.createdAt).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -182,15 +195,15 @@ const ItemHistoryComponent = ({ itemId, itemType }: ItemHistoryComponentProps) =
         });
 
         // Convert to array sorted by date (newest first)
-        const result: GroupedEntries[] = Object.keys(grouped)
+        const result: GroupedHistoryEntries[] = Object.keys(grouped)
             .map(date => ({ date, entries: grouped[date] }))
             .sort((a, b) => new Date(b.entries[0].interaction.createdAt).getTime() -
                 new Date(a.entries[0].interaction.createdAt).getTime());
 
         setGroupedEntries(result);
-    }, [diaryEntries]);
+    }, [historyEntries]);
 
-    const handleReviewClick = (e: React.MouseEvent, entry: DiaryEntry) => {
+    const handleReviewClick = (e: React.MouseEvent, entry: ItemHistoryEntry) => {
         e.stopPropagation(); // Prevent triggering the row click
 
         if (!entry.interaction.review) return;
@@ -213,18 +226,17 @@ const ItemHistoryComponent = ({ itemId, itemType }: ItemHistoryComponentProps) =
         setReviewModalOpen(true);
     };
 
-    // We omit delete functionality for item history view
-    const handleDeleteClick = (e: React.MouseEvent, entry: DiaryEntry) => {
+    // Handle view interaction click (navigates to the interaction page)
+    const handleViewClick = (e: React.MouseEvent, entry: ItemHistoryEntry) => {
         e.stopPropagation(); // Prevent triggering the row click
-        // For history tab, we'll navigate to the interaction detail page instead of offering delete
         window.location.href = `/interaction/${entry.interaction.aggregateId}`;
     };
 
-    if (loading && diaryEntries.length === 0) {
+    if (loading && historyEntries.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-8">
                 <RefreshCw className="h-8 w-8 text-primary-600 animate-spin mb-4" />
-                <div className="text-gray-600">Loading your history...</div>
+                <div className="text-gray-600">Loading history...</div>
             </div>
         );
     }
@@ -243,24 +255,30 @@ const ItemHistoryComponent = ({ itemId, itemType }: ItemHistoryComponentProps) =
         );
     }
 
-    if (diaryEntries.length === 0) {
+    if (historyEntries.length === 0) {
         return (
-            <div className="text-center py-8 text-gray-500">
-                You haven't interacted with this {itemType.toLowerCase()} yet.
-            </div>
+            <EmptyState
+                title="No history"
+                message={`You haven't interacted with this ${itemType.toLowerCase()}.`}
+                icon={<History className="h-12 w-12 text-gray-400" />}
+                action={onLogInteraction ? {
+                    label: "Write a Review",
+                    onClick: onLogInteraction
+                } : undefined}
+            />
         );
     }
 
     return (
         <div className="space-y-6">
-            {/* Diary entries by date */}
+            {/* History entries by date */}
             <div className="space-y-6">
                 {groupedEntries.map((group) => (
-                    <DiaryDateGroup
+                    <HistoryDateGroup
                         key={group.date}
                         group={group}
                         onReviewClick={handleReviewClick}
-                        onDeleteClick={handleDeleteClick}
+                        onViewClick={handleViewClick}
                     />
                 ))}
             </div>
@@ -284,6 +302,7 @@ const ItemHistoryComponent = ({ itemId, itemType }: ItemHistoryComponentProps) =
                     </button>
                 </div>
             )}
+
             {/* Review Modal */}
             {selectedReview && (
                 <ReviewModal

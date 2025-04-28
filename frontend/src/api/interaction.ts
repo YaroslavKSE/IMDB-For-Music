@@ -62,7 +62,7 @@ export interface DeleteGradingMethodResponse {
   errorMessage?: string;
 }
 
-// Interaction Interfaces
+// ItemHistory Interfaces
 export interface GradeInputDTO {
   componentName: string;
   value: number;
@@ -246,7 +246,7 @@ const InteractionService = {
     return response.data;
   },
 
-  // Interaction Operations
+  // ItemHistory Operations
   createInteraction: async (interaction: PostInteractionRequest): Promise<PostInteractionResult> => {
     const response = await interactionApi.post('/create', interaction);
     return response.data;
