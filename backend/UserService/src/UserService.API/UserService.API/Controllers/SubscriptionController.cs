@@ -1,12 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
-using MediatR;
-using FluentValidation;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UserService.API.Models.Requests;
 using UserService.API.Models.Responses;
 using UserService.Application.Commands;
-using UserService.Application.Queries;
+using UserService.Application.Queries.Subscriptions;
+using UserService.Application.Queries.Users;
 using UserService.Domain.Exceptions;
 using ValidationException = FluentValidation.ValidationException;
 
@@ -385,6 +384,84 @@ public class SubscriptionController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error checking subscription status");
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponse
+                {
+                    Code = "InternalServerError",
+                    Message = "An unexpected error occurred",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+        }
+    }
+
+    [HttpPost("check-batch")]
+    [ProducesResponseType(typeof(BatchSubscriptionCheckResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CheckBatchSubscriptionStatus([FromBody] BatchSubscriptionCheckRequest request)
+    {
+        try
+        {
+            var auth0UserId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            if (string.IsNullOrEmpty(auth0UserId))
+                return Unauthorized(new ErrorResponse
+                {
+                    Code = "InvalidToken",
+                    Message = "User identifier not found in token",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+
+            // Get current user ID from auth ID
+            var currentUserQuery = new GetUserProfileQuery(auth0UserId);
+            var currentUser = await _mediator.Send(currentUserQuery);
+
+            if (currentUser == null)
+                return NotFound(new ErrorResponse
+                {
+                    Code = "UserNotFound",
+                    Message = "Current user profile not found",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+
+            var query = new CheckBatchSubscriptionStatusQuery(currentUser.Id, request.TargetUserIds);
+            var result = await _mediator.Send(query);
+
+            var response = new BatchSubscriptionCheckResponse
+            {
+                Results = result.Results
+            };
+
+            return Ok(response);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning("Validation failed when checking batch subscription status: {Errors}",
+                string.Join(", ", ex.Errors.Select(e => e.ErrorMessage)));
+
+            return BadRequest(new ErrorResponse
+            {
+                Code = "ValidationError",
+                Message = string.Join("; ", ex.Errors.Select(e => e.ErrorMessage)),
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning("User not found when checking batch subscription status: {Message}", ex.Message);
+
+            return NotFound(new ErrorResponse
+            {
+                Code = "UserNotFound",
+                Message = ex.Message,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking batch subscription status");
 
             return StatusCode(
                 StatusCodes.Status500InternalServerError,

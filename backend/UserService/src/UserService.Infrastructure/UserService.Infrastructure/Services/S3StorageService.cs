@@ -54,7 +54,7 @@ public class S3StorageService : IS3StorageService
             // Build and return the URL
             var avatarUrl = $"{_settings.AvatarBaseUrl}/{objectKey}";
             _logger.LogInformation("Uploaded avatar for user {UserId} to {Url}", userId, avatarUrl);
-            
+
             return avatarUrl;
         }
         catch (Exception ex)
@@ -76,7 +76,7 @@ public class S3StorageService : IS3StorageService
             };
 
             var listResponse = await _s3Client.ListObjectsV2Async(listRequest);
-            
+
             if (listResponse.KeyCount == 0)
             {
                 _logger.LogInformation("No avatars found for user {UserId}", userId);
@@ -113,8 +113,8 @@ public class S3StorageService : IS3StorageService
             if (!IsValidImageContentType(contentType))
                 throw new ArgumentException("Invalid image type", nameof(contentType));
 
-            string extension = GetExtensionFromContentType(contentType);
-            string objectKey = $"avatars/{userId}/{Guid.NewGuid()}{extension}";
+            var extension = GetExtensionFromContentType(contentType);
+            var objectKey = $"avatars/{userId}/{Guid.NewGuid()}{extension}";
 
             // Generate a presigned URL for direct browser uploads
             var request = new GetPreSignedUrlRequest
@@ -126,11 +126,11 @@ public class S3StorageService : IS3StorageService
                 Expires = DateTime.UtcNow.AddMinutes(15) // URL expires in 15 minutes
             };
 
-            string url = _s3Client.GetPreSignedURL(request);
-            
+            var url = _s3Client.GetPreSignedURL(request);
+
             // Calculate the full avatar URL after upload
-            string avatarUrl = $"{_settings.AvatarBaseUrl}/{objectKey}";
-            
+            var avatarUrl = $"{_settings.AvatarBaseUrl}/{objectKey}";
+
             _logger.LogInformation("Generated presigned URL for user {UserId}", userId);
 
             return new PresignedUploadResponse

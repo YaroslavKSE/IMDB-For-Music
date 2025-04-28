@@ -299,6 +299,7 @@ public class Auth0Service : IAuth0Service
             throw new Auth0Exception("Failed to process social login tokens", ex);
         }
     }
+
     public async Task<bool> UpdateUserPictureAsync(string auth0UserId, string pictureUrl)
     {
         try
@@ -306,7 +307,7 @@ public class Auth0Service : IAuth0Service
             await EnsureManagementApiToken();
 
             // Prepare update request
-            var updateRequest = new 
+            var updateRequest = new
             {
                 picture = pictureUrl
             };
