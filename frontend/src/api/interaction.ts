@@ -282,6 +282,16 @@ const InteractionService = {
     };
   },
 
+  getUserFollowingFeed: async (userId: string, limit: number = 20, offset: number = 0): Promise<{items: InteractionDetailDTO[], totalCount: number}> => {
+    const response = await interactionApi.get('/following-feed', {
+      params: {userId, limit, offset}
+    })
+    return {
+      items: response.data.items,
+      totalCount: response.data.totalCount
+    }
+  },
+
   getItemStats: async (itemId: string): Promise<ItemStats> => {
     const response = await interactionApi.get(`/item-stats/${itemId}`);
     if(response.status != 200){
