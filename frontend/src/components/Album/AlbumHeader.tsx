@@ -152,7 +152,7 @@ const AlbumHeader = ({
                         <ItemStatsComponent itemId={album.spotifyId} />
                     </div>
 
-                    <div className="md:w-1/2 scale-[0.9]">
+                    <div className="hidden lg:block lg:w-1/3 xl:w-1/2 scale-[0.9] lg:ml-20 xl:ml-0">
                         <LatestInteractionComponent
                             itemId={album.spotifyId}
                             itemType="Album"
