@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, Loader, UserPlus, UserCheck, Users, User } from 'lucide-react';
 import UsersService, { UserSummary } from '../api/users';
@@ -10,25 +10,32 @@ const People = () => {
     const { isAuthenticated, user: currentUser } = useAuthStore();
     const searchQuery = searchParams.get('q') || '';
     const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
-    const [page, setPage] = useState(1);
     const [users, setUsers] = useState<UserSummary[]>([]);
     const [userFollowingStatus, setUserFollowingStatus] = useState<Record<string, boolean>>({});
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [totalPages, setTotalPages] = useState(1);
     const [totalUsers, setTotalUsers] = useState(0);
     const [followingChanges, setFollowingChanges] = useState<Record<string, boolean>>({});
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
 
-    // Fetch users on initial load and when search/page changes
+    // Create a ref for the observer element at the bottom of the list
+    const observerRef = useRef<IntersectionObserver | null>(null);
+    const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+    // Fetch users when search changes (reset the list)
     useEffect(() => {
         const fetchUsers = async () => {
             try {
                 setLoading(true);
                 setError(null);
-                const response = await UsersService.getUsers(page, 20, searchQuery);
+                setPage(1); // Reset to page 1
+
+                const response = await UsersService.getUsers(1, 20, searchQuery);
                 setUsers(response.items);
-                setTotalPages(response.totalPages);
                 setTotalUsers(response.totalCount);
+                setHasMore(response.hasNextPage);
 
                 // If authenticated, check following status for all users at once using batch check
                 if (isAuthenticated && response.items.length > 0) {
@@ -57,21 +64,78 @@ const People = () => {
         };
 
         fetchUsers();
-    }, [page, searchQuery, isAuthenticated, currentUser]);
+    }, [searchQuery, isAuthenticated, currentUser]);
+
+    // Load more users function
+    const loadMoreUsers = useCallback(async () => {
+        if (!hasMore || loadingMore) return;
+
+        try {
+            setLoadingMore(true);
+            const nextPage = page + 1;
+            const response = await UsersService.getUsers(nextPage, 20, searchQuery);
+
+            if (response.items.length > 0) {
+                setUsers(prevUsers => [...prevUsers, ...response.items]);
+                setPage(nextPage);
+                setHasMore(response.hasNextPage);
+
+                // Check following status for new users
+                if (isAuthenticated && response.items.length > 0) {
+                    const userIdsToCheck = response.items
+                        .filter(user => !currentUser || user.id !== currentUser.id)
+                        .map(user => user.id);
+
+                    if (userIdsToCheck.length > 0) {
+                        try {
+                            const followStatusMap = await UsersService.checkBatchFollowingStatus(userIdsToCheck);
+                            setUserFollowingStatus(prev => ({...prev, ...followStatusMap}));
+                        } catch (error) {
+                            console.error('Error checking batch follow status:', error);
+                        }
+                    }
+                }
+            } else {
+                setHasMore(false);
+            }
+        } catch (err) {
+            console.error('Error loading more users:', err);
+        } finally {
+            setLoadingMore(false);
+        }
+    }, [page, searchQuery, hasMore, loadingMore, isAuthenticated, currentUser]);
+
+    // Set up the intersection observer
+    useEffect(() => {
+        if (loading) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore) {
+                    loadMoreUsers();
+                }
+            },
+            { threshold: 0.5 }
+        );
+
+        observerRef.current = observer;
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
+        }
+
+        return () => {
+            if (observerRef.current) {
+                observerRef.current.disconnect();
+            }
+        };
+    }, [loading, hasMore, loadMoreUsers]);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (localSearchQuery !== searchQuery) {
-            setPage(1); // Reset to first page on new search
             setSearchParams(localSearchQuery ? { q: localSearchQuery } : {});
         }
-    };
-
-    const handlePageChange = (newPage: number) => {
-        if (newPage < 1 || newPage > totalPages) return;
-        setPage(newPage);
-        // Scroll to top when changing pages
-        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleFollowToggle = async (userId: string) => {
@@ -129,7 +193,7 @@ const People = () => {
     };
 
     return (
-        <div className="max-w-6xl mx-auto py-8">
+        <div className="max-w-6xl mx-auto py-8 px-4">
             <div className="mb-6">
                 <h1 className="text-3xl font-bold mb-2">People</h1>
                 <p className="text-gray-600">Connect with other music enthusiasts</p>
@@ -159,7 +223,7 @@ const People = () => {
                 </form>
             </div>
 
-            {/* Loading State */}
+            {/* Initial Loading State */}
             {loading && (
                 <div className="flex justify-center items-center py-12">
                     <Loader className="h-8 w-8 text-primary-600 animate-spin mr-3" />
@@ -268,44 +332,22 @@ const People = () => {
                         </div>
                     )}
 
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="mt-8 flex justify-center">
-                            <nav className="inline-flex shadow rounded-md">
-                                <button
-                                    onClick={() => handlePageChange(page - 1)}
-                                    disabled={page === 1}
-                                    className="px-3 py-2 border border-r-0 border-gray-300 rounded-l-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Previous
-                                </button>
-                                <div className="flex">
-                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                        // Logic to show relevant page numbers
-                                        const pageNum = Math.min(Math.max(1, page - 2 + i), totalPages);
-                                        return (
-                                            <button
-                                                key={pageNum}
-                                                onClick={() => handlePageChange(pageNum)}
-                                                className={`px-4 py-2 border border-r-0 border-gray-300 ${
-                                                    page === pageNum 
-                                                    ? 'bg-primary-600 text-white'
-                                                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                                                }`}
-                                            >
-                                                {pageNum}
-                                            </button>
-                                        );
-                                    })}
+                    {/* Load more indicator */}
+                    {users.length > 0 && (
+                        <div
+                            ref={loadMoreRef}
+                            className="mt-8 flex justify-center items-center py-4"
+                        >
+                            {loadingMore ? (
+                                <div className="flex items-center">
+                                    <Loader className="h-5 w-5 text-primary-600 animate-spin mr-2" />
+                                    <span className="text-gray-600">Loading more users...</span>
                                 </div>
-                                <button
-                                    onClick={() => handlePageChange(page + 1)}
-                                    disabled={page === totalPages}
-                                    className="px-3 py-2 border border-gray-300 rounded-r-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Next
-                                </button>
-                            </nav>
+                            ) : hasMore ? (
+                                <span className="text-gray-500 text-sm">Scroll for more users</span>
+                            ) : (
+                                <span className="text-gray-500 text-sm">That's all users</span>
+                            )}
                         </div>
                     )}
                 </>
