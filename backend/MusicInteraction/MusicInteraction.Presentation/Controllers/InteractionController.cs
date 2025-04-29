@@ -332,4 +332,36 @@ public class InteractionController : ControllerBase
 
         return Ok(result.Stats);
     }
+
+    [HttpGet("following-feed")]
+    public async Task<IActionResult> GetFollowingInteractions(
+        [FromQuery] string userId,
+        [FromQuery] int? limit = null,
+        [FromQuery] int? offset = null)
+    {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return BadRequest("UserId is required");
+        }
+
+        var command = new GetFollowingInteractionsCommand
+        {
+            UserId = userId,
+            Limit = limit,
+            Offset = offset
+        };
+
+        var result = await mediator.Send(command);
+
+        if (result.InteractionsEmpty && result.TotalCount == 0)
+        {
+            return NotFound("No interactions found from users you follow");
+        }
+
+        return Ok(new
+        {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
+    }
 }
