@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Heart, MessageSquare, SlidersHorizontal } from 'lucide-react';
 import InteractionService, { InteractionDetailDTO } from '../../api/interaction';
 import useAuthStore from '../../store/authStore';
@@ -15,11 +15,9 @@ interface LatestInteractionComponentProps {
 const LatestInteractionComponent = ({
                                         itemId,
                                         itemType,
-                                        onCreateInteraction,
                                         refreshTrigger = 0 // Default value to avoid undefined
                                     }: LatestInteractionComponentProps) => {
     const { user, isAuthenticated } = useAuthStore();
-    const navigate = useNavigate();
     const [latestInteraction, setLatestInteraction] = useState<InteractionDetailDTO | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -83,17 +81,6 @@ const LatestInteractionComponent = ({
     if (!latestInteraction) {
         return (
             <div className="bg-white shadow rounded-lg p-4">
-                <div className="text-center py-4">
-                    <p className="text-gray-600 mb-3">You haven't interacted with this {itemType.toLowerCase()} yet.</p>
-                    <button
-                        onClick={isAuthenticated ?
-                            (onCreateInteraction || (() => navigate(`/create-interaction/${itemType.toLowerCase()}/${itemId}`))) :
-                            () => navigate('/login', { state: { from: window.location.pathname } })}
-                        className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-                    >
-                        {isAuthenticated ? `Rate this ${itemType.toLowerCase()}` : 'Log in to rate'}
-                    </button>
-                </div>
             </div>
         );
     }
