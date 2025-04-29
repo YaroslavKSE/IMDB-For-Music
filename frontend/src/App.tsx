@@ -25,6 +25,7 @@ import PeoplePage from './pages/People';
 import UserProfilePage from './pages/UserProfile';
 import CreateInteractionPage from './pages/CreateInteractionPage';
 import InteractionDetailPage from './pages/InteractionDetailPage';
+import FollowingFeed from './pages/FollowingFeed';
 
 // Auth callback handler component
 const AuthCallback = () => {
@@ -39,8 +40,7 @@ const AuthCallback = () => {
         await socialLogin(accessToken, provider);
 
         // Redirect to home page or the original destination after successful login
-        const from = location.state?.from || '/';
-        window.location.href = from;
+        window.location.href = location.state?.from || '/';
       } catch (error) {
         console.error('Auth callback error:', error);
         window.location.href = '/login';
@@ -172,6 +172,15 @@ function App() {
                 <CreateInteractionPage />
               </ProtectedRoute>
             }
+          />
+
+          <Route
+              path="following-feed"
+              element={
+                <ProtectedRoute>
+                  <FollowingFeed />
+                </ProtectedRoute>
+              }
           />
 
           {/* Catch-all route for 404 */}
