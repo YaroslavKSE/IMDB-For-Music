@@ -30,31 +30,23 @@ const People = () => {
                 setTotalPages(response.totalPages);
                 setTotalUsers(response.totalCount);
 
-                // If authenticated, check following status for each user
+                // If authenticated, check following status for all users at once using batch check
                 if (isAuthenticated && response.items.length > 0) {
-                    const followStatusMap: Record<string, boolean> = {};
+                    // Filter out the current user's ID from the check
+                    const userIdsToCheck = response.items
+                        .filter(user => !currentUser || user.id !== currentUser.id)
+                        .map(user => user.id);
 
-                    // For better performance, we can do these in parallel
-                    const followStatusPromises = response.items.map(async (user) => {
+                    if (userIdsToCheck.length > 0) {
                         try {
-                            // Skip checking follow status for current user
-                            if (currentUser && user.id === currentUser.id) {
-                                return { userId: user.id, isFollowing: false };
-                            }
-                            const isFollowing = await UsersService.checkFollowingStatus(user.id);
-                            return { userId: user.id, isFollowing };
+                            const followStatusMap = await UsersService.checkBatchFollowingStatus(userIdsToCheck);
+                            setUserFollowingStatus(followStatusMap);
                         } catch (error) {
-                            console.error(`Error checking follow status for user ${user.id}:`, error);
-                            return { userId: user.id, isFollowing: false };
+                            console.error('Error checking batch follow status:', error);
+                            // Fallback to empty map on error
+                            setUserFollowingStatus({});
                         }
-                    });
-
-                    const results = await Promise.all(followStatusPromises);
-                    results.forEach(({ userId, isFollowing }) => {
-                        followStatusMap[userId] = isFollowing;
-                    });
-
-                    setUserFollowingStatus(followStatusMap);
+                    }
                 }
             } catch (err) {
                 console.error('Error fetching users:', err);

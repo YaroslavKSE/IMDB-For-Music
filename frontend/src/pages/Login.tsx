@@ -1,61 +1,68 @@
-import { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, Mail, Lock, LogIn } from 'lucide-react';
+import { LogIn, Mail } from 'lucide-react';
+import { TextInput, PasswordInput, FormErrorMessage, FormSuccessMessage } from '../components/common/FormComponents';
 import useAuthStore from '../store/authStore';
 import { handleAuth0Login } from '../utils/auth0-config';
 
-interface LocationState {
-  from: {
-    pathname: string;
-  };
-}
-
-interface LoginFormData {
+type LoginFormValues = {
   email: string;
   password: string;
-  rememberMe: boolean;
-}
+};
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading, error: authError, clearError } = useAuthStore();
+  const from = location.state?.from || '/';
+  const { login, isLoading, error, clearError, isAuthenticated } = useAuthStore();
+  const [formError, setFormError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [socialLoading, setSocialLoading] = useState(false);
+  const [processingAuth, setProcessingAuth] = useState(false);
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
+    formState: { errors }
+  } = useForm<LoginFormValues>({
     defaultValues: {
-      rememberMe: false
+      email: '',
+      password: ''
     }
   });
 
-  // Get the intended destination from the location state or default to home
-  const from = (location.state as LocationState)?.from?.pathname || '/';
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading && !processingAuth) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate, from, processingAuth]);
 
-  const onSubmit = async (data: LoginFormData) => {
+  // Check for errors passed from auth store
+  useEffect(() => {
+    if (error) {
+      setFormError(error);
+    }
+  }, [error]);
+
+  const onSubmit = async (data: LoginFormValues) => {
     try {
-      clearError(); // Clear any previous auth errors
-      setError(null); // Clear any previous form errors
+      clearError();
+      setFormError(null);
+      setProcessingAuth(true);
 
       await login(data.email, data.password);
 
-      // Store remember me preference if needed
-      if (data.rememberMe) {
-        localStorage.setItem('rememberEmail', data.email);
-      } else {
-        localStorage.removeItem('rememberEmail');
-      }
+      setSuccess('Login successful! Redirecting...');
 
-      // Navigate to the page the user tried to visit before being redirected to login
-      navigate(from, { replace: true });
+      // Navigate will be handled by the useEffect watching isAuthenticated
     } catch (err) {
-      console.error('Login failed:', err);
+      console.error('Login error:', err);
+      // Error handling is done via the auth store error state
+    } finally {
+      setProcessingAuth(false);
     }
   };
 
@@ -63,18 +70,35 @@ const Login = () => {
     try {
       setSocialLoading(true);
       clearError();
-      setError(null);
+      setFormError(null);
+      setProcessingAuth(true);
 
-      // This will redirect to Auth0, no need to await
+      // This will redirect to Auth0
       handleAuth0Login('google-oauth2');
-
-      // The function redirects, so we don't need to do anything else here
     } catch (err) {
       console.error('Google login failed:', err);
-      setError('An error occurred during Google authentication.');
+      setFormError('An error occurred during Google authentication.');
       setSocialLoading(false);
+      setProcessingAuth(false);
     }
   };
+
+  // Show loading overlay for authenticating
+  if ((isLoading || processingAuth) && !formError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-primary-100 to-white flex flex-col justify-center px-4 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <div className="flex flex-col items-center justify-center py-6">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-600 mb-4"></div>
+              <h2 className="text-lg font-medium text-gray-700 mb-2">Signing you in</h2>
+              <p className="text-sm text-gray-500">Please wait while we authenticate your credentials</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-100 to-white flex flex-col justify-center px-4 sm:px-6 lg:px-8">
@@ -89,147 +113,66 @@ const Login = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <h2 className="mb-6 text-center text-2xl font-bold text-gray-900">
-            Sign in to your account
-          </h2>
+          <h2 className="mb-6 text-center text-2xl font-bold text-gray-900">Sign In</h2>
 
-          {/* Error message display */}
-          {(error || authError) && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error || authError}
-            </div>
-          )}
+          {/* Success message */}
+          <FormSuccessMessage message={success} />
+
+          {/* Error message */}
+          <FormErrorMessage error={formError} />
 
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  {...register('email', {
-                    required: 'Email is required',
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Invalid email address',
-                    },
-                  })}
-                  type="email"
-                  autoComplete="email"
-                  className={`block w-full pl-10 pr-3 py-2 border ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
-                  } rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
-                  placeholder="you@example.com"
-                />
-              </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-              )}
+            {/* Email Field */}
+            <TextInput
+              id="email"
+              label="Email address"
+              register={register}
+              registerOptions={{
+                required: 'Email is required',
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: 'Invalid email address'
+                }
+              }}
+              errors={errors}
+              icon={<Mail className="h-5 w-5 text-gray-400" />}
+              type="email"
+              placeholder="you@example.com"
+            />
+
+            {/* Password Field */}
+            <PasswordInput
+              id="password"
+              label="Password"
+              register={register}
+              registerOptions={{ required: 'Password is required' }}
+              errors={errors}
+              showPassword={showPassword}
+              onTogglePassword={() => setShowPassword(!showPassword)}
+              placeholder="••••••••"
+            />
+
+            {/* Password recovery link */}
+            <div className="text-right">
+              <Link
+                to="/forgot-password"
+                className="text-sm font-medium text-primary-600 hover:text-primary-500"
+              >
+                Forgot your password?
+              </Link>
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  {...register('password', {
-                    required: 'Password is required',
-                    minLength: {
-                      value: 8,
-                      message: 'Password must be at least 8 characters',
-                    },
-                  })}
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  className={`block w-full pl-10 pr-10 py-2 border ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
-                  } rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
-                  placeholder="••••••••"
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-gray-400 hover:text-gray-500 focus:outline-none"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="rememberMe"
-                  {...register('rememberMe')}
-                  type="checkbox"
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                />
-                <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <a href="#" className="font-medium text-primary-600 hover:text-primary-500">
-                  Forgot your password?
-                </a>
-              </div>
-            </div>
-
+            {/* Submit Button */}
             <div>
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-primary-400"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-primary-400 disabled:cursor-not-allowed"
               >
                 <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                   <LogIn className="h-5 w-5 text-primary-500 group-hover:text-primary-400" />
                 </span>
-                {isLoading ? (
-                  <span className="flex items-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Signing in...
-                  </span>
-                ) : (
-                  'Sign in'
-                )}
+                {isLoading ? 'Signing in...' : 'Sign In'}
               </button>
             </div>
           </form>
@@ -253,26 +196,7 @@ const Login = () => {
               >
                 {socialLoading ? (
                   <span className="flex items-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-700"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
+                    <span className="mr-2 h-4 w-4 rounded-full border-2 border-b-transparent border-t-primary-600 animate-spin"></span>
                     Connecting...
                   </span>
                 ) : (
@@ -297,8 +221,11 @@ const Login = () => {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
-                Sign up now
+              <Link
+                to="/register"
+                className="font-medium text-primary-600 hover:text-primary-500"
+              >
+                Sign up
               </Link>
             </p>
           </div>

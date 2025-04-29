@@ -1,3 +1,4 @@
+// Update to src/api/users.ts to add batch subscription check
 import { createApiClient } from '../utils/axios-factory';
 
 // Create the API client specifically for users
@@ -52,12 +53,20 @@ export interface PublicUserProfile {
   createdAt: string;
 }
 
+export interface BatchSubscriptionCheckRequest {
+  targetUserIds: string[];
+}
+
+export interface BatchSubscriptionCheckResponse {
+  results: Record<string, boolean>;
+}
+
 const UsersService = {
   // Get paginated list of users
   getUsers: async (page: number = 1, pageSize: number = 20, search?: string): Promise<PaginatedUsersResponse> => {
     const params: Record<string, string | number> = { page, pageSize };
     if (search) params.search = search;
-    
+
     const response = await usersApi.get('', { params });
     return response.data;
   },
@@ -66,6 +75,18 @@ const UsersService = {
   checkFollowingStatus: async (userId: string): Promise<boolean> => {
     const response = await subscriptionApi.get(`/check/${userId}`);
     return response.data;
+  },
+
+  // NEW: Check multiple subscription statuses at once
+  checkBatchFollowingStatus: async (userIds: string[]): Promise<Record<string, boolean>> => {
+    if (userIds.length === 0) return {};
+
+    const request: BatchSubscriptionCheckRequest = {
+      targetUserIds: userIds
+    };
+
+    const response = await subscriptionApi.post('/check-batch', request);
+    return response.data.results;
   },
 
   // Follow a user
@@ -82,14 +103,15 @@ const UsersService = {
 
   // Get user's followers
   getUserFollowers: async (page: number = 1, pageSize: number = 20): Promise<PaginatedSubscriptionsResponse> => {
-    const response = await subscriptionApi.get('/followers', { 
+    const response = await subscriptionApi.get('/followers', {
       params: { page, pageSize }
     });
     return response.data;
   },
+
   getUserProfileById: async (userId: string): Promise<PublicUserProfile> => {
-  const response = await usersApi.get(`/id/${userId}`);  // Adjust the URL if your API differs
-  return response.data;
+    const response = await usersApi.get(`/id/${userId}`);  // Adjust the URL if your API differs
+    return response.data;
   },
 
   getUserProfilesBatch: async (userIds: string[]): Promise<PublicUserProfile[]> => {
@@ -115,6 +137,7 @@ const UsersService = {
     const response = await usersApi.get(`id/${userId}/following`, { params: { page, pageSize } });
     return response.data;
   },
+
   // Get users that the current user is following
   getUserFollowing: async (page: number = 1, pageSize: number = 20): Promise<PaginatedSubscriptionsResponse> => {
     const response = await subscriptionApi.get('/following', { 
