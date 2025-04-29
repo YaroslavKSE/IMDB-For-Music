@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {RefreshCcw, ArrowRight, Heart, SlidersHorizontal, Calendar, MessageSquare, UserRoundPlus} from 'lucide-react';
+import { RefreshCcw, ArrowRight, Heart, SlidersHorizontal, Calendar, MessageSquare, UserRoundPlus } from 'lucide-react';
 import InteractionService, { InteractionDetailDTO } from '../../api/interaction';
 import CatalogService from '../../api/catalog';
 import UsersService from '../../api/users';
@@ -41,7 +41,6 @@ const FollowingFeedComponent = () => {
 
             try {
                 setLoading(true);
-                // Get interactions from people the user follows
                 const { items, totalCount } = await InteractionService.getUserFollowingFeed(user.id, 5, 0);
                 setTotalInteractions(totalCount);
 
@@ -51,50 +50,38 @@ const FollowingFeedComponent = () => {
                     return;
                 }
 
-                // Extract all item IDs for preview info
                 const itemIds = items.map(interaction => interaction.itemId);
-
-                // Fetch preview information for all items in a single request
                 const previewResponse = await CatalogService.getItemPreviewInfo(itemIds, ['album', 'track']);
 
-                // Create lookup maps for quick access
-                const itemsMap = new Map();
-
-                // Process results from the preview response
-                previewResponse.results?.forEach(resultGroup => {
-                    resultGroup.items?.forEach(item => {
-                        // Create a simplified catalog item with the preview information
-                        const catalogItem = {
+                const itemsMap = new Map<string, FollowingFeedItemData['catalogItem']>();
+                previewResponse.results?.forEach(group => {
+                    group.items?.forEach(item => {
+                        itemsMap.set(item.spotifyId, {
                             spotifyId: item.spotifyId,
                             name: item.name,
                             imageUrl: item.imageUrl,
-                            artistName: item.artistName
-                        };
-
-                        itemsMap.set(item.spotifyId, catalogItem);
+                            artistName: item.artistName,
+                        });
                     });
                 });
 
-                // Create a map of user IDs to fetch public profiles
-                const userIds = [...new Set(items.map(item => item.userId))];
+                const userIds = [...new Set(items.map(i => i.userId))];
                 const userProfiles = await UsersService.getUserProfilesBatch(userIds);
-                const userProfilesMap = new Map();
-
+                const userProfilesMap = new Map<string, FollowingFeedItemData['userProfile']>();
                 userProfiles.forEach(profile => {
                     userProfilesMap.set(profile.id, {
                         id: profile.id,
                         name: profile.name,
                         surname: profile.surname,
                         username: profile.username,
-                        avatarUrl: profile.avatarUrl
+                        avatarUrl: profile.avatarUrl,
                     });
                 });
 
-                // Combine interactions with catalog items and user profiles
                 const feedItems = items.map(interaction => ({
                     interaction,
                     catalogItem: itemsMap.get(interaction.itemId),
-                    userProfile: userProfilesMap.get(interaction.userId)
+                    userProfile: userProfilesMap.get(interaction.userId),
                 }));
 
                 setInteractions(feedItems);
@@ -109,13 +96,12 @@ const FollowingFeedComponent = () => {
         fetchFollowingFeed();
     }, [isAuthenticated, user]);
 
-    // Don't render anything if the user is not authenticated
     if (!isAuthenticated) {
         return null;
     }
 
     return (
-        <div className="bg-white shadow rounded-lg overflow-hidden mb-8">
+        <div className="bg-white shadow rounded-lg overflow-visible mb-8">
             <div className="px-3 py-3 sm:px-6 sm:py-4 bg-gradient-to-r from-primary-600 to-primary-700 flex justify-between items-center">
                 <h2 className="text-lg sm:text-xl font-bold text-white flex items-center">
                     <UserRoundPlus className="mr-2 h-4 sm:h-5 w-4 sm:w-5" />
@@ -150,9 +136,27 @@ const FollowingFeedComponent = () => {
                         <Link
                             key={item.interaction.aggregateId}
                             to={`/interaction/${item.interaction.aggregateId}`}
-                            className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200"
+                            className="relative group bg-white rounded-lg overflow-visible shadow-sm hover:shadow-md transition-shadow duration-200"
                             role="listitem"
                         >
+                            {/* Tooltip */}
+                            <div
+                                className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 pointer-events-none bg-white text-black text-xs rounded border border-gray-200 shadow z-10 whitespace-nowrap p-1"
+                            >
+                                {item.userProfile ? (
+                                    <>
+                                        {item.userProfile.name} listened to {item.interaction.itemType.toLowerCase()}{' '}
+                                        <strong>{item.catalogItem?.name}</strong>
+                                    </>
+                                ) : (
+                                    <>
+                                        Someone listened to {item.interaction.itemType.toLowerCase()}{' '}
+                                        <strong>{item.catalogItem?.name}</strong>
+                                    </>
+                                )}
+
+                            </div>
+
                             <div className="aspect-square w-full overflow-hidden">
                                 <img
                                     src={item.catalogItem?.imageUrl || '/placeholder-album.jpg'}
@@ -181,7 +185,6 @@ const FollowingFeedComponent = () => {
 
                                 {/* Interaction details */}
                                 <div className="flex items-center text-xs">
-                                    {/* Rating stars */}
                                     {item.interaction.rating && (
                                         <div className="flex items-center">
                                             <NormalizedStarDisplay
@@ -196,20 +199,10 @@ const FollowingFeedComponent = () => {
                                         </div>
                                     )}
 
-                                    {/* Like indicator */}
-                                    {item.interaction.isLiked && (
-                                        <Heart className="h-4 w-4 ml-1 text-red-500 fill-red-500" />
-                                    )}
-
-                                    {/* Review icon */}
-                                    {item.interaction.review && (
-                                            <MessageSquare
-                                                className="h-4 w-4 ml-1 text-primary-600"
-                                            />
-                                    )}
+                                    {item.interaction.isLiked && <Heart className="h-4 w-4 ml-1 text-red-500 fill-red-500" />}
+                                    {item.interaction.review && <MessageSquare className="h-4 w-4 ml-1 text-primary-600" />}
                                 </div>
 
-                                {/* Date */}
                                 <div className="flex items-center mt-1 text-xs text-gray-500">
                                     <Calendar className="h-3 w-3 mr-1" />
                                     <span>{formatDate(item.interaction.createdAt)}</span>
