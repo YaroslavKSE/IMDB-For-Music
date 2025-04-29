@@ -92,4 +92,73 @@ public class InternalApiController : ControllerBase
                 });
         }
     }
+
+    [HttpGet("following")]
+    [ProducesResponseType(typeof(FollowingIdsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetFollowingIds(
+        [FromQuery] Guid userId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 2000)
+    {
+        try
+        {
+            _logger.LogInformation("Getting following IDs for user {UserId}, page {Page}, pageSize {PageSize}",
+                userId, page, pageSize);
+
+            var query = new GetUserFollowingIdsQuery(userId, page, pageSize);
+            var result = await _mediator.Send(query);
+
+            var response = new FollowingIdsResponse
+            {
+                FollowingIds = result.FollowingIds,
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalCount = result.TotalCount,
+                TotalPages = result.TotalPages,
+                HasPreviousPage = result.HasPreviousPage,
+                HasNextPage = result.HasNextPage
+            };
+
+            return Ok(response);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning("Validation error when getting following IDs: {Error}",
+                string.Join("; ", ex.Errors.Select(e => e.ErrorMessage)));
+
+            return BadRequest(new ErrorResponse
+            {
+                Code = "ValidationError",
+                Message = string.Join("; ", ex.Errors.Select(e => e.ErrorMessage)),
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning("User not found: {Message}", ex.Message);
+
+            return NotFound(new ErrorResponse
+            {
+                Code = "UserNotFound",
+                Message = ex.Message,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting following IDs for user {UserId}", userId);
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new ErrorResponse
+                {
+                    Code = "InternalServerError",
+                    Message = "An unexpected error occurred while retrieving following IDs",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+        }
+    }
 }

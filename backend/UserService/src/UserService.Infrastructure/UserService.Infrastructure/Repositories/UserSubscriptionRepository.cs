@@ -86,6 +86,17 @@ public class UserSubscriptionRepository : IUserSubscriptionRepository
             .ToListAsync();
     }
 
+    public async Task<List<Guid>> GetFollowingIdsAsync(Guid userId, int page, int pageSize)
+    {
+        return await _context.UserSubscriptions
+            .Where(s => s.FollowerId == userId)
+            .OrderByDescending(s => s.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(s => s.FollowedId)
+            .ToListAsync();
+    }
+
 
     public async Task AddAsync(UserSubscription subscription)
     {
