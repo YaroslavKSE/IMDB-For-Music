@@ -8,6 +8,8 @@ public class AppDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<UserSubscription> UserSubscriptions { get; set; }
 
+    public DbSet<UserPreference> UserPreferences { get; set; }
+
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
     }
@@ -26,7 +28,8 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Surname).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Auth0Id).IsRequired();
-            entity.Property(e => e.AvatarUrl).IsRequired(false); 
+            entity.Property(e => e.AvatarUrl).IsRequired(false);
+            entity.Property(e => e.Bio).IsRequired(false).HasMaxLength(500); // Configure Bio property with max length
         });
         modelBuilder.Entity<UserSubscription>(entity =>
         {
@@ -46,6 +49,25 @@ public class AppDbContext : DbContext
                 .WithMany(u => u.Following)
                 .HasForeignKey(s => s.FollowerId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<UserPreference>(entity =>
+        {
+            entity.ToTable("user_preferences");
+            entity.HasKey(e => e.Id);
+
+            // Create relationship with User
+            entity.HasOne(p => p.User)
+                .WithMany()
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Store enum as string
+            entity.Property(e => e.ItemType)
+                .HasConversion<string>();
+
+            // Create a unique index for user, item type, and spotify id
+            entity.HasIndex(e => new {e.UserId, e.ItemType, e.SpotifyId})
+                .IsUnique();
         });
     }
 }

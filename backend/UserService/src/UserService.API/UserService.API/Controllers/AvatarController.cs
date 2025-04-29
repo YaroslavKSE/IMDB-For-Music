@@ -39,14 +39,12 @@ public class AvatarController : ControllerBase
         {
             var auth0UserId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
             if (string.IsNullOrEmpty(auth0UserId))
-            {
                 return Unauthorized(new ErrorResponse
                 {
                     Code = "InvalidToken",
                     Message = "User identifier not found in token",
                     TraceId = HttpContext.TraceIdentifier
                 });
-            }
 
             var command = new UpdateUserAvatarCommand(auth0UserId, request.File);
             var result = await _mediator.Send(command);
@@ -106,14 +104,12 @@ public class AvatarController : ControllerBase
         {
             var auth0UserId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
             if (string.IsNullOrEmpty(auth0UserId))
-            {
                 return Unauthorized(new ErrorResponse
                 {
                     Code = "InvalidToken",
                     Message = "User identifier not found in token",
                     TraceId = HttpContext.TraceIdentifier
                 });
-            }
 
             var command = new DeleteUserAvatarCommand(auth0UserId);
             var result = await _mediator.Send(command);
@@ -165,14 +161,12 @@ public class AvatarController : ControllerBase
         {
             var auth0UserId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
             if (string.IsNullOrEmpty(auth0UserId))
-            {
                 return Unauthorized(new ErrorResponse
                 {
                     Code = "InvalidToken",
                     Message = "User identifier not found in token",
                     TraceId = HttpContext.TraceIdentifier
                 });
-            }
 
             var command = new GetAvatarUploadUrlCommand(auth0UserId, request.ContentType);
             var result = await _mediator.Send(command);
@@ -232,14 +226,12 @@ public class AvatarController : ControllerBase
         {
             var auth0UserId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
             if (string.IsNullOrEmpty(auth0UserId))
-            {
                 return Unauthorized(new ErrorResponse
                 {
                     Code = "InvalidToken",
                     Message = "User identifier not found in token",
                     TraceId = HttpContext.TraceIdentifier
                 });
-            }
 
             var command = new CompleteAvatarUploadCommand(auth0UserId, request.ObjectKey, request.AvatarUrl);
             var result = await _mediator.Send(command);
