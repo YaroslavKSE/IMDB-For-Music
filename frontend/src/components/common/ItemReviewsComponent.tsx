@@ -30,24 +30,39 @@ const ItemReviewsComponent = ({ itemId, itemType, onWriteReview }: ItemReviewsPr
 
     const limit = 20;
 
-    // Fetch user profiles for the reviews
+    // Fetch user profiles for the reviews using the new batch endpoint
     const fetchUserProfiles = useCallback(async (userIds: string[]) => {
+        if (userIds.length === 0) return;
+
         const uniqueUserIds = [...new Set(userIds)];
-        const newProfiles = new Map(userProfiles);
 
-        for (const userId of uniqueUserIds) {
-            if (!newProfiles.has(userId)) {
-                try {
-                    const profile = await UsersService.getUserProfileById(userId);
-                    newProfiles.set(userId, profile);
-                } catch (error) {
-                    console.error(`Failed to fetch profile for user ${userId}:`, error);
-                }
-            }
+        try {
+            // Use the new batch API to fetch all profiles in a single request
+            const profiles = await UsersService.getUserProfilesBatch(uniqueUserIds);
+
+            // Create a new map with the fetched profiles
+            const newProfiles = new Map<string, PublicUserProfile>();
+
+            // Add all fetched profiles to the map
+            profiles.forEach(profile => {
+                newProfiles.set(profile.id, profile);
+            });
+
+            // Merge with existing profiles
+            setUserProfiles(prevProfiles => {
+                const mergedProfiles = new Map(prevProfiles);
+
+                // Add new profiles to the merged map
+                newProfiles.forEach((profile, id) => {
+                    mergedProfiles.set(id, profile);
+                });
+
+                return mergedProfiles;
+            });
+        } catch (error) {
+            console.error('Failed to fetch user profiles batch:', error);
         }
-
-        setUserProfiles(newProfiles);
-    }, [userProfiles]);
+    }, []);
 
     // Initial load of reviews
     useEffect(() => {
@@ -69,7 +84,7 @@ const ItemReviewsComponent = ({ itemId, itemType, onWriteReview }: ItemReviewsPr
                 setOffset(reviewItems.length);
                 setHasMore(reviewItems.length < totalCount);
 
-                // Fetch user profiles for all reviews
+                // Fetch user profiles for all reviews at once
                 if (reviewItems.length > 0) {
                     await fetchUserProfiles(reviewItems.map(review => review.userId));
                 }
@@ -105,7 +120,7 @@ const ItemReviewsComponent = ({ itemId, itemType, onWriteReview }: ItemReviewsPr
             setOffset(prev => prev + moreReviews.length);
             setHasMore(offset + moreReviews.length < totalCount);
 
-            // Fetch user profiles for new reviews
+            // Fetch user profiles for new reviews all at once
             await fetchUserProfiles(moreReviews.map(review => review.userId));
 
         } catch (err) {
@@ -222,9 +237,9 @@ const ItemReviewsComponent = ({ itemId, itemType, onWriteReview }: ItemReviewsPr
                                     {/* Username, rating and date */}
                                     <div className="flex-grow">
                                         <div className="flex flex-wrap items-center gap-x-2 mb-1">
-                      <span className="font-medium text-gray-900">
-                        {userProfile ? `${userProfile.name} ${userProfile.surname}` : 'Unknown User'}
-                      </span>
+                                            <span className="font-medium text-gray-900">
+                                                {userProfile ? `${userProfile.name} ${userProfile.surname}` : 'Unknown User'}
+                                            </span>
 
                                             {/* Rating display */}
                                             {review.rating && (
@@ -238,8 +253,8 @@ const ItemReviewsComponent = ({ itemId, itemType, onWriteReview }: ItemReviewsPr
 
                                                     {review.rating.isComplex && (
                                                         <span className="ml-1 text-primary-600">
-                              <SlidersHorizontal className="h-3.5 w-3.5" />
-                            </span>
+                                                            <SlidersHorizontal className="h-3.5 w-3.5" />
+                                                        </span>
                                                     )}
                                                 </div>
                                             )}
@@ -251,8 +266,8 @@ const ItemReviewsComponent = ({ itemId, itemType, onWriteReview }: ItemReviewsPr
 
                                             {/* Date */}
                                             <span className="text-xs text-gray-500">
-                        {formatDate(review.createdAt)}
-                      </span>
+                                                {formatDate(review.createdAt)}
+                                            </span>
                                         </div>
 
                                         {/* Review text - truncated to 500 characters */}

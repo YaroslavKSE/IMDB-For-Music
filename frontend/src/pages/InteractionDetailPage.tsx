@@ -142,27 +142,25 @@ const InteractionDetailPage = () => {
         }
     }
 
-    // Function to fetch user data for comments
+    // Function to fetch user data for comments in batch
     const fetchUsersForComments = async (userIds: string[]) => {
-        try {
-            const usersMap = new Map<string, UserSummary>();
+        if (userIds.length === 0) return;
 
-            // Fetch each user individually
-            // In a production app, you'd want a batch fetch API for better performance
-            for (const userId of userIds) {
-                try {
-                    const userData = await UsersService.getUserProfileById(userId);
-                    usersMap.set(userId, {
-                        id: userData.id,
-                        username: userData.username,
-                        name: userData.name,
-                        surname: userData.surname,
-                        avatarUrl: userData.avatarUrl
-                    });
-                } catch (error) {
-                    console.error(`Error fetching user ${userId}:`, error);
-                }
-            }
+        try {
+            // Use the new batch API to fetch all users in a single request
+            const userProfiles = await UsersService.getUserProfilesBatch(userIds);
+
+            // Create a map from the returned profiles
+            const usersMap = new Map<string, UserSummary>();
+            userProfiles.forEach(profile => {
+                usersMap.set(profile.id, {
+                    id: profile.id,
+                    username: profile.username,
+                    name: profile.name,
+                    surname: profile.surname,
+                    avatarUrl: profile.avatarUrl
+                });
+            });
 
             setCommentUsers(usersMap);
         } catch (error) {

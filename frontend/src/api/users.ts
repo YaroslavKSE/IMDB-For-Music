@@ -91,6 +91,12 @@ const UsersService = {
   const response = await usersApi.get(`/id/${userId}`);  // Adjust the URL if your API differs
   return response.data;
   },
+
+  getUserProfilesBatch: async (userIds: string[]): Promise<PublicUserProfile[]> => {
+    const response = await usersApi.post(`/batch`, { userIds });
+    return response.data.users;
+  },
+
   getPublicUserFollowers: async (
     userId: string,
     page: number = 1,
@@ -116,7 +122,6 @@ const UsersService = {
     });
     return response.data;
   }
-
 };
 
 export default UsersService;
