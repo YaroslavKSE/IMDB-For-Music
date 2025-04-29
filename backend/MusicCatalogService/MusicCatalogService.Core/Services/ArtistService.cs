@@ -180,10 +180,26 @@ public class ArtistService : IArtistService
 
             // Try to get from cache first
             var cachedResult = await _cacheService.GetAsync<ArtistAlbumsResultDto>(cacheKey);
+            
+            // Check if cached result is complete (has expected number of items)
+            bool cacheComplete = false;
             if (cachedResult != null)
             {
-                _logger.LogInformation("Artist albums for {SpotifyId} retrieved from cache", spotifyId);
-                return cachedResult;
+                // If this is a paged request (offset > 0), check if we have all items up to limit
+                // If this is the first page, we should have at least the requested limit or all available items
+                cacheComplete = cachedResult.Albums.Count == limit || 
+                               (cachedResult.Albums.Count < limit && cachedResult.Albums.Count == cachedResult.TotalResults - offset);
+                    
+                if (cacheComplete)
+                {
+                    _logger.LogInformation("Complete artist albums for {SpotifyId} retrieved from cache", spotifyId);
+                    return cachedResult;
+                }
+                else
+                {
+                    _logger.LogInformation("Incomplete cache result found for artist albums. Expected: {Limit}, Found: {CachedCount}",
+                        limit, cachedResult.Albums.Count);
+                }
             }
 
             // Get the artist to ensure it exists and to get the name and stored albums
@@ -211,7 +227,10 @@ public class ArtistService : IArtistService
                     // Try to get album details from our database
                     var albums = await _catalogRepository.GetBatchAlbumsBySpotifyIdsAsync(pagedAlbumIds);
                     
-                    if (albums.Any())
+                    // Check if we got enough albums
+                    bool databaseComplete = albums.Count() == pagedAlbumIds.Count;
+                    
+                    if (albums.Any() && databaseComplete)
                     {
                         var albumSummaries = albums
                             .Where(a => a != null)
@@ -314,10 +333,23 @@ public class ArtistService : IArtistService
 
             // Try to get from cache first
             var cachedResult = await _cacheService.GetAsync<ArtistTopTracksResultDto>(cacheKey);
+            
+            // Check if cached result is valid (typically should have 10 tracks for top tracks)
+            bool cacheComplete = false;
             if (cachedResult != null)
             {
-                _logger.LogInformation("Artist top tracks for {SpotifyId} retrieved from cache", spotifyId);
-                return cachedResult;
+                // For top tracks, Spotify typically returns 10 tracks
+                // But we'll be more flexible and just check if there are any tracks
+                cacheComplete = cachedResult.Tracks.Count > 0;
+                    
+                if (cacheComplete)
+                {
+                    _logger.LogInformation("Complete artist top tracks for {SpotifyId} retrieved from cache", spotifyId);
+                    return cachedResult;
+                }
+
+                _logger.LogInformation("Incomplete cache result found for artist top tracks. Found only: {CachedCount} tracks",
+                    cachedResult.Tracks.Count);
             }
 
             // Get the artist to ensure it exists and to get the name
@@ -339,7 +371,10 @@ public class ArtistService : IArtistService
                     // Try to get track details from our database
                     var tracks = await _catalogRepository.GetBatchTracksBySpotifyIdsAsync(storedTrackIds);
                     
-                    if (tracks.Any())
+                    // Check if we got enough tracks (typically 10 for top tracks)
+                    bool databaseComplete = tracks.Count() == storedTrackIds.Count;
+                    
+                    if (tracks.Any() && databaseComplete)
                     {
                         var trackSummaries = tracks
                             .Where(t => t != null)
