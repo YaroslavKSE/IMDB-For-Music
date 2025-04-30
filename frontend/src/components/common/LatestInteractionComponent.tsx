@@ -80,7 +80,7 @@ const LatestInteractionComponent = ({
     // If no interaction yet, show prompt to create one
     if (!latestInteraction) {
         return (
-            <div className="bg-white shadow rounded-lg p-4">
+            <div>
             </div>
         );
     }
