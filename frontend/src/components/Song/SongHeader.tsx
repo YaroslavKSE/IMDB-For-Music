@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Heart,
@@ -6,26 +7,34 @@ import {
     Disc,
     Calendar,
     Clock,
-    Music,
     Play,
     Pause
 } from 'lucide-react';
 import { TrackDetail } from '../../api/catalog';
 import { formatDuration, formatDate } from '../../utils/formatters';
+import ItemStatsComponent from "../common/ItemStatsComponent.tsx";
+import LatestInteractionComponent from "../common/LatestInteractionComponent.tsx";
 
 interface SongHeaderProps {
     track: TrackDetail;
     isPlaying: boolean;
     handlePreviewToggle: () => Promise<void>;
     handleTrackInteraction: () => void;
+    refreshTrigger?: number; // New prop to trigger refresh
 }
 
 const SongHeader = ({
                         track,
                         isPlaying,
                         handlePreviewToggle,
-                        handleTrackInteraction
+                        handleTrackInteraction,
+                        refreshTrigger = 0 // Default value to avoid undefined
                     }: SongHeaderProps) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    // Determine if title is likely to be too long (roughly more than one line)
+    const isTitleLong = track.name.length > 30;
+
     return (
         <div className="flex flex-col md:flex-row gap-8 mb-8">
             {/* Track Artwork (from album) */}
@@ -80,7 +89,33 @@ const SongHeader = ({
                     </span>
                 </div>
 
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{track.name}</h1>
+                <div className="relative mb-2">
+                    {isTitleLong && !isExpanded ? (
+                        <div className="relative">
+                            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 line-clamp-1">{track.name}</h1>
+                            <button
+                                onClick={() => setIsExpanded(true)}
+                                className="absolute right-0 bottom-0 bg-white pl-2 pr-1 text-primary-600 hover:text-primary-800"
+                                aria-label="Show more"
+                            >
+                                <span className="text-sm">...</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <div>
+                            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">{track.name}</h1>
+                            {isTitleLong && isExpanded && (
+                                <button
+                                    onClick={() => setIsExpanded(false)}
+                                    className="text-primary-600 hover:text-primary-800 focus:outline-none text-sm mt-1 inline-block"
+                                    aria-label="Show less"
+                                >
+                                    Show less
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 <div className="flex items-center mb-4">
                     {track.artists && track.artists.length > 0 ? (
@@ -104,36 +139,30 @@ const SongHeader = ({
 
                 <div className="mb-6">
                     <div className="flex items-center text-gray-600 mb-2">
-                        <Disc className="h-4 w-4 mr-2" />
-                        <span className="mr-1">From the album:</span>
+                        <Disc className="h-4 w-4 mr-2"/>
+                        <span className="mr-1">Track {track.trackNumber} from</span>
                         <Link
                             to={`/album/${track.album?.spotifyId || track.albumId}`}
                             className="font-medium text-primary-600 hover:underline"
                         >
-                            {track.album?.name || "Unknown Album"}
+                            {(track.album?.name?.length > 50
+                                ? `${track.album.name.slice(0, 50)}...`
+                                : track.album?.name) || "Unknown Album"}
                         </Link>
                     </div>
 
-                    {track.trackNumber && (
-                        <div className="flex items-center text-gray-600">
-                            <Music className="h-4 w-4 mr-2" />
-                            <span>Track {track.trackNumber}</span>
-                            {track.discNumber && track.discNumber > 1 && (
-                                <span className="ml-1">on Disc {track.discNumber}</span>
-                            )}
-                        </div>
-                    )}
-
                     {track.album?.releaseDate && (
                         <div className="flex items-center text-gray-600 mt-2">
-                            <Calendar className="h-4 w-4 mr-2" />
-                            <span>Released: {formatDate(track.album.releaseDate)}</span>
+                            <Calendar className="h-4 w-4 mr-2"/>
+                            <span>{formatDate(track.album.releaseDate)}</span>
                         </div>
                     )}
                 </div>
 
-                {/* External links */}
+                {/* Action buttons */}
                 <div className="mt-4 flex flex-wrap gap-4 border-t border-gray-200 pt-2">
+
+                    {/* Spotify link */}
                     {track.externalUrls && track.externalUrls.length > 0 && (
                         <a
                             href={`https://open.spotify.com/track/${track.spotifyId}`}
@@ -141,7 +170,7 @@ const SongHeader = ({
                             rel="noopener noreferrer"
                             className="inline-flex items-center text-sm text-gray-600 hover:text-primary-600"
                         >
-                            {/* Spotify logo SVG instead of ExternalLink icon */}
+                            {/* Spotify logo SVG */}
                             <svg
                                 className="h-5 w-5 mr-1"
                                 viewBox="0 0 24 24"
@@ -174,6 +203,22 @@ const SongHeader = ({
                             </>
                         )}
                     </button>
+                </div>
+
+                {/* Song Stats and Latest Interaction in a flex row */}
+                <div className="flex flex-col md:flex-row gap-3 items-start">
+                    <div className="md:w-1/2 scale-[1.3] origin-top-left">
+                        <ItemStatsComponent itemId={track.spotifyId} />
+                    </div>
+
+                    <div className="hidden lg:block lg:w-1/3 xl:w-1/2 scale-[0.9] lg:ml-20 xl:ml-0">
+                        <LatestInteractionComponent
+                            itemId={track.spotifyId}
+                            itemType="Track"
+                            onCreateInteraction={handleTrackInteraction}
+                            refreshTrigger={refreshTrigger}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

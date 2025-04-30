@@ -202,7 +202,7 @@ public class InteractionController : ControllerBase
         });
     }
 
-    [HttpGet("by-several-user-ids")]
+    [HttpPost("by-several-user-ids")]
     public async Task<IActionResult> GetInteractionsByUserIds([FromBody] List<string> userIds, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
     {
         if (userIds == null || userIds.Count == 0)
@@ -230,7 +230,7 @@ public class InteractionController : ControllerBase
         });
     }
 
-    [HttpGet("by-several-item-ids")]
+    [HttpPost("by-several-item-ids")]
     public async Task<IActionResult> GetInteractionsByItemIds([FromBody] List<string> itemIds, [FromQuery] int? limit = null, [FromQuery] int? offset = null)
     {
         if (itemIds == null || itemIds.Count == 0)
@@ -331,5 +331,37 @@ public class InteractionController : ControllerBase
         }
 
         return Ok(result.Stats);
+    }
+
+    [HttpGet("following-feed")]
+    public async Task<IActionResult> GetFollowingInteractions(
+        [FromQuery] string userId,
+        [FromQuery] int? limit = null,
+        [FromQuery] int? offset = null)
+    {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return BadRequest("UserId is required");
+        }
+
+        var command = new GetFollowingInteractionsCommand
+        {
+            UserId = userId,
+            Limit = limit,
+            Offset = offset
+        };
+
+        var result = await mediator.Send(command);
+
+        if (result.InteractionsEmpty && result.TotalCount == 0)
+        {
+            return NotFound("No interactions found from users you follow");
+        }
+
+        return Ok(new
+        {
+            items = result.Interactions,
+            totalCount = result.TotalCount
+        });
     }
 }

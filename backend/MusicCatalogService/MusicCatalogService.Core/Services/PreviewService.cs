@@ -27,7 +27,7 @@ public class PreviewService : IPreviewService
         _logger = logger;
         _spotifySettings = spotifySettings.Value;
     }
-        public async Task<MultiTypePreviewResultDto> GetMultiTypePreviewItemsAsync(IEnumerable<string> spotifyIds, IEnumerable<string> types)
+    public async Task<MultiTypePreviewResultDto> GetMultiTypePreviewItemsAsync(IEnumerable<string> spotifyIds, IEnumerable<string> types)
     {
         if (spotifyIds == null || !spotifyIds.Any())
         {
@@ -58,14 +58,35 @@ public class PreviewService : IPreviewService
             var cacheKey = $"preview:multi:{string.Join(",", uniqueTypes)}:{string.Join(",", uniqueIds)}";
             var cachedResult = await _cacheService.GetAsync<MultiTypePreviewResultDto>(cacheKey);
             
+            // Check if cached result exists AND contains all requested IDs
+            bool cacheComplete = false;
             if (cachedResult != null && cachedResult.Results.Any())
             {
-                _logger.LogInformation("Multi-type preview items retrieved from cache, total count: {Count}",
-                    cachedResult.TotalCount);
-                return cachedResult;
+                // Get all IDs from cached results
+                var cachedIds = new HashSet<string>();
+                foreach (var resultGroup in cachedResult.Results)
+                {
+                    foreach (var item in resultGroup.Items)
+                    {
+                        cachedIds.Add(item.SpotifyId);
+                    }
+                }
+                
+                // Check if all requested IDs are in the cache
+                cacheComplete = uniqueIds.All(id => cachedIds.Contains(id));
+                
+                if (cacheComplete)
+                {
+                    _logger.LogInformation("Complete multi-type preview items retrieved from cache, total count: {Count}",
+                        cachedResult.TotalCount);
+                    return cachedResult;
+                }
+
+                _logger.LogInformation("Incomplete cache result found ({CachedCount}/{RequestedCount} IDs). Fetching all data.",
+                    cachedIds.Count, uniqueIds.Count);
             }
             
-            // Not in cache, process each type separately
+            // Not in cache or incomplete, process each type separately
             foreach (var type in uniqueTypes)
             {
                 _logger.LogInformation("Processing type {Type} for {Count} IDs", type, uniqueIds.Count);

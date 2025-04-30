@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Music, Disc, Heart, Star, MessageSquare, SlidersHorizontal, Trash2 } from 'lucide-react';
-import { DiaryEntry } from './types';
-import ComplexRatingModal from '../common/ComplexRatingModal.tsx';
+import { User, Heart, Star, MessageSquare, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { ItemHistoryEntry } from './ItemHistoryTypes';
+import ComplexRatingModal from '../common/ComplexRatingModal';
 
-interface DiaryEntryProps {
-    entry: DiaryEntry;
-    onReviewClick: (e: React.MouseEvent, entry: DiaryEntry) => void;
-    onDeleteClick?: (e: React.MouseEvent, entry: DiaryEntry) => void;
+interface ItemHistoryEntryProps {
+    entry: ItemHistoryEntry;
+    onReviewClick: (e: React.MouseEvent, entry: ItemHistoryEntry) => void;
+    onViewClick?: (e: React.MouseEvent, entry: ItemHistoryEntry) => void;
 }
 
-const DiaryEntryComponent = ({ entry, onReviewClick, onDeleteClick }: DiaryEntryProps) => {
+const ItemHistoryEntryComponent = ({ entry, onReviewClick, onViewClick }: ItemHistoryEntryProps) => {
     const navigate = useNavigate();
     const [isHovered, setIsHovered] = useState(false);
     const [isComplexRatingModalOpen, setIsComplexRatingModalOpen] = useState(false);
@@ -19,15 +19,10 @@ const DiaryEntryComponent = ({ entry, onReviewClick, onDeleteClick }: DiaryEntry
         navigate(`/interaction/${entry.interaction.aggregateId}`);
     };
 
-    const handleAlbumClick = (e: React.MouseEvent) => {
+    const handleUserClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!entry.catalogItem) return;
-
-        if (entry.interaction.itemType === 'Album') {
-            navigate(`/album/${entry.catalogItem.spotifyId}`);
-        } else if (entry.interaction.itemType === 'Track') {
-            navigate(`/track/${entry.catalogItem.spotifyId}`);
-        }
+        if (!entry.userProfile) return;
+        navigate(`/people/${entry.userProfile.id}`);
     };
 
     const handleComplexRatingClick = (e: React.MouseEvent) => {
@@ -37,10 +32,10 @@ const DiaryEntryComponent = ({ entry, onReviewClick, onDeleteClick }: DiaryEntry
         }
     };
 
-    const handleDelete = (e: React.MouseEvent) => {
+    const handleViewClick = (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent triggering the row click
-        if (onDeleteClick) {
-            onDeleteClick(e, entry);
+        if (onViewClick) {
+            onViewClick(e, entry);
         }
     };
 
@@ -52,38 +47,38 @@ const DiaryEntryComponent = ({ entry, onReviewClick, onDeleteClick }: DiaryEntry
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
             >
-                {/* Item image */}
-                <div className="flex-shrink-0 h-16 w-16 bg-gray-200 rounded-md overflow-hidden mr-4">
-                    {entry.catalogItem?.imageUrl ? (
+                {/* User avatar */}
+                <div className="flex-shrink-0 h-12 w-12 rounded-full overflow-hidden mr-4">
+                    {entry.userProfile?.avatarUrl ? (
                         <img
-                            src={entry.catalogItem.imageUrl}
-                            alt={entry.catalogItem.name}
+                            src={entry.userProfile.avatarUrl}
+                            alt={`${entry.userProfile.name} ${entry.userProfile.surname}`}
                             className="h-full w-full object-cover"
                         />
                     ) : (
-                        <div className="h-full w-full flex items-center justify-center bg-gray-200">
-                            {entry.interaction.itemType === 'Album' ? (
-                                <Disc className="h-8 w-8 text-gray-400" />
+                        <div className="h-full w-full flex items-center justify-center bg-primary-100 text-primary-700 font-bold text-lg rounded-full">
+                            {entry.userProfile ? (
+                                `${entry.userProfile.name.charAt(0)}${entry.userProfile.surname.charAt(0)}`
                             ) : (
-                                <Music className="h-8 w-8 text-gray-400" />
+                                <User className="h-6 w-6 text-gray-400" />
                             )}
                         </div>
                     )}
                 </div>
 
-                {/* Item details */}
+                {/* User details */}
                 <div className="flex-grow min-w-0">
                     <div className="flex items-center">
-                        <h3 className="text-base font-medium text-gray-900 truncate">
-                            {entry.catalogItem?.name || 'Unknown Title'}
+                        <h3
+                            className="text-base font-medium text-gray-900 truncate hover:text-primary-600 hover:underline cursor-pointer"
+                            onClick={handleUserClick}
+                        >
+                            {entry.userProfile ?
+                                `${entry.userProfile.name} ${entry.userProfile.surname}` :
+                                'Unknown User'}
                         </h3>
-                        <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                            {entry.interaction.itemType}
-                        </span>
                     </div>
-                    <p className="text-sm text-gray-500 truncate">
-                        {entry.catalogItem?.artistName || 'Unknown Artist'}
-                    </p>
+
                     <div className="mt-1 text-xs text-gray-500">
                         {new Date(entry.interaction.createdAt).toLocaleTimeString('en-US', {
                             hour: '2-digit',
@@ -93,7 +88,7 @@ const DiaryEntryComponent = ({ entry, onReviewClick, onDeleteClick }: DiaryEntry
                     </div>
                 </div>
 
-                {/* ItemHistory indicators */}
+                {/* Interaction indicators */}
                 <div className="flex items-center space-x-4 ml-4">
                     {/* Rating stars - always show */}
                     <div className="flex items-center">
@@ -160,20 +155,11 @@ const DiaryEntryComponent = ({ entry, onReviewClick, onDeleteClick }: DiaryEntry
                     )}
                 </div>
 
-                {/* Album navigation icon */}
+                {/* View button (for individual interaction) */}
                 <button
-                    onClick={handleAlbumClick}
+                    onClick={handleViewClick}
                     className={`ml-4 p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-full ${isHovered ? 'visible' : 'invisible'}`}
-                    title={`Go to ${entry.interaction.itemType === 'Album' ? 'album' : 'track\'s album'}`}
-                >
-                    <Disc className="h-5 w-5" />
-                </button>
-
-                {/* Delete button */}
-                <button
-                    onClick={handleDelete}
-                    className={`ml-2 p-2 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-full transition-colors ${isHovered ? 'visible' : 'invisible'}`}
-                    title="Delete this entry"
+                    title="View interaction details"
                 >
                     <Trash2 className="h-5 w-5" />
                 </button>
@@ -200,4 +186,4 @@ const DiaryEntryComponent = ({ entry, onReviewClick, onDeleteClick }: DiaryEntry
     );
 };
 
-export default DiaryEntryComponent;
+export default ItemHistoryEntryComponent;

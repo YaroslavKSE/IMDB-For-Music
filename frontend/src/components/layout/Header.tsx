@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, User, Home, NotebookPen, ListMusic, LogIn, Star, Users } from 'lucide-react';
+import { Search, Menu, X, User, Home, NotebookPen, ListMusic, LogIn, Users } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
 const Header = () => {
@@ -25,6 +25,10 @@ const Header = () => {
       setIsSearchActive(false);
       setSearchQuery(''); // Clear search input after submitting
     }
+  };
+
+  const navigateToProfile = () => {
+    navigate('/profile');
   };
 
   return (
@@ -123,19 +127,26 @@ const Header = () => {
               {/* Profile/Login button */}
               <div className="ml-4 flex items-center md:ml-6">
                 {isAuthenticated ? (
-                    <div className="relative">
+                    <div
+                      className="relative cursor-pointer group"
+                      onClick={navigateToProfile}
+                    >
                       <div className="flex items-center text-sm font-medium text-zinc-700 hover:text-primary-600">
                         <span className="hidden md:flex mr-2 items-center">
-                          <Star className="h-4 w-4 mr-1" />
+                          <User className="h-4 w-4 mr-1" />
                           <span>Profile</span>
                         </span>
-                        <Link to="/profile" className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-500">
-                          {user?.name ? (
-                              <span>{user.name.charAt(0).toUpperCase()}</span>
+                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-500 overflow-hidden">
+                          {user?.avatarUrl ? (
+                              <img
+                                src={user.avatarUrl}
+                                alt={`${user.name}'s avatar`}
+                                className="w-full h-full object-cover"
+                              />
                           ) : (
-                              <User className="h-4 w-4" />
+                              <span>{user?.name ? user.name.charAt(0).toUpperCase() : <User className="h-4 w-4" />}</span>
                           )}
-                        </Link>
+                        </div>
                       </div>
                     </div>
                 ) : (
@@ -248,11 +259,18 @@ const Header = () => {
                   <div className="pt-4 pb-3 border-t border-zinc-200">
                     <div className="flex items-center px-4">
                       <div className="flex-shrink-0">
-                        <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-500">
-                          {user?.name ? (
-                              <span className="text-lg font-medium">{user.name.charAt(0).toUpperCase()}</span>
+                        <div
+                          onClick={navigateToProfile}
+                          className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-500 overflow-hidden cursor-pointer"
+                        >
+                          {user?.avatarUrl ? (
+                              <img
+                                src={user.avatarUrl}
+                                alt={`${user.name}'s avatar`}
+                                className="h-full w-full object-cover"
+                              />
                           ) : (
-                              <User className="h-6 w-6" />
+                              <span className="text-lg font-medium">{user?.name ? user.name.charAt(0).toUpperCase() : <User className="h-6 w-6" />}</span>
                           )}
                         </div>
                       </div>

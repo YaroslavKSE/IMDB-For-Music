@@ -344,7 +344,7 @@ const MusicInteractionModal = ({
                         )}
                     </div>
 
-                    {/* Interaction options */}
+                    {/* ItemHistory options */}
                     <div className="p-4 border-t border-gray-200">
                         {/* Rating */}
                         <div className="mb-4">

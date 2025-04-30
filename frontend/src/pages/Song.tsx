@@ -21,6 +21,7 @@ const Song = () => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isInteractionModalOpen, setIsInteractionModalOpen] = useState(false);
     const [interactionSuccess, setInteractionSuccess] = useState(false);
+    const [refreshLatestInteraction, setRefreshLatestInteraction] = useState(0); // New state for refresh trigger
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
@@ -117,8 +118,8 @@ const Song = () => {
         setIsInteractionModalOpen(false);
         setInteractionSuccess(true);
 
-        // After a successful interaction, make sure we're on the reviews tab
-        setActiveTab('reviews');
+        // Trigger refresh of the latest interaction component
+        setRefreshLatestInteraction(prev => prev + 1);
 
         // Show success message briefly
         setTimeout(() => {
@@ -151,12 +152,14 @@ const Song = () => {
                 isPlaying={isPlaying}
                 handlePreviewToggle={handlePreviewToggle}
                 handleTrackInteraction={handleTrackInteraction}
+                refreshTrigger={refreshLatestInteraction} // Pass refresh trigger to SongHeader
             />
 
             <SongContentTabs
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 handleTrackInteraction={handleTrackInteraction}
+                refreshTrigger={refreshLatestInteraction}
             />
 
             {track && (

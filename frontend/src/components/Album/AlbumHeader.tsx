@@ -1,14 +1,27 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Star, Share, Disc, Calendar } from 'lucide-react';
 import { AlbumDetail } from '../../api/catalog';
 import { formatDate } from '../../utils/formatters';
+import ItemStatsComponent from '../common/ItemStatsComponent';
+import LatestInteractionComponent from '../common/LatestInteractionComponent';
 
 interface AlbumHeaderProps {
     album: AlbumDetail;
     handleAlbumInteraction: () => void;
+    refreshTrigger?: number; // New prop to trigger refresh
 }
 
-const AlbumHeader = ({ album, handleAlbumInteraction }: AlbumHeaderProps) => {
+const AlbumHeader = ({
+                         album,
+                         handleAlbumInteraction,
+                         refreshTrigger = 0 // Default value to avoid undefined
+                     }: AlbumHeaderProps) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    // Determine if title is likely to be too long (roughly more than one line)
+    const isTitleLong = album.name.length > 40;
+
     return (
         <div className="flex flex-col md:flex-row gap-8 mb-8">
             {/* Album Artwork */}
@@ -47,19 +60,45 @@ const AlbumHeader = ({ album, handleAlbumInteraction }: AlbumHeaderProps) => {
             {/* Album Info */}
             <div className="flex-grow">
                 <div className="flex items-center text-gray-500 text-sm mb-2">
-          <span className="uppercase bg-gray-200 rounded px-2 py-0.5">
-            {album.albumType === 'album' ? 'Album' : album.albumType}
-          </span>
+                    <span className="uppercase bg-gray-200 rounded px-2 py-0.5">
+                        {album.albumType === 'album' ? 'Album' : album.albumType}
+                    </span>
 
                     {album.releaseDate && (
                         <span className="ml-2 flex items-center">
-              <Calendar className="h-3.5 w-3.5 mr-1" />
+                            <Calendar className="h-3.5 w-3.5 mr-1" />
                             {formatDate(album.releaseDate)}
-            </span>
+                        </span>
                     )}
                 </div>
 
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{album.name}</h1>
+                <div className="relative mb-2">
+                    {isTitleLong && !isExpanded ? (
+                        <div className="relative">
+                            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 line-clamp-1">{album.name}</h1>
+                            <button
+                                onClick={() => setIsExpanded(true)}
+                                className="absolute right-0 bottom-0 bg-white pl-2 pr-1 text-primary-600 hover:text-primary-800"
+                                aria-label="Show more"
+                            >
+                                <span className="text-sm">...</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <div>
+                            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">{album.name}</h1>
+                            {isTitleLong && isExpanded && (
+                                <button
+                                    onClick={() => setIsExpanded(false)}
+                                    className="text-primary-600 hover:text-primary-800 focus:outline-none text-sm mt-1 inline-block"
+                                    aria-label="Show less"
+                                >
+                                    Show less
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 <div className="flex items-center mb-4">
                     <Link to={`/artist/${album.artists[0]?.spotifyId || '#'}`} className="text-lg font-medium text-primary-600 hover:underline">
@@ -106,6 +145,22 @@ const AlbumHeader = ({ album, handleAlbumInteraction }: AlbumHeaderProps) => {
                         </a>
                     </div>
                 )}
+
+                {/* Album Stats and Latest Interaction in a flex row */}
+                <div className="flex flex-col md:flex-row gap-3 items-start">
+                    <div className="md:w-1/2 scale-[1.3] origin-top-left">
+                        <ItemStatsComponent itemId={album.spotifyId} />
+                    </div>
+
+                    <div className="hidden lg:block lg:w-1/3 xl:w-1/2 scale-[0.9] lg:ml-20 xl:ml-0">
+                        <LatestInteractionComponent
+                            itemId={album.spotifyId}
+                            itemType="Album"
+                            onCreateInteraction={handleAlbumInteraction}
+                            refreshTrigger={refreshTrigger}
+                        />
+                    </div>
+                </div>
             </div>
         </div>
     );

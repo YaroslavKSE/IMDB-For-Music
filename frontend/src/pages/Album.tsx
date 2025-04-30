@@ -27,6 +27,7 @@ const Album = () => {
     const [isAlbumInteraction, setIsAlbumInteraction] = useState(true);
     const [tracksOffset, setTracksOffset] = useState(0);
     const [tracksTotal, setTracksTotal] = useState(0);
+    const [refreshLatestInteraction, setRefreshLatestInteraction] = useState(0); // New state for refresh trigger
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const animationFrameRef = useRef<number | null>(null);
 
@@ -198,10 +199,8 @@ const Album = () => {
         setIsInteractionModalOpen(false);
         setInteractionSuccess(true);
 
-        // After a successful interaction, make sure we're on the appropriate tab
-        if (isAlbumInteraction) {
-            setActiveTab('reviews');
-        }
+        // Trigger refresh of the latest interaction component
+        setRefreshLatestInteraction(prev => prev + 1);
 
         // Show success message briefly
         setTimeout(() => {
@@ -252,6 +251,7 @@ const Album = () => {
             <AlbumHeader
                 album={album}
                 handleAlbumInteraction={handleAlbumInteraction}
+                refreshTrigger={refreshLatestInteraction} // Pass refresh trigger to AlbumHeader
             />
 
             <AlbumContentTabs
@@ -268,6 +268,7 @@ const Album = () => {
                 tracksOffset={tracksOffset}
                 loadingMoreTracks={loadingMoreTracks}
                 onLoadMoreTracks={loadMoreTracks}
+                refreshTrigger={refreshLatestInteraction}
             />
 
             {/* Modal for Album interaction */}

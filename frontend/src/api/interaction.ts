@@ -2,6 +2,7 @@ import { createApiClient } from '../utils/axios-factory';
 
 const interactionApi = createApiClient('/interactions');
 const gradingApi = createApiClient('/grading-methods');
+const reviewApi = createApiClient('/review-interactions');
 
 // Grading Method Interfaces
 export interface GradeComponent {
@@ -61,7 +62,7 @@ export interface DeleteGradingMethodResponse {
   errorMessage?: string;
 }
 
-// Interaction Interfaces
+// ItemHistory Interfaces
 export interface GradeInputDTO {
   componentName: string;
   value: number;
@@ -117,6 +118,8 @@ export interface RatingNormalizedDTO {
 export interface ReviewDTO {
   reviewId: string;
   reviewText: string;
+  likes: number;
+  comments: number;
 }
 
 export interface InteractionDetailDTO {
@@ -179,22 +182,38 @@ export interface ErrorResponse {
   success: boolean;
 }
 
-export interface UserInteractionDetail {
-  aggregateId: string;
+export interface LikeRequest {
+  reviewId: string;
   userId: string;
+}
+
+export interface ReviewCommentsResult {
+  comments?: ReviewComment[];
+  totalCount: number;
+}
+
+export interface PostReviewComment {
+  reviewId: string;
+  userId: string;
+  commentText: string;
+}
+
+export interface ReviewComment {
+  commentId: string;
+  reviewId: string;
+  userId: string;
+  commentedAt: string;
+  commentText: string;
+}
+
+export interface ItemStats {
   itemId: string;
-  itemType: string;
-  createdAt: string;
-  rating?: {
-    ratingId: string;
-    normalizedGrade: number;
-    isComplex: boolean;
-  };
-  review?: {
-    reviewId: string;
-    reviewText: string;
-  };
-  isLiked: boolean;
+  totalUsersInteracted: number;
+  totalLikes: number;
+  totalReviews: number;
+  ratingDistribution: number[];
+  averageRating: number;
+  hasRatings: boolean;
 }
 
 const InteractionService = {
@@ -227,7 +246,7 @@ const InteractionService = {
     return response.data;
   },
 
-  // Interaction Operations
+  // ItemHistory Operations
   createInteraction: async (interaction: PostInteractionRequest): Promise<PostInteractionResult> => {
     const response = await interactionApi.post('/create', interaction);
     return response.data;
@@ -253,14 +272,118 @@ const InteractionService = {
     return response.data;
   },
 
-  getUserInteractionsByUserId: async (userId: string): Promise<UserInteractionDetail[]> => {
-    const response = await interactionApi.get(`/by-user-id/${userId}`);
-    return response.data.items;
+  getUserInteractionsByUserId: async (userId: string, limit: number = 20, offset: number = 0): Promise<{items: InteractionDetailDTO[], totalCount: number}> => {
+    const response = await interactionApi.get(`/by-user-id/${userId}`, {
+      params: { limit, offset }
+    });
+    return {
+      items: response.data.items,
+      totalCount: response.data.totalCount
+    };
   },
 
-  getItemInteractions: async (itemId: string, itemType: string): Promise<GetInteractionsResult> => {
-    const response = await interactionApi.get(`/item/${itemType}/${itemId}`);
+  getUserFollowingFeed: async (userId: string, limit: number = 20, offset: number = 0): Promise<{items: InteractionDetailDTO[], totalCount: number}> => {
+    const response = await interactionApi.get('/following-feed', {
+      params: {userId, limit, offset}
+    })
+    return {
+      items: response.data.items,
+      totalCount: response.data.totalCount
+    }
+  },
+
+  getItemStats: async (itemId: string): Promise<ItemStats> => {
+    const response = await interactionApi.get(`/item-stats/${itemId}`);
+    if(response.status != 200){
+      console.log(response.statusText);
+    }
     return response.data;
+  },
+
+  getItemReviews: async (itemId: string, limit: number = 20, offset: number = 0): Promise<{items: InteractionDetailDTO[], totalCount: number}> => {
+    const response = await interactionApi.get(`/reviews-by-item-id/${itemId}`, {
+      params: {limit, offset}
+    });
+    return {
+      items: response.data.items,
+      totalCount: response.data.totalCount
+    };
+  },
+
+  getUserItemHistory: async (userId: string, itemId: string, limit: number = 20, offset: number = 0): Promise<{items: InteractionDetailDTO[], totalCount: number}> => {
+    const response = await interactionApi.get(`/by-user-and-item`, {
+      params: {userId, itemId, limit, offset}
+    });
+    return {
+      items: response.data.items,
+      totalCount: response.data.totalCount
+    };
+  },
+
+  getReviewComments: async (reviewId: string, limit: number, offset: number): Promise<ReviewCommentsResult> => {
+    const response = await reviewApi.get('/comments', {
+      params: {reviewId, limit, offset}
+    })
+    return response.data;
+  },
+
+  postReviewComment: async (comment: PostReviewComment): Promise<boolean> => {
+    const response = await reviewApi.post('/comments', comment);
+    if(response.status === 200){
+      return true;
+    }
+    else{
+      console.log(response.data);
+      return false;
+    }
+  },
+
+  deleteReviewComment: async (commentId: string, userId: string): Promise<boolean> => {
+    const response = await reviewApi.delete(`/comments/${commentId}`, {
+      params: {userId}
+    });
+    if(response.status === 200){
+      return true;
+    }
+    else{
+      console.log(response.data);
+      return false;
+    }
+  },
+
+  checkReviewLike: async (reviewId: string, userId: string): Promise<boolean> => {
+    const response = await reviewApi.get('/likes/check', {
+      params: {reviewId, userId}
+    });
+    return response.data.hasLiked;
+  },
+
+  likeReview: async (reviewId: string, userId: string): Promise<boolean> => {
+    const like: LikeRequest = {
+      reviewId: reviewId,
+      userId: userId
+    }
+    const response = await reviewApi.post('/likes', like);
+    if(response.status === 200) {
+      return true;
+    }
+    else{
+      console.log(response.data);
+      return false;
+    }
+  },
+
+  unlikeReview: async (reviewId: string, userId: string): Promise<boolean> => {
+    const response = await reviewApi.delete('/likes', {
+      params: {reviewId, userId}
+    })
+    if(response.status === 200){
+      return true;
+    }
+    else{
+      console.log(response.data);
+      return false;
+    }
   }
 };
 

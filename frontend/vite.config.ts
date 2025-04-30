@@ -30,7 +30,7 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/v1\/catalog/, '/api/v1')
       },
 
-      // Interaction and Grading service endpoints
+      // ItemHistory and Grading service endpoints
       '/api/v1/interactions': {
         target: 'http://localhost:5003',
         changeOrigin: true,

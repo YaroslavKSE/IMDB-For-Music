@@ -7,18 +7,17 @@ import ReviewModal from "../components/Diary/ReviewModal.tsx";
 import { DiaryEntry, GroupedEntries } from '../components/Diary/types';
 import { DiaryLoadingState, DiaryErrorState, DiaryEmptyState } from '../components/Diary/DiaryStates';
 import DiaryDateGroup from '../components/Diary/DiaryDateGroup';
-import DiaryPagination from '../components/Diary/DiaryPagination';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader } from 'lucide-react';
 
 const Diary = () => {
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAuthStore();
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
     const [groupedEntries, setGroupedEntries] = useState<GroupedEntries[]>([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
+    const [offset, setOffset] = useState(0);
     const [totalInteractions, setTotalInteractions] = useState(0);
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
     const [selectedReview, setSelectedReview] = useState<{
@@ -31,109 +30,226 @@ const Diary = () => {
     const [entryToDelete, setEntryToDelete] = useState<DiaryEntry | null>(null);
     const [deleteSuccess, setDeleteSuccess] = useState(false);
     const [noInteractions, setNoInteractions] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
     const itemsPerPage = 20;
 
-    // Wrap loadDiaryEntries with useCallback
-    const loadDiaryEntries = useCallback(async () => {
+    // Load initial diary entries
+    const loadInitialDiaryEntries = useCallback(async () => {
         if (!user) return;
 
         setLoading(true);
         setError(null);
         setNoInteractions(false);
+        setOffset(0);
+        setDiaryEntries([]);
 
         try {
-            // Fetch all interactions for the user to get the total count
-            const interactions = await InteractionService.getUserInteractionsByUserId(user.id);
+            // Fetch initial interactions for the user
+            const { items: initialInteractions, totalCount } =
+                await InteractionService.getUserInteractionsByUserId(user.id, itemsPerPage, 0);
 
-            // Calculate total pages and set total interactions
-            const total = interactions.length;
-            setTotalInteractions(total);
-            const pages = Math.ceil(total / itemsPerPage);
-            setTotalPages(pages || 1);
+            console.log(`Initial load: ${initialInteractions.length} of ${totalCount} total entries`);
 
-            if (total === 0) {
+            // Set total interactions and check if there are more to load
+            setTotalInteractions(totalCount);
+            setHasMore(totalCount > itemsPerPage);
+
+            if (totalCount === 0) {
                 setNoInteractions(true);
                 setLoading(false);
                 return;
             }
 
-            // Sort interactions by date (newest first)
-            const sortedInteractions = [...interactions].sort((a, b) =>
-                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            );
+            // Extract all item ids for preview info
+            const itemIds: string[] = initialInteractions.map(interaction => interaction.itemId);
 
-            // Get paginated interactions for current page
-            const startIdx = (currentPage - 1) * itemsPerPage;
-            const endIdx = startIdx + itemsPerPage;
-            const paginatedInteractions = sortedInteractions.slice(startIdx, endIdx);
-
-            // Extract album and track ids
-            const albumIds: string[] = [];
-            const trackIds: string[] = [];
-
-            paginatedInteractions.forEach(interaction => {
-                if (interaction.itemType === 'Album') {
-                    albumIds.push(interaction.itemId);
-                } else if (interaction.itemType === 'Track') {
-                    trackIds.push(interaction.itemId);
-                }
-            });
-
-            // Fetch album and track details in batches
-            const [albumsResponse, tracksResponse] = await Promise.all([
-                albumIds.length > 0 ? CatalogService.getBatchAlbums(albumIds) : { albums: [] },
-                trackIds.length > 0 ? CatalogService.getBatchTracks(trackIds) : { tracks: [] }
-            ]);
+            // Fetch preview information for all items in a single request
+            const previewResponse = await CatalogService.getItemPreviewInfo(itemIds, ['album', 'track']);
 
             // Create lookup maps for quick access
-            const albumsMap = new Map();
-            const tracksMap = new Map();
+            const itemsMap = new Map();
 
-            albumsResponse.albums?.forEach(album => {
-                albumsMap.set(album.spotifyId, album);
-            });
+            // Process results from the preview response
+            previewResponse.results?.forEach(resultGroup => {
+                resultGroup.items?.forEach(item => {
+                    // Create a simplified catalog item with the preview information
+                    const catalogItem = {
+                        spotifyId: item.spotifyId,
+                        name: item.name,
+                        imageUrl: item.imageUrl,
+                        artistName: item.artistName
+                    };
 
-            tracksResponse.tracks?.forEach(track => {
-                tracksMap.set(track.spotifyId, track);
+                    itemsMap.set(item.spotifyId, catalogItem);
+                });
             });
 
             // Combine interactions with catalog items
-            const entries = paginatedInteractions.map(interaction => {
+            const entries = initialInteractions.map(interaction => {
                 const entry: DiaryEntry = { interaction };
 
-                if (interaction.itemType === 'Album') {
-                    entry.catalogItem = albumsMap.get(interaction.itemId);
-                } else if (interaction.itemType === 'Track') {
-                    entry.catalogItem = tracksMap.get(interaction.itemId);
-                }
+                // Get the preview info from our map
+                entry.catalogItem = itemsMap.get(interaction.itemId);
 
                 return entry;
             });
 
             setDiaryEntries(entries);
+            setOffset(initialInteractions.length);
         } catch (err: unknown) {
             console.error('Error loading diary entries:', err);
             if (err && typeof err === 'object' && 'response' in err &&
                 err.response && typeof err.response === 'object' && 'status' in err.response &&
                 err.response.status === 404) {
+                // When a 404 is received, it means there are no interactions for this user
                 setNoInteractions(true);
+                setTotalInteractions(0);
             } else {
                 setError('Failed to load your diary entries. Please try again later.');
             }
         } finally {
             setLoading(false);
         }
-    }, [user, currentPage, itemsPerPage]);
+    }, [user]);
 
-    // Load diary entries
+    // Load more diary entries
+    const loadMoreDiaryEntries = useCallback(async () => {
+        if (!user || loadingMore || !hasMore) {
+            console.log('Skipping load more:',
+                !user ? 'no user' :
+                    loadingMore ? 'already loading' :
+                        'no more entries');
+            return;
+        }
+
+        // Store current offset in local variable to ensure consistency during this function execution
+        const currentOffset = offset;
+        console.log(`Loading more entries from offset ${currentOffset}`);
+        setLoadingMore(true);
+
+        try {
+            // Fetch additional interactions for the user
+            const { items: interactions, totalCount } =
+                await InteractionService.getUserInteractionsByUserId(user.id, itemsPerPage, currentOffset);
+
+            console.log(`Loaded ${interactions.length} more entries, total: ${totalCount}`);
+
+            // Check if we received any new interactions
+            if (interactions.length === 0) {
+                setHasMore(false);
+                setLoadingMore(false);
+                console.log('No more entries to load');
+                return;
+            }
+
+            // Extract all item ids for preview info
+            const itemIds: string[] = interactions.map(interaction => interaction.itemId);
+
+            // Fetch preview information for all items in a single request
+            const previewResponse = await CatalogService.getItemPreviewInfo(itemIds, ['album', 'track']);
+
+            // Create lookup maps for quick access
+            const itemsMap = new Map();
+
+            // Process results from the preview response
+            previewResponse.results?.forEach(resultGroup => {
+                resultGroup.items?.forEach(item => {
+                    // Create a simplified catalog item with the preview information
+                    const catalogItem = {
+                        spotifyId: item.spotifyId,
+                        name: item.name,
+                        imageUrl: item.imageUrl,
+                        artistName: item.artistName
+                    };
+
+                    itemsMap.set(item.spotifyId, catalogItem);
+                });
+            });
+
+            // Combine interactions with catalog items
+            const newEntries = interactions.map(interaction => {
+                const entry: DiaryEntry = { interaction };
+
+                // Get the preview info from our map
+                entry.catalogItem = itemsMap.get(interaction.itemId);
+
+                return entry;
+            });
+
+            // Update hasMore status based on whether we've reached the total count
+            const newOffset = currentOffset + interactions.length;
+            const newHasMore = newOffset < totalCount;
+            setHasMore(newHasMore);
+            console.log(`Has more entries: ${newHasMore}, new offset: ${newOffset}`);
+
+            // Append new entries to existing entries
+            setDiaryEntries(prevEntries => [...prevEntries, ...newEntries]);
+            setOffset(newOffset);
+        } catch (err: unknown) {
+            console.error('Error loading more diary entries:', err);
+            setError('Failed to load more entries. Please try again later.');
+        } finally {
+            setLoadingMore(false);
+        }
+    }, [user, offset, loadingMore, hasMore]);
+
+    // Setup scroll event for loading more entries
+    useEffect(() => {
+        // Don't set up scroll handler if we're in initial loading
+        // or if there are no more items to load
+        if (loading || !hasMore || diaryEntries.length === 0) return;
+
+        // Use a debounce mechanism to prevent multiple rapid scroll events
+        let scrollTimeout: number | null = null;
+        let isLoadingTriggered = false;
+
+        const handleScroll = () => {
+            // Skip if already triggered but not yet processed
+            if (isLoadingTriggered || loadingMore) return;
+
+            // Check if user has scrolled to bottom (with 200px threshold)
+            if (
+                window.innerHeight + window.scrollY >=
+                document.documentElement.scrollHeight - 200
+            ) {
+                // Set flag to avoid multiple triggers before the timeout
+                isLoadingTriggered = true;
+
+                // Clear any existing timeout
+                if (scrollTimeout) {
+                    window.clearTimeout(scrollTimeout);
+                }
+
+                // Set a timeout to debounce multiple scroll events
+                scrollTimeout = window.setTimeout(() => {
+                    if (!loadingMore && hasMore) {
+                        console.log('Scroll threshold reached, loading more entries');
+                        loadMoreDiaryEntries();
+                    }
+                    isLoadingTriggered = false;
+                }, 300); // 300ms debounce
+            }
+        };
+
+        // Add scroll event listener
+        window.addEventListener('scroll', handleScroll);
+
+        // Clean up
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            if (scrollTimeout) window.clearTimeout(scrollTimeout);
+        };
+    }, [loading, loadingMore, hasMore, loadMoreDiaryEntries, diaryEntries.length]);
+
+    // Load diary entries when authenticated user changes
     useEffect(() => {
         if (!isAuthenticated || !user) {
             navigate('/login', { state: { from: '/diary' } });
             return;
         }
 
-        loadDiaryEntries();
-    }, [isAuthenticated, user, navigate, currentPage, loadDiaryEntries]); // Added currentPage as dependency
+        loadInitialDiaryEntries();
+    }, [isAuthenticated, user, navigate, loadInitialDiaryEntries]);
 
     // Group entries by date whenever diary entries change
     useEffect(() => {
@@ -217,15 +333,6 @@ const Diary = () => {
             // Update total interactions count
             setTotalInteractions(prev => prev - 1);
 
-            // Update total pages
-            const newTotalPages = Math.ceil((totalInteractions - 1) / itemsPerPage);
-            setTotalPages(newTotalPages || 1);
-
-            // Adjust current page if necessary
-            if (currentPage > newTotalPages && newTotalPages > 0) {
-                setCurrentPage(newTotalPages);
-            }
-
             // Show success message
             setDeleteSuccess(true);
         } catch (err: unknown) {
@@ -235,13 +342,6 @@ const Diary = () => {
             setDeleteModalOpen(false);
             setEntryToDelete(null);
         }
-    };
-
-    const handlePageChange = (page: number) => {
-        if (page < 1 || page > totalPages) return;
-        setCurrentPage(page);
-        // When page changes, we'll scroll to top for better UX
-        window.scrollTo(0, 0);
     };
 
     // Show loading state
@@ -256,7 +356,7 @@ const Diary = () => {
                 <p className="text-gray-600">A chronological record of your music experiences and thoughts</p>
             </div>
 
-            {error && <DiaryErrorState error={error} onRetry={loadDiaryEntries} />}
+            {error && <DiaryErrorState error={error} onRetry={loadInitialDiaryEntries} />}
 
             {/* Success notification */}
             {deleteSuccess && (
@@ -271,7 +371,7 @@ const Diary = () => {
                 <>
                     {totalInteractions > 0 && (
                         <div className="mb-4 text-sm text-gray-600">
-                            Showing {Math.min((currentPage - 1) * itemsPerPage + 1, totalInteractions)} to {Math.min(currentPage * itemsPerPage, totalInteractions)} of {totalInteractions} total entries
+                            Showing entries for your music interactions ({diaryEntries.length} of {totalInteractions} total)
                         </div>
                     )}
 
@@ -287,12 +387,20 @@ const Diary = () => {
                         ))}
                     </div>
 
-                    {/* Pagination */}
-                    <DiaryPagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={handlePageChange}
-                    />
+                    {/* Loading more indicator */}
+                    {loadingMore && (
+                        <div className="flex items-center justify-center py-6">
+                            <Loader className="h-6 w-6 text-primary-600 animate-spin mr-2" />
+                            <span className="text-gray-600">Loading more entries...</span>
+                        </div>
+                    )}
+
+                    {/* End of list message */}
+                    {!hasMore && diaryEntries.length > 0 && !loadingMore && (
+                        <div className="text-center py-6 text-gray-500">
+                            You've reached the end of your diary entries
+                        </div>
+                    )}
                 </>
             )}
 
@@ -333,12 +441,14 @@ const Diary = () => {
 
                                 <div className="flex justify-end space-x-3 mt-6">
                                     <button
+                                        type="button"
                                         onClick={() => setDeleteModalOpen(false)}
                                         className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                                     >
                                         Cancel
                                     </button>
                                     <button
+                                        type="button"
                                         onClick={confirmDelete}
                                         className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
                                     >

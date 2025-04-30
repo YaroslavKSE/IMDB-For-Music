@@ -7,6 +7,7 @@ interface AuthState {
   user: UserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  authInitialized: boolean; // New state to track if auth has been initialized
   error: string | null;
 
   // Actions
@@ -18,13 +19,61 @@ interface AuthState {
   setUser: (user: UserProfile | null) => void;
   fetchUserProfile: () => Promise<void>;
   updateProfile: (params: UpdateProfileParams) => Promise<void>;
+  initializeAuth: () => Promise<void>; // New action to initialize auth state
 }
 
 const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: AuthService.isAuthenticated(),
-  isLoading: false,
+  isLoading: true, // Start with loading state true
+  authInitialized: false,
   error: null,
+
+  // Initialize authentication state
+  initializeAuth: async () => {
+    try {
+      set({ isLoading: true });
+      const hasToken = AuthService.isAuthenticated();
+
+      if (hasToken) {
+        try {
+          const userProfile = await AuthService.getCurrentUser();
+          set({
+            user: userProfile,
+            isAuthenticated: true,
+            isLoading: false,
+            authInitialized: true
+          });
+        } catch (error) {
+          // If getting the user profile fails, we invalidate the auth
+          console.error('Error getting user profile during init:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            authInitialized: true
+          });
+        }
+      } else {
+        set({
+          isAuthenticated: false,
+          isLoading: false,
+          authInitialized: true
+        });
+      }
+    } catch (error) {
+      console.error('Auth initialization error:', error);
+      set({
+        isAuthenticated: false,
+        isLoading: false,
+        authInitialized: true,
+        error: 'Failed to initialize authentication'
+      });
+    }
+  },
 
   login: async (email: string, password: string) => {
     try {
@@ -182,13 +231,14 @@ const useAuthStore = create<AuthState>((set, get) => ({
 
   fetchUserProfile: async () => {
     if (!AuthService.isAuthenticated()) {
+      set({ isLoading: false, isAuthenticated: false });
       return;
     }
 
     try {
       set({ isLoading: true });
       const userProfile = await AuthService.getCurrentUser();
-      set({ user: userProfile, isLoading: false });
+      set({ user: userProfile, isLoading: false, isAuthenticated: true });
     } catch (error) {
       console.error('Error fetching user profile:', error);
 
@@ -205,8 +255,15 @@ const useAuthStore = create<AuthState>((set, get) => ({
         }
       }
 
+      // If we fail to fetch the user profile, we should clear the authentication state
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+
       set({
         isLoading: false,
+        isAuthenticated: false,
+        user: null,
         error: errorMessage
       });
     }

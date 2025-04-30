@@ -1,11 +1,12 @@
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import {
   UseFormRegister,
   FieldErrors,
-  RegisterOptions
+  RegisterOptions,
+  FieldValues,
+  Path
 } from 'react-hook-form';
-
 type RegisterFormValues = {
   name: string;
   surname: string;
@@ -44,20 +45,20 @@ export const FormSuccessMessage = ({ message }: FormSuccessMessageProps) => {
   );
 };
 
-interface TextInputProps {
-  id: string;
+interface TextInputProps<T extends FieldValues> {
+  id: Path<T>;
   label: string;
-  register: UseFormRegister<RegisterFormValues>;
-  registerOptions?: RegisterOptions<RegisterFormValues>;
-  errors: FieldErrors<RegisterFormValues>;
-  icon: ReactNode;
+  register: UseFormRegister<T>;
+  registerOptions?: RegisterOptions<T>;
+  errors: FieldErrors<T>;
+  icon: React.ReactNode;
   type?: string;
   placeholder?: string;
   errorHighlight?: boolean;
   description?: string;
 }
 
-export const TextInput = ({
+export const TextInput = <T extends FieldValues>({
   id,
   label,
   register,
@@ -68,9 +69,8 @@ export const TextInput = ({
   placeholder = '',
   errorHighlight = false,
   description
-}: TextInputProps) => {
-  const fieldName = id as keyof RegisterFormValues;
-  const fieldError = errors[fieldName];
+}: TextInputProps<T>) => {
+  const fieldError = errors[id];
 
   return (
     <div>
@@ -83,7 +83,7 @@ export const TextInput = ({
         </div>
         <input
           id={id}
-          {...register(fieldName, registerOptions)}
+          {...register(id, registerOptions)}
           type={type}
           className={`block w-full pl-10 pr-3 py-2 border ${
             errorHighlight || fieldError ? 'border-red-300 bg-red-50' : 'border-gray-300'
@@ -100,12 +100,11 @@ export const TextInput = ({
   );
 };
 
-interface PasswordInputProps extends Omit<TextInputProps, 'type' | 'icon'> {
+interface PasswordInputProps<T extends FieldValues> extends Omit<TextInputProps<T>, 'type' | 'icon'> {
   showPassword: boolean;
   onTogglePassword: () => void;
 }
-
-export const PasswordInput = ({
+export const PasswordInput = <T extends FieldValues>({
   id,
   label,
   register,
@@ -116,9 +115,8 @@ export const PasswordInput = ({
   placeholder = '',
   errorHighlight = false,
   description
-}: PasswordInputProps) => {
-  const fieldName = id as keyof RegisterFormValues;
-  const fieldError = errors[fieldName];
+}: PasswordInputProps<T>) => {
+  const fieldError = errors[id];
 
   return (
     <div>
@@ -131,8 +129,8 @@ export const PasswordInput = ({
         </div>
         <input
           id={id}
-          {...register(fieldName, registerOptions)}
-          type={showPassword ? "text" : "password"}
+          {...register(id, registerOptions)}
+          type={showPassword ? 'text' : 'password'}
           className={`block w-full pl-10 pr-10 py-2 border ${
             errorHighlight || fieldError ? 'border-red-300 bg-red-50' : 'border-gray-300'
           } rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
@@ -144,11 +142,7 @@ export const PasswordInput = ({
             onClick={onTogglePassword}
             className="text-gray-400 hover:text-gray-500 focus:outline-none"
           >
-            {showPassword ? (
-              <EyeOff className="h-5 w-5"/>
-            ) : (
-              <Eye className="h-5 w-5"/>
-            )}
+            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
         </div>
       </div>

@@ -124,6 +124,25 @@ export interface BatchItemsResponse {
   count: number;
 }
 
+export interface ItemsPreviewResponse {
+  totalCount: number;
+  results?: PreviewResults[];
+}
+
+export interface PreviewResults
+{
+  type: string;
+  count: number;
+  items?: ItemPreview[];
+}
+
+export interface ItemPreview {
+  spotifyId: string;
+  name: string;
+  imageUrl: string;
+  artistName: string;
+}
+
 const CatalogService = {
   getTrack: async (spotifyId: string): Promise<TrackDetail> => {
     const response = await catalogApi.get(`/tracks/spotify/${spotifyId}`);
@@ -227,6 +246,21 @@ const CatalogService = {
     });
     return response.data;
   },
+
+  getItemPreviewInfo: async (Ids: string[], types: string[] = ['album', 'track']): Promise<ItemsPreviewResponse> => {
+    if (Ids.length === 0) return { totalCount: 0 };
+
+    const idsString = Ids.slice(0, 20).join(',');
+    const typesString = types.slice(0, 2).join(',');
+
+    const response = await catalogApi.get(`/preview/items`, {
+      params:{
+        ids: idsString,
+        types: typesString
+      }
+    });
+    return response.data;
+  }
 };
 
 export default CatalogService;
