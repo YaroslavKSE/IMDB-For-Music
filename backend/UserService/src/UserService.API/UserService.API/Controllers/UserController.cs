@@ -131,7 +131,8 @@ public class UserController : ControllerBase
                 auth0UserId,
                 request.Username,
                 request.Name,
-                request.Surname);
+                request.Surname,
+                request.Bio);
 
             var updatedProfile = await _mediator.Send(command);
 

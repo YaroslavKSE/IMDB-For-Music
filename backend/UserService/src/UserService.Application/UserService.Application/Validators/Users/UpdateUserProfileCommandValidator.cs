@@ -32,5 +32,13 @@ public class UpdateUserProfileCommandValidator : AbstractValidator<UpdateUserPro
             RuleFor(x => x.Surname)
                 .MaximumLength(100);
         });
+        
+        // Add validation for the bio field
+        When(x => x.Bio != null, () =>
+        {
+            RuleFor(x => x.Bio)
+                .MaximumLength(500)
+                .WithMessage("Bio must not exceed 500 characters");
+        });
     }
 }
