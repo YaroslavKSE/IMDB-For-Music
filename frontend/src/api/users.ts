@@ -51,6 +51,7 @@ export interface PublicUserProfile {
   followingCount: number;
   avatarUrl?: string;
   createdAt: string;
+  bio?: string;
 }
 
 export interface BatchSubscriptionCheckRequest {
@@ -140,7 +141,7 @@ const UsersService = {
 
   // Get users that the current user is following
   getUserFollowing: async (page: number = 1, pageSize: number = 20): Promise<PaginatedSubscriptionsResponse> => {
-    const response = await subscriptionApi.get('/following', { 
+    const response = await subscriptionApi.get('/following', {
       params: { page, pageSize }
     });
     return response.data;

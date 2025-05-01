@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Calendar, UserPlus, UserCheck, Loader, AlertTriangle, ListMusic, MessageSquare, FileText } from 'lucide-react';
+import { User, Calendar, UserPlus, UserCheck, Loader, AlertTriangle, ListMusic, MessageSquare, FileText, Book } from 'lucide-react';
 import UsersService, { PublicUserProfile, UserSubscriptionResponse } from '../api/users';
 import InteractionService, { GradingMethodSummary } from '../api/interaction';
 import useAuthStore from '../store/authStore';
@@ -287,6 +287,23 @@ const UserProfile = () => {
                     </nav>
                 </div>
             </div>
+
+            {/* Bio Section - New addition */}
+            {userProfile.bio && (
+                <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
+                    <div className="px-6 py-4 bg-primary-50 border-b border-primary-100">
+                        <h3 className="text-lg font-medium text-primary-800 flex items-center">
+                            <Book className="h-5 w-5 mr-2" />
+                            About {isOwnProfile ? 'Me' : userProfile.name}
+                        </h3>
+                    </div>
+                    <div className="p-6">
+                        <div className="prose max-w-none">
+                            <div className="whitespace-pre-line">{userProfile.bio}</div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Tab Content */}
             <div className="bg-white shadow rounded-lg overflow-hidden">

@@ -19,6 +19,8 @@ interface AuthState {
   setUser: (user: UserProfile | null) => void;
   fetchUserProfile: () => Promise<void>;
   updateProfile: (params: UpdateProfileParams) => Promise<void>;
+  updateBio: (bio: string) => Promise<void>;
+  deleteBio: () => Promise<void>;
   initializeAuth: () => Promise<void>; // New action to initialize auth state
 }
 
@@ -212,6 +214,70 @@ const useAuthStore = create<AuthState>((set, get) => ({
         }
       } else if (error instanceof Error) {
         // Fallback to standard Error object
+        errorMessage = error.message;
+      }
+
+      set({
+        isLoading: false,
+        error: errorMessage
+      });
+
+      throw error;
+    }
+  },
+
+  // Add function to update bio
+  updateBio: async (bio: string) => {
+    try {
+      set({ isLoading: true, error: null });
+      const updatedUser = await AuthService.updateBio(bio);
+      set({
+        user: updatedUser,
+        isLoading: false
+      });
+    } catch (error) {
+      console.error('Bio update error:', error);
+
+      let errorMessage = 'Failed to update bio. Please try again.';
+
+      if (axios.isAxiosError(error)) {
+        const responseData = error.response?.data;
+        if (responseData && typeof responseData === 'object' && 'message' in responseData) {
+          errorMessage = String(responseData.message);
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      set({
+        isLoading: false,
+        error: errorMessage
+      });
+
+      throw error;
+    }
+  },
+
+  // Add function to delete bio
+  deleteBio: async () => {
+    try {
+      set({ isLoading: true, error: null });
+      const updatedUser = await AuthService.deleteBio();
+      set({
+        user: updatedUser,
+        isLoading: false
+      });
+    } catch (error) {
+      console.error('Bio delete error:', error);
+
+      let errorMessage = 'Failed to delete bio. Please try again.';
+
+      if (axios.isAxiosError(error)) {
+        const responseData = error.response?.data;
+        if (responseData && typeof responseData === 'object' && 'message' in responseData) {
+          errorMessage = String(responseData.message);
+        }
+      } else if (error instanceof Error) {
         errorMessage = error.message;
       }
 

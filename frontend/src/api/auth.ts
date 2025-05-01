@@ -27,6 +27,7 @@ export interface UpdateProfileParams {
   name?: string;
   surname?: string;
   username?: string;
+  bio?: string;
 }
 
 export interface AuthResponse {
@@ -50,7 +51,11 @@ export interface UserProfile {
   createdAt?: string;
   updatedAt?: string;
   avatarUrl?: string;
+  bio?: string;
+  followerCount: number;
+  followingCount: number;
 }
+
 
 export interface PresignedUrlResponse {
   url: string;
@@ -59,6 +64,11 @@ export interface PresignedUrlResponse {
   avatarUrl: string;
   expiresInSeconds: number;
 }
+
+export interface UpdateBioRequest {
+  bio: string;
+}
+
 
 const AuthService = {
   register: async (params: RegisterParams): Promise<AuthResponse> => {
@@ -154,7 +164,24 @@ const AuthService = {
     // Update cached user profile
     localStorage.setItem('user', JSON.stringify(response.data));
     return response.data;
+  },
+
+  // Add or update the user's bio
+  updateBio: async (bio: string): Promise<UserProfile> => {
+    const response = await userApi.put('/me/bio', {bio});
+    // Update cached user profile
+    localStorage.setItem('user', JSON.stringify(response.data));
+    return response.data;
+  },
+
+  // Delete the user's bio
+  deleteBio: async (): Promise<UserProfile> => {
+    const response = await userApi.delete('/me/bio');
+    // Update cached user profile
+    localStorage.setItem('user', JSON.stringify(response.data));
+    return response.data;
   }
 };
+
 
 export default AuthService;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { UserCheck, X, Save, AlertCircle } from 'lucide-react';
+import { UserCheck, X, Save, AlertCircle, Book } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import { UpdateProfileParams } from '../../api/auth';
 
@@ -13,6 +13,7 @@ interface ProfileFormData {
   name: string;
   surname: string;
   username: string;
+  bio: string;
 }
 
 const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
@@ -20,18 +21,30 @@ const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [bioLength, setBioLength] = useState(user?.bio?.length || 0);
+  const MAX_BIO_LENGTH = 500; // Set maximum bio length
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
   } = useForm<ProfileFormData>({
     defaultValues: {
       name: user?.name || '',
       surname: user?.surname || '',
       username: user?.username || '',
+      bio: user?.bio || '',
     },
   });
+
+  // Watch bio field to update character count
+  const watchBio = watch('bio');
+
+  // Update bio length when it changes
+  if (watchBio?.length !== bioLength) {
+    setBioLength(watchBio?.length || 0);
+  }
 
   const onSubmit = async (data: ProfileFormData) => {
     try {
@@ -44,6 +57,7 @@ const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
       if (data.name !== user?.name) updateData.name = data.name;
       if (data.surname !== user?.surname) updateData.surname = data.surname;
       if (data.username !== user?.username) updateData.username = data.username;
+      if (data.bio !== user?.bio) updateData.bio = data.bio;
 
       // No changes, just return
       if (Object.keys(updateData).length === 0) {
@@ -187,6 +201,37 @@ const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
           </p>
         </div>
 
+        {/* Bio Field */}
+        <div>
+          <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+            <Book className="h-4 w-4 mr-1.5" />
+            Bio
+            <span className={`ml-2 text-xs ${bioLength > MAX_BIO_LENGTH ? 'text-red-600' : 'text-gray-500'}`}>
+              ({bioLength}/{MAX_BIO_LENGTH})
+            </span>
+          </label>
+          <textarea
+            id="bio"
+            rows={5}
+            {...register('bio', {
+              maxLength: {
+                value: MAX_BIO_LENGTH,
+                message: `Bio cannot exceed ${MAX_BIO_LENGTH} characters`,
+              },
+            })}
+            className={`w-full px-3 py-2 border ${
+              errors.bio ? 'border-red-300' : 'border-gray-300'
+            } rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
+            placeholder="Tell others about yourself..."
+          />
+          {errors.bio && (
+            <p className="mt-1 text-sm text-red-600">{errors.bio.message}</p>
+          )}
+          <p className="mt-1 text-xs text-gray-500">
+            Write a short bio about yourself. This will be visible on your public profile.
+          </p>
+        </div>
+
         {/* Form Actions */}
         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
           <button
@@ -200,7 +245,7 @@ const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
           <button
             type="submit"
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none disabled:bg-primary-400 disabled:cursor-not-allowed flex items-center"
-            disabled={isSubmitting}
+            disabled={isSubmitting || bioLength > MAX_BIO_LENGTH}
           >
             {isSubmitting ? (
               <>
