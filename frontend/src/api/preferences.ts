@@ -16,7 +16,7 @@ export interface PreferenceOperationResponse {
 }
 
 export interface AddPreferenceRequest {
-  itemType: string; // 'artist', 'album', or 'track'
+  itemType: string; // 'artist', 'album', or 'track' (SINGULAR form)
   spotifyId: string;
 }
 
@@ -33,20 +33,20 @@ const UserPreferencesService = {
     return response.data;
   },
 
-  // Add a single preference
+  // Add a single preference - Note: itemType MUST be singular: 'artist', 'album', or 'track'
   addPreference: async (itemType: string, spotifyId: string): Promise<PreferenceOperationResponse> => {
     const request: AddPreferenceRequest = {
-      itemType,
+      itemType, // Must be 'artist', 'album', or 'track'
       spotifyId
     };
     const response = await preferencesApi.post('', request);
     return response.data;
   },
 
-  // Remove a single preference
+  // Remove a single preference - Note: itemType MUST be singular: 'artist', 'album', or 'track'
   removePreference: async (itemType: string, spotifyId: string): Promise<PreferenceOperationResponse> => {
     const request: AddPreferenceRequest = {
-      itemType,
+      itemType, // Must be 'artist', 'album', or 'track'
       spotifyId
     };
     const response = await preferencesApi.delete('', { data: request });
@@ -68,10 +68,10 @@ const UserPreferencesService = {
     return response.data;
   },
 
-  // Clear all preferences of a specific type
+  // Clear all preferences of a specific type - Note: type MUST be singular: 'artist', 'album', or 'track'
   clearPreferences: async (type: string): Promise<PreferenceOperationResponse> => {
     const response = await preferencesApi.delete('/clear', {
-      params: { type }
+      params: { type } // Must be 'artist', 'album', or 'track'
     });
     return response.data;
   }
