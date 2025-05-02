@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Music, Disc, User, Plus, Loader, AlertCircle } from 'lucide-react';
+import { Music, Disc, User, Plus, Loader, AlertCircle, ChevronRight } from 'lucide-react';
 import UserPreferencesService, { UserPreferencesResponse } from '../../api/preferences';
 import SearchModal from './SearchModal.tsx';
-import PreferenceItem from './PreferenceItem';
+import ArtistCard from '../Search/ArtistCard';
+import AlbumCard from '../Search/AlbumCard';
+import TrackRow from '../Search/TrackRow';
+import CatalogService from '../../api/catalog';
 
 type PreferenceType = 'artists' | 'albums' | 'tracks';
 
@@ -14,16 +17,116 @@ const ProfilePreferencesTab = () => {
   const [currentSearchType, setCurrentSearchType] = useState<PreferenceType>('artists');
   const [removeLoading, setRemoveLoading] = useState<Record<string, boolean>>({});
 
+  // State for storing the fetched items
+  const [artistItems, setArtistItems] = useState<any[]>([]);
+  const [albumItems, setAlbumItems] = useState<any[]>([]);
+  const [trackItems, setTrackItems] = useState<any[]>([]);
+
+  // Loading states for each type
+  const [artistsLoading, setArtistsLoading] = useState(false);
+  const [albumsLoading, setAlbumsLoading] = useState(false);
+  const [tracksLoading, setTracksLoading] = useState(false);
+
   useEffect(() => {
     fetchPreferences();
   }, []);
+
+  // Fetch details for a specific item type
+  const fetchItemDetails = async (ids: string[], type: PreferenceType) => {
+    if (ids.length === 0) return [];
+
+    try {
+      const loadingStateSetter =
+        type === 'artists' ? setArtistsLoading :
+        type === 'albums' ? setAlbumsLoading :
+        setTracksLoading;
+
+      loadingStateSetter(true);
+
+      // Limit the number of requests by using batch endpoints when possible
+      if (type === 'albums' && ids.length > 0) {
+        // BatchAlbums supports up to 20 IDs at once
+        const batchSize = 20;
+        let fetchedAlbums = [];
+
+        for (let i = 0; i < ids.length; i += batchSize) {
+          const batchIds = ids.slice(i, i + batchSize);
+          const response = await CatalogService.getBatchAlbums(batchIds);
+          if (response.albums) {
+            fetchedAlbums = [...fetchedAlbums, ...response.albums];
+          }
+        }
+
+        return fetchedAlbums;
+      } else if (type === 'tracks' && ids.length > 0) {
+        // BatchTracks supports up to 20 IDs at once
+        const batchSize = 20;
+        let fetchedTracks = [];
+
+        for (let i = 0; i < ids.length; i += batchSize) {
+          const batchIds = ids.slice(i, i + batchSize);
+          const response = await CatalogService.getBatchTracks(batchIds);
+          if (response.tracks) {
+            fetchedTracks = [...fetchedTracks, ...response.tracks];
+          }
+        }
+
+        return fetchedTracks;
+      } else {
+        // For artists, we need to fetch them one by one (no batch endpoint available)
+        return await Promise.all(
+          ids.map(async (id) => {
+            try {
+              if (type === 'artists') return await CatalogService.getArtist(id);
+              return null; // Should not reach here
+            } catch (err) {
+              console.error(`Error fetching ${type} with ID ${id}:`, err);
+              return null;
+            }
+          })
+        ).then(results => results.filter(item => item !== null));
+      }
+    } catch (err) {
+      console.error(`Error fetching ${type} details:`, err);
+      return [];
+    } finally {
+      const loadingStateSetter =
+        type === 'artists' ? setArtistsLoading :
+        type === 'albums' ? setAlbumsLoading :
+        setTracksLoading;
+
+      loadingStateSetter(false);
+    }
+  };
 
   const fetchPreferences = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Reset item states
+      setArtistItems([]);
+      setAlbumItems([]);
+      setTrackItems([]);
+
       const response = await UserPreferencesService.getUserPreferences();
       setPreferences(response);
+
+      // Fetch details for each type of preference
+      if (response.artists.length > 0) {
+        const artistDetails = await fetchItemDetails(response.artists, 'artists');
+        setArtistItems(artistDetails);
+      }
+
+      if (response.albums.length > 0) {
+        const albumDetails = await fetchItemDetails(response.albums, 'albums');
+        setAlbumItems(albumDetails);
+      }
+
+      if (response.tracks.length > 0) {
+        const trackDetails = await fetchItemDetails(response.tracks, 'tracks');
+        setTrackItems(trackDetails);
+      }
     } catch (err) {
       console.error('Error fetching preferences:', err);
       setError('Failed to load your preferences. Please try again later.');
@@ -48,6 +151,14 @@ const ProfilePreferencesTab = () => {
       await UserPreferencesService.removePreference(itemType, spotifyId);
 
       // Update local state after successful removal
+      if (type === 'artists') {
+        setArtistItems(prev => prev.filter(item => item.spotifyId !== spotifyId));
+      } else if (type === 'albums') {
+        setAlbumItems(prev => prev.filter(item => item.spotifyId !== spotifyId));
+      } else if (type === 'tracks') {
+        setTrackItems(prev => prev.filter(item => item.spotifyId !== spotifyId));
+      }
+
       setPreferences(prev => {
         if (!prev) return null;
 
@@ -122,17 +233,37 @@ const ProfilePreferencesTab = () => {
               </button>
             </div>
 
-            {preferences && preferences.artists.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {preferences.artists.map(artistId => (
-                  <PreferenceItem
-                    key={artistId}
-                    id={artistId}
-                    type="artists"
-                    onRemove={() => handleRemovePreference('artists', artistId)}
-                    isLoading={removeLoading[artistId] || false}
-                  />
+            {artistsLoading ? (
+              <div className="animate-pulse grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-lg shadow overflow-hidden">
+                    <div className="aspect-square w-full overflow-hidden bg-gray-200 rounded-full mx-auto p-2"></div>
+                    <div className="p-3 text-center">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                    </div>
+                  </div>
                 ))}
+              </div>
+            ) : preferences && artistItems.length > 0 ? (
+              <div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {artistItems.slice(0, 4).map(artist => (
+                    <ArtistCard key={artist.spotifyId} artist={artist} />
+                  ))}
+                </div>
+
+                {/* "View all" link if there are more than 4 items */}
+                {artistItems.length > 4 && (
+                  <div className="mt-4 text-right">
+                    <button
+                      onClick={() => /* Handle view all action */ {}}
+                      className="text-primary-600 hover:text-primary-800 flex items-center text-sm font-medium ml-auto"
+                    >
+                      View all artists <ChevronRight className="h-4 w-4 ml-1" />
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
@@ -165,17 +296,37 @@ const ProfilePreferencesTab = () => {
               </button>
             </div>
 
-            {preferences && preferences.albums.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {preferences.albums.map(albumId => (
-                  <PreferenceItem
-                    key={albumId}
-                    id={albumId}
-                    type="albums"
-                    onRemove={() => handleRemovePreference('albums', albumId)}
-                    isLoading={removeLoading[albumId] || false}
-                  />
+            {albumsLoading ? (
+              <div className="animate-pulse grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-lg shadow overflow-hidden">
+                    <div className="bg-gray-200 aspect-square w-full"></div>
+                    <div className="p-3">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  </div>
                 ))}
+              </div>
+            ) : preferences && albumItems.length > 0 ? (
+              <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {albumItems.slice(0, 4).map(album => (
+                    <AlbumCard key={album.spotifyId} album={album} />
+                  ))}
+                </div>
+
+                {/* "View all" link if there are more than 4 items */}
+                {albumItems.length > 4 && (
+                  <div className="mt-4 text-right">
+                    <button
+                      onClick={() => /* Handle view all action */ {}}
+                      className="text-primary-600 hover:text-primary-800 flex items-center text-sm font-medium ml-auto"
+                    >
+                      View all albums <ChevronRight className="h-4 w-4 ml-1" />
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
@@ -208,17 +359,37 @@ const ProfilePreferencesTab = () => {
               </button>
             </div>
 
-            {preferences && preferences.tracks.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {preferences.tracks.map(trackId => (
-                  <PreferenceItem
-                    key={trackId}
-                    id={trackId}
-                    type="tracks"
-                    onRemove={() => handleRemovePreference('tracks', trackId)}
-                    isLoading={removeLoading[trackId] || false}
-                  />
+            {tracksLoading ? (
+              <div className="animate-pulse space-y-4 bg-white rounded-lg shadow overflow-hidden">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex items-center px-6 py-4">
+                    <div className="w-12 h-12 bg-gray-200 mr-4"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  </div>
                 ))}
+              </div>
+            ) : preferences && trackItems.length > 0 ? (
+              <div>
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                  {trackItems.slice(0, 4).map((track, index) => (
+                    <TrackRow key={track.spotifyId} track={track} index={index} />
+                  ))}
+                </div>
+
+                {/* "View all" link if there are more than 4 items */}
+                {trackItems.length > 4 && (
+                  <div className="mt-4 text-right">
+                    <button
+                      onClick={() => /* Handle view all action */ {}}
+                      className="text-primary-600 hover:text-primary-800 flex items-center text-sm font-medium ml-auto"
+                    >
+                      View all tracks <ChevronRight className="h-4 w-4 ml-1" />
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
@@ -248,7 +419,5 @@ const ProfilePreferencesTab = () => {
     </div>
   );
 };
-
-// Using the imported PreferenceItem component instead of an inline one
 
 export default ProfilePreferencesTab;

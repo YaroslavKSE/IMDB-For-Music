@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Calendar, UserPlus, UserCheck, Loader, AlertTriangle, ListMusic, MessageSquare, FileText, Book } from 'lucide-react';
+import { User, Calendar, UserPlus, UserCheck, Loader, AlertTriangle, ListMusic, FileText, Book, History, UserCog } from 'lucide-react';
 import UsersService, { PublicUserProfile, UserSubscriptionResponse } from '../api/users';
 import InteractionService, { GradingMethodSummary } from '../api/interaction';
 import useAuthStore from '../store/authStore';
 import { formatDate } from '../utils/formatters';
+import PublicProfileHistoryTab from '../components/Profile/PublicProfileHistoryTab';
+import PublicProfilePreferencesTab from '../components/Profile/PublicProfilePreferencesTab';
 
-// Tabs for the user profile
-type ProfileTab = 'interactions' | 'grading-methods' | 'following' | 'followers';
+// Tabs for the user profile - added preferences and history
+type ProfileTab = 'overview' | 'interactions' | 'grading-methods' | 'following' | 'followers' | 'history' | 'preferences';
 
 const UserProfile = () => {
     const { id } = useParams<{ id: string }>();
@@ -16,7 +18,7 @@ const UserProfile = () => {
     const [userProfile, setUserProfile] = useState<PublicUserProfile | null>(null);
     const [isFollowing, setIsFollowing] = useState(false);
     const [gradingMethods, setGradingMethods] = useState<GradingMethodSummary[]>([]);
-    const [activeTab, setActiveTab] = useState<ProfileTab>('interactions');
+    const [activeTab, setActiveTab] = useState<ProfileTab>('overview');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [followLoading, setFollowLoading] = useState(false);
@@ -60,6 +62,11 @@ const UserProfile = () => {
                     // Non-critical error, don't set the main error state
                 }
 
+                // If user is viewing their own profile from this page, redirect to Profile
+                if (isOwnProfile) {
+                    navigate('/profile');
+                }
+
             } catch (err) {
                 console.error('Error fetching user profile:', err);
                 setError('Failed to load user profile. The user may not exist or has been removed.');
@@ -69,7 +76,7 @@ const UserProfile = () => {
         };
 
         fetchUserProfile();
-    }, [id, isAuthenticated, isOwnProfile]);
+    }, [id, isAuthenticated, isOwnProfile, navigate]);
 
     // Load followers and following data when those tabs are selected
     useEffect(() => {
@@ -261,16 +268,28 @@ const UserProfile = () => {
                 <div className="border-b border-gray-200">
                     <nav className="flex overflow-x-auto">
                         <TabButton
-                            active={activeTab === 'interactions'}
-                            onClick={() => setActiveTab('interactions')}
-                            icon={<MessageSquare className="h-4 w-4" />}
-                            label="Recent Activity"
+                            active={activeTab === 'overview'}
+                            onClick={() => setActiveTab('overview')}
+                            icon={<User className="h-4 w-4" />}
+                            label="Overview"
                         />
                         <TabButton
                             active={activeTab === 'grading-methods'}
                             onClick={() => setActiveTab('grading-methods')}
-                            icon={<FileText className="h-4 w-4" />}
+                            icon={<ListMusic className="h-4 w-4" />}
                             label="Grading Methods"
+                        />
+                        <TabButton
+                            active={activeTab === 'history'}
+                            onClick={() => setActiveTab('history')}
+                            icon={<History className="h-4 w-4" />}
+                            label="Rating History"
+                        />
+                        <TabButton
+                            active={activeTab === 'preferences'}
+                            onClick={() => setActiveTab('preferences')}
+                            icon={<UserCog className="h-4 w-4" />}
+                            label="Preferences"
                         />
                         <TabButton
                             active={activeTab === 'following'}
@@ -294,7 +313,7 @@ const UserProfile = () => {
                     <div className="px-6 py-4 bg-primary-50 border-b border-primary-100">
                         <h3 className="text-lg font-medium text-primary-800 flex items-center">
                             <Book className="h-5 w-5 mr-2" />
-                            About {isOwnProfile ? 'Me' : userProfile.name}
+                            About {userProfile.name}
                         </h3>
                     </div>
                     <div className="p-6">
@@ -307,16 +326,55 @@ const UserProfile = () => {
 
             {/* Tab Content */}
             <div className="bg-white shadow rounded-lg overflow-hidden">
-                {/* Interactions Tab */}
-                {activeTab === 'interactions' && (
+                {/* Overview Tab */}
+                {activeTab === 'overview' && (
                     <div className="p-6">
                         <div className="flex items-center mb-4">
-                            <MessageSquare className="h-5 w-5 text-gray-500 mr-2" />
-                            <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
+                            <User className="h-5 w-5 text-gray-500 mr-2" />
+                            <h2 className="text-xl font-bold text-gray-900">Profile Overview</h2>
                         </div>
-                        <div className="text-center p-8 text-gray-500">
-                            <p>Recent activities will appear here.</p>
-                            <p className="text-sm mt-2">This feature is coming soon.</p>
+
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Basic Info</h3>
+                                    <p className="text-gray-700 mb-1"><span className="font-medium">Name:</span> {userProfile.name} {userProfile.surname}</p>
+                                    {userProfile.username && (
+                                        <p className="text-gray-700 mb-1"><span className="font-medium">Username:</span> @{userProfile.username}</p>
+                                    )}
+                                    <p className="text-gray-700 mb-1"><span className="font-medium">Member since:</span> {formatDate(userProfile.createdAt)}</p>
+                                </div>
+
+                                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Stats</h3>
+                                    <p className="text-gray-700 mb-1"><span className="font-medium">Followers:</span> {userProfile.followerCount}</p>
+                                    <p className="text-gray-700 mb-1"><span className="font-medium">Following:</span> {userProfile.followingCount}</p>
+                                    <p className="text-gray-700 mb-1"><span className="font-medium">Grading Methods:</span> {gradingMethods.length} public</p>
+                                </div>
+                            </div>
+
+                            {!isOwnProfile && (
+                                <div className="mt-6 flex flex-wrap gap-3">
+                                    <button
+                                        onClick={handleFollow}
+                                        disabled={followLoading}
+                                        className={`px-4 py-2 rounded-md text-sm font-medium flex items-center ${
+                                            isFollowing 
+                                                ? 'bg-primary-50 text-primary-700 border border-primary-300 hover:bg-primary-100' 
+                                                : 'bg-primary-600 text-white hover:bg-primary-700'
+                                        }`}
+                                    >
+                                        {followLoading ? (
+                                            <Loader className="h-4 w-4 mr-2 animate-spin" />
+                                        ) : isFollowing ? (
+                                            <UserCheck className="h-4 w-4 mr-2" />
+                                        ) : (
+                                            <UserPlus className="h-4 w-4 mr-2" />
+                                        )}
+                                        {isFollowing ? 'Following' : 'Follow'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -366,22 +424,27 @@ const UserProfile = () => {
                             <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg">
                                 <ListMusic className="h-10 w-10 text-gray-400 mx-auto mb-2" />
                                 <p className="text-gray-600">
-                                    {isOwnProfile
-                                        ? "You haven't created any grading methods yet."
-                                        : "This user hasn't shared any grading methods."}
+                                    {userProfile.username} hasn't shared any public grading methods.
                                 </p>
-
-                                {isOwnProfile && (
-                                    <button
-                                        onClick={() => navigate('/grading-methods/create')}
-                                        className="mt-3 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-                                    >
-                                        Create Grading Method
-                                    </button>
-                                )}
                             </div>
                         )}
                     </div>
+                )}
+
+                {/* New History Tab */}
+                {activeTab === 'history' && (
+                    <PublicProfileHistoryTab
+                        userId={id || ''}
+                        username={userProfile.username}
+                    />
+                )}
+
+                {/* New Preferences Tab */}
+                {activeTab === 'preferences' && (
+                    <PublicProfilePreferencesTab
+                        userId={id || ''}
+                        username={userProfile.username}
+                    />
                 )}
 
                 {/* Following Tab */}
@@ -401,16 +464,8 @@ const UserProfile = () => {
                             <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg">
                                 <UserPlus className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                                 <p className="text-gray-500 mb-2">
-                                    {isOwnProfile ? "You're not following anyone yet." : "This user isn't following anyone yet."}
+                                    {userProfile.username} isn't following anyone yet.
                                 </p>
-                                {isOwnProfile && (
-                                    <button
-                                        onClick={() => navigate('/people')}
-                                        className="mt-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm"
-                                    >
-                                        Discover People
-                                    </button>
-                                )}
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -437,21 +492,16 @@ const UserProfile = () => {
                             <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg">
                                 <User className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                                 <p className="text-gray-500 mb-2">
-                                    {isOwnProfile ? "You don't have any followers yet." : "This user doesn't have any followers yet."}
+                                    {userProfile.username} doesn't have any followers yet.
                                 </p>
-                                {!isOwnProfile && (
+
+                                {isAuthenticated && !isFollowing && !isOwnProfile && (
                                     <button
                                         onClick={handleFollow}
-                                        disabled={followLoading}
                                         className="mt-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm font-medium"
                                     >
-                                        {followLoading ? (
-                                            <Loader className="h-4 w-4 mr-1 inline animate-spin" />
-                                        ) : isFollowing ? (
-                                            "Unfollow"
-                                        ) : (
-                                            "Follow"
-                                        )}
+                                        <UserPlus className="h-4 w-4 mr-1 inline" />
+                                        Be the first to follow
                                     </button>
                                 )}
                             </div>
@@ -479,7 +529,7 @@ const TabButton = ({ active, onClick, icon, label }: TabButtonProps) => {
     return (
         <button
             onClick={onClick}
-            className={`mr-8 py-4 px-6 border-b-2 font-medium text-sm flex items-center whitespace-nowrap ${
+            className={`mr-8 py-4 px-6 border-b-2 font-medium text-sm flex items-center ${
                 active
                     ? 'border-primary-600 text-primary-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'

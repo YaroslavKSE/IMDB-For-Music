@@ -8,11 +8,12 @@ import ProfileTabButton from '../components/Profile/ProfileTabButton';
 import ProfileOverviewTab from '../components/Profile/ProfileOverviewTab';
 import ProfileSettingsTab from '../components/Profile/ProfileSettingsTab';
 import ProfilePreferencesTab from '../components/Profile/ProfilePreferencesTab';
+import ProfileHistoryTab from '../components/Profile/ProfileHistoryTab'; // Import our new component
 import ProfileLoadingState from '../components/Profile/ProfileLoadingState';
 import AvatarUploadModal from '../components/Profile/AvatarUploadModal';
 import { formatDate } from '../utils/formatters';
 
-// Tab types - adding new tab for preferences
+// Tab types
 type TabType = 'overview' | 'grading-methods' | 'history' | 'settings' | 'following' | 'followers' | 'preferences';
 
 const Profile = () => {
@@ -202,16 +203,7 @@ const Profile = () => {
         {activeTab === 'overview' && <ProfileOverviewTab user={user} />}
         {activeTab === 'grading-methods' && <GradingMethodsTab />}
         {activeTab === 'preferences' && <ProfilePreferencesTab />}
-        {activeTab === 'history' && (
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="p-6 text-center">
-              <h2 className="text-xl font-bold mb-4">Rating History</h2>
-              <p className="text-gray-500">
-                Your rating history will be displayed here.
-              </p>
-            </div>
-          </div>
-        )}
+        {activeTab === 'history' && <ProfileHistoryTab />} {/* Use our new component */}
         {activeTab === 'settings' && <ProfileSettingsTab />}
 
         {/* Following Tab */}

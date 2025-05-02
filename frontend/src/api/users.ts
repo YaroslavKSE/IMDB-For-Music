@@ -61,6 +61,12 @@ export interface BatchSubscriptionCheckResponse {
   results: Record<string, boolean>;
 }
 
+export interface UserPreferencesResponse {
+  artists: string[];
+  albums: string[];
+  tracks: string[];
+}
+
 const UsersService = {
   // Get paginated list of users
   getUsers: async (page: number = 1, pageSize: number = 20, search?: string): Promise<PaginatedUsersResponse> => {
@@ -110,7 +116,7 @@ const UsersService = {
   },
 
   getUserProfileById: async (userId: string): Promise<PublicUserProfile> => {
-    const response = await usersApi.get(`/id/${userId}`);  // Adjust the URL if your API differs
+    const response = await usersApi.get(`/id/${userId}`);
     return response.data;
   },
 
@@ -143,6 +149,22 @@ const UsersService = {
     const response = await subscriptionApi.get('/following', {
       params: { page, pageSize }
     });
+    return response.data;
+  },
+
+  getUserPreferencesById: async (userId: string): Promise<UserPreferencesResponse> => {
+    const response = await usersApi.get(`/id/${userId}/preferences`);
+    return response.data;
+  },
+
+  getUserPreferencesByUsername: async (username: string): Promise<UserPreferencesResponse> => {
+    const response = await usersApi.get(`/${username}/preferences`);
+    return response.data;
+  },
+
+  getCurrentUserPreferences: async (): Promise<UserPreferencesResponse> => {
+    const api = createApiClient('/users/preferences');
+    const response = await api.get('');
     return response.data;
   }
 };
