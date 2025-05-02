@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UserService.API.Models.Requests;
 using UserService.API.Models.Responses;
+using UserService.Application.Queries.Preferences;
 using UserService.Application.Queries.Subscriptions;
 using UserService.Application.Queries.Users;
+using UserService.Domain.Exceptions;
 
 namespace UserService.API.Controllers;
 
@@ -567,6 +569,112 @@ public class PublicUserController : ControllerBase
                     Message = "An unexpected error occurred while fetching user profiles",
                     TraceId = HttpContext.TraceIdentifier
                 });
+        }
+    }
+
+    [HttpGet("id/{id:guid}/preferences")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(UserPreferencesResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetUserPreferencesById(Guid id)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching preferences for user ID: {UserId}", id);
+
+            var query = new GetUserPreferencesByIdQuery(id);
+            var result = await _mediator.Send(query);
+
+            var response = new UserPreferencesResponse
+            {
+                Artists = result.Artists,
+                Albums = result.Albums,
+                Tracks = result.Tracks
+            };
+
+            return Ok(response);
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning("User not found when accessing preferences: {Message}", ex.Message);
+
+            return NotFound(new ErrorResponse
+            {
+                Code = "UserNotFound",
+                Message = ex.Message,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user preferences for ID: {UserId}", id);
+
+            return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResponse
+            {
+                Code = "InternalServerError",
+                Message = "An unexpected error occurred",
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+    }
+
+    [HttpGet("{username}/preferences")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(UserPreferencesResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetUserPreferencesByUsername(string username)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching preferences for username: {Username}", username);
+
+            var query = new GetUserPreferencesByUsernameQuery(username);
+            var result = await _mediator.Send(query);
+
+            var response = new UserPreferencesResponse
+            {
+                Artists = result.Artists,
+                Albums = result.Albums,
+                Tracks = result.Tracks
+            };
+
+            return Ok(response);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning("Validation failed when accessing preferences: {Errors}",
+                string.Join(", ", ex.Errors.Select(e => e.ErrorMessage)));
+
+            return BadRequest(new ErrorResponse
+            {
+                Code = "ValidationError",
+                Message = string.Join("; ", ex.Errors.Select(e => e.ErrorMessage)),
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning("User not found when accessing preferences: {Message}", ex.Message);
+
+            return NotFound(new ErrorResponse
+            {
+                Code = "UserNotFound",
+                Message = ex.Message,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user preferences for username: {Username}", username);
+
+            return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResponse
+            {
+                Code = "InternalServerError",
+                Message = "An unexpected error occurred",
+                TraceId = HttpContext.TraceIdentifier
+            });
         }
     }
 }
