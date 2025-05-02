@@ -1,4 +1,3 @@
-// src/api/preferences.ts
 import { createApiClient } from '../utils/axios-factory';
 
 // Create the API client specifically for user preferences
