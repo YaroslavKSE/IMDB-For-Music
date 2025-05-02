@@ -1,4 +1,3 @@
-// Update to src/api/users.ts to add batch subscription check
 import { createApiClient } from '../utils/axios-factory';
 
 // Create the API client specifically for users

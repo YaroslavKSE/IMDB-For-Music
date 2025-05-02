@@ -12,7 +12,7 @@ interface PreferenceSearchModalProps {
   onPreferenceAdded: () => void;
 }
 
-const PreferenceSearchModal: React.FC<PreferenceSearchModalProps> = ({
+const SearchModal: React.FC<PreferenceSearchModalProps> = ({
   isOpen,
   onClose,
   type,
@@ -99,7 +99,7 @@ const PreferenceSearchModal: React.FC<PreferenceSearchModalProps> = ({
     // Set new timer
     debounceTimerRef.current = setTimeout(() => {
       performSearch(value);
-    }, 300); // 300ms debounce delay
+    }, 1000); // 300ms debounce delay
   };
 
   // Clean up timer on unmount
@@ -482,4 +482,4 @@ const TrackResultItem: React.FC<TrackResultItemProps> = ({
   );
 };
 
-export default PreferenceSearchModal;
+export default SearchModal;

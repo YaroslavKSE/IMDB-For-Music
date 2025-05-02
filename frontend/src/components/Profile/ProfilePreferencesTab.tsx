@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Music, Disc, User, Plus, Loader, AlertCircle } from 'lucide-react';
 import UserPreferencesService, { UserPreferencesResponse } from '../../api/preferences';
-import PreferenceSearchModal from './PreferenceSearchModal';
+import SearchModal from './SearchModal.tsx';
 import PreferenceItem from './PreferenceItem';
 
 type PreferenceType = 'artists' | 'albums' | 'tracks';
@@ -238,7 +238,7 @@ const ProfilePreferencesTab = () => {
       </div>
 
       {searchModalOpen && (
-        <PreferenceSearchModal
+        <SearchModal
           isOpen={searchModalOpen}
           onClose={() => setSearchModalOpen(false)}
           type={currentSearchType}
