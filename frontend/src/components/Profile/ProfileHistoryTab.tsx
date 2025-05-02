@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Filter, Search, Music, Disc, ArrowDown, Loader, RefreshCw } from 'lucide-react';
 import InteractionService, { InteractionDetailDTO } from '../../api/interaction';
 import useAuthStore from '../../store/authStore';
-import CatalogService from '../../api/catalog';
+import CatalogService, { AlbumSummary, TrackSummary } from '../../api/catalog';
 import { formatDate } from '../../utils/formatters';
 import NormalizedStarDisplay from '../CreateInteraction/NormalizedStarDisplay';
+
+// Define types for catalog items
+type CatalogItem = AlbumSummary | TrackSummary;
 
 const ProfileHistoryTab = () => {
   const navigate = useNavigate();
@@ -17,7 +20,7 @@ const ProfileHistoryTab = () => {
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const [catalogItems, setCatalogItems] = useState<Map<string, any>>(new Map());
+  const [catalogItems, setCatalogItems] = useState<Map<string, CatalogItem>>(new Map());
 
   // For infinite scrolling
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -234,7 +237,7 @@ const ProfileHistoryTab = () => {
   }
 
   // Group interactions by date for better display
-  const groupedInteractions: { [date: string]: InteractionDetailDTO[] } = {};
+  const groupedInteractions: Record<string, InteractionDetailDTO[]> = {};
 
   interactions.forEach(interaction => {
     const date = new Date(interaction.createdAt).toLocaleDateString('en-US', {
@@ -332,7 +335,7 @@ const ProfileHistoryTab = () => {
                                 {catalogItem?.artistName || 'Unknown Artist'}
                               </p>
                               <p className="text-xs text-gray-500 mt-1">
-                                {formatDate(interaction.createdAt, true)}
+                                {formatDate(interaction.createdAt)}
                               </p>
                             </div>
 

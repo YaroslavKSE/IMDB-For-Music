@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Filter, Search, Music, Disc, ArrowDown, Loader, RefreshCw } from 'lucide-react';
 import InteractionService, { InteractionDetailDTO } from '../../api/interaction';
-import CatalogService from '../../api/catalog';
+import CatalogService, {AlbumSummary, TrackSummary} from '../../api/catalog';
 import { formatDate } from '../../utils/formatters';
 import NormalizedStarDisplay from '../CreateInteraction/NormalizedStarDisplay';
 import axios from 'axios';
@@ -12,6 +12,7 @@ interface PublicProfileHistoryTabProps {
   username?: string;
 }
 
+type CatalogItem = AlbumSummary | TrackSummary;
 const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabProps) => {
   const navigate = useNavigate();
   const [interactions, setInteractions] = useState<InteractionDetailDTO[]>([]);
@@ -21,7 +22,7 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const [catalogItems, setCatalogItems] = useState<Map<string, any>>(new Map());
+  const [catalogItems, setCatalogItems] = useState<Map<string, CatalogItem>>(new Map());
   const [hasInteractions, setHasInteractions] = useState(true); // Flag to track if user has any interactions
 
   // For infinite scrolling
@@ -345,7 +346,7 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
                                 {catalogItem?.artistName || 'Unknown Artist'}
                               </p>
                               <p className="text-xs text-gray-500 mt-1">
-                                {formatDate(interaction.createdAt, true)}
+                                {formatDate(interaction.createdAt)}
                               </p>
                             </div>
 

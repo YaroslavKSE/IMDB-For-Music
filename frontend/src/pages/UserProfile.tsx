@@ -1,33 +1,47 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { User, Calendar, UserPlus, UserCheck, Loader, AlertTriangle, ListMusic, FileText, Book, History, UserCog } from 'lucide-react';
-import UsersService, { PublicUserProfile, UserSubscriptionResponse } from '../api/users';
-import InteractionService, { GradingMethodSummary } from '../api/interaction';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Book, AlertTriangle } from 'lucide-react';
+import UsersService from '../api/users';
+import InteractionService from '../api/interaction';
 import useAuthStore from '../store/authStore';
-import { formatDate } from '../utils/formatters';
 import PublicProfileHistoryTab from '../components/Profile/PublicProfileHistoryTab';
 import PublicProfilePreferencesTab from '../components/Profile/PublicProfilePreferencesTab';
-
-// Tabs for the user profile - added preferences and history
-type ProfileTab = 'overview' | 'interactions' | 'grading-methods' | 'following' | 'followers' | 'history' | 'preferences';
+import ProfileLoadingState from '../components/Profile/ProfileLoadingState';
+import ProfileHeader from '../components/Profile/ProfileHeader';
+import ProfileTabs, { ProfileTabType } from '../components/Profile/ProfileTabs';
+import SocialTabContent from '../components/Profile/SocialTabContent';
+import TabContentWrapper from '../components/Profile/TabContentWrapper';
 
 const UserProfile = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { isAuthenticated, user: currentUser } = useAuthStore();
-    const [userProfile, setUserProfile] = useState<PublicUserProfile | null>(null);
+    const [userProfile, setUserProfile] = useState(null);
     const [isFollowing, setIsFollowing] = useState(false);
-    const [gradingMethods, setGradingMethods] = useState<GradingMethodSummary[]>([]);
-    const [activeTab, setActiveTab] = useState<ProfileTab>('overview');
+    const [gradingMethods, setGradingMethods] = useState([]);
+
+    // Get active tab from URL params or default to overview
+    const tabParam = searchParams.get('tab');
+    const [activeTab, setActiveTab] = useState<ProfileTabType>(
+      tabParam as ProfileTabType || 'overview'
+    );
+
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState(null);
     const [followLoading, setFollowLoading] = useState(false);
-    const [followersData, setFollowersData] = useState<UserSubscriptionResponse[]>([]);
-    const [followingData, setFollowingData] = useState<UserSubscriptionResponse[]>([]);
+    const [followersData, setFollowersData] = useState([]);
+    const [followingData, setFollowingData] = useState([]);
     const [socialLoading, setSocialLoading] = useState(false);
 
     // Check if viewing own profile
     const isOwnProfile = currentUser?.id === id;
+
+    // Update URL when tab changes
+    const handleTabChange = (tab: ProfileTabType) => {
+        setActiveTab(tab);
+        setSearchParams({ tab });
+    };
 
     // Fetch user profile data
     useEffect(() => {
@@ -126,6 +140,10 @@ const UserProfile = () => {
             }
 
             setIsFollowing(!isFollowing);
+
+            // Update user profile to reflect the new follower count
+            const updatedProfile = await UsersService.getUserProfileById(id);
+            setUserProfile(updatedProfile);
         } catch (err) {
             console.error('Error toggling follow status:', err);
         } finally {
@@ -133,46 +151,8 @@ const UserProfile = () => {
         }
     };
 
-    // Helper function to render a user card
-    const renderUserCard = (user: UserSubscriptionResponse) => (
-        <div key={user.userId} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
-            <div className="p-4 flex flex-col items-center text-center">
-                {user.avatarUrl ? (
-                    <img
-                        src={user.avatarUrl}
-                        alt={`${user.name} ${user.surname}`}
-                        className="h-16 w-16 rounded-full object-cover mb-3"
-                        onClick={() => navigate(`/people/${user.userId}`)}
-                    />
-                ) : (
-                    <div
-                        className="h-16 w-16 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xl font-bold mb-3"
-                        onClick={() => navigate(`/people/${user.userId}`)}
-                    >
-                        {user.name.charAt(0).toUpperCase()}{user.surname.charAt(0).toUpperCase()}
-                    </div>
-                )}
-                <h3 className="font-medium text-gray-900 mb-1">{user.name} {user.surname}</h3>
-                <p className="text-sm text-gray-600 mb-2">@{user.username}</p>
-                <p className="text-xs text-gray-500">Following since {formatDate(user.subscribedAt)}</p>
-
-                <button
-                    onClick={() => navigate(`/people/${user.userId}`)}
-                    className="mt-3 px-3 py-1.5 border border-gray-300 rounded text-sm font-medium bg-white hover:bg-gray-50"
-                >
-                    View Profile
-                </button>
-            </div>
-        </div>
-    );
-
     if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <Loader className="h-10 w-10 text-primary-600 animate-spin mr-4" />
-                <p className="text-lg text-gray-600">Loading user profile...</p>
-            </div>
-        );
+        return <ProfileLoadingState message="Loading user profile..." />;
     }
 
     if (error || !userProfile) {
@@ -195,145 +175,47 @@ const UserProfile = () => {
         );
     }
 
+    // Determine if the bio tab should be shown
+    const showBioTab = !!userProfile.bio;
+
     return (
         <div className="max-w-6xl mx-auto py-8 px-4">
             {/* Profile Header */}
             <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-                <div className="bg-gradient-to-r from-primary-700 to-primary-900 px-6 py-8 text-white">
-                    <div className="flex flex-col md:flex-row md:items-center">
-                        <div className="flex-shrink-0 mb-4 md:mb-0 md:mr-6">
-                            {userProfile.avatarUrl ? (
-                                <img
-                                    src={userProfile.avatarUrl}
-                                    alt={`${userProfile.name} ${userProfile.surname}`}
-                                    className="h-24 w-24 rounded-full object-cover border-4 border-white"
-                                />
-                            ) : (
-                                <div className="h-24 w-24 rounded-full bg-primary-600 flex items-center justify-center text-3xl font-bold border-4 border-white">
-                                    {userProfile.name.charAt(0).toUpperCase()}{userProfile.surname.charAt(0).toUpperCase()}
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex-grow">
-                            <h1 className="text-2xl md:text-3xl font-bold">{userProfile.name} {userProfile.surname}</h1>
-                            {userProfile.username && (
-                                <p className="text-primary-200 mt-1">@{userProfile.username}</p>
-                            )}
-                            <div className="mt-2 flex flex-wrap gap-3">
-                                <div className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm flex items-center">
-                                    <Calendar className="h-4 w-4 mr-1" />
-                                    Member since {formatDate(userProfile.createdAt)}
-                                </div>
-
-                                <button
-                                    onClick={() => setActiveTab('followers')}
-                                    className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm"
-                                >
-                                    <span className="font-medium">{userProfile.followerCount}</span> Followers
-                                </button>
-
-                                <button
-                                    onClick={() => setActiveTab('following')}
-                                    className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm"
-                                >
-                                    <span className="font-medium">{userProfile.followingCount}</span> Following
-                                </button>
-
-                                {!isOwnProfile && isAuthenticated && (
-                                    <button
-                                        onClick={handleFollow}
-                                        disabled={followLoading}
-                                        className={`px-4 py-1 rounded-full text-sm font-medium flex items-center transition-colors ${
-                                            isFollowing 
-                                                ? 'bg-white text-primary-700 hover:bg-primary-100' 
-                                                : 'bg-blue-600 text-white hover:bg-blue-700'
-                                        }`}
-                                    >
-                                        {followLoading ? (
-                                            <Loader className="h-4 w-4 mr-1 animate-spin" />
-                                        ) : isFollowing ? (
-                                            <UserCheck className="h-4 w-4 mr-1" />
-                                        ) : (
-                                            <UserPlus className="h-4 w-4 mr-1" />
-                                        )}
-                                        {isFollowing ? 'Following' : 'Follow'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <ProfileHeader
+                    profile={userProfile}
+                    isOwnProfile={isOwnProfile}
+                    isFollowing={isFollowing}
+                    onFollowToggle={handleFollow}
+                    isAuthenticated={isAuthenticated}
+                    followLoading={followLoading}
+                />
 
                 {/* Profile Tabs */}
-                <div className="border-b border-gray-200">
-                    <nav className="flex overflow-x-auto">
-                        <TabButton
-                            active={activeTab === 'overview'}
-                            onClick={() => setActiveTab('overview')}
-                            icon={<User className="h-4 w-4" />}
-                            label="Overview"
-                        />
-                        <TabButton
-                            active={activeTab === 'grading-methods'}
-                            onClick={() => setActiveTab('grading-methods')}
-                            icon={<ListMusic className="h-4 w-4" />}
-                            label="Grading Methods"
-                        />
-                        <TabButton
-                            active={activeTab === 'history'}
-                            onClick={() => setActiveTab('history')}
-                            icon={<History className="h-4 w-4" />}
-                            label="Rating History"
-                        />
-                        <TabButton
-                            active={activeTab === 'preferences'}
-                            onClick={() => setActiveTab('preferences')}
-                            icon={<UserCog className="h-4 w-4" />}
-                            label="Preferences"
-                        />
-                        <TabButton
-                            active={activeTab === 'following'}
-                            onClick={() => setActiveTab('following')}
-                            icon={<UserPlus className="h-4 w-4" />}
-                            label="Following"
-                        />
-                        <TabButton
-                            active={activeTab === 'followers'}
-                            onClick={() => setActiveTab('followers')}
-                            icon={<User className="h-4 w-4" />}
-                            label="Followers"
-                        />
-                    </nav>
-                </div>
+                <ProfileTabs
+                    activeTab={activeTab}
+                    onTabChange={handleTabChange}
+                    isOwnProfile={isOwnProfile}
+                    showBioTab={showBioTab}
+                />
             </div>
 
-            {/* Bio Section - New addition */}
-            {userProfile.bio && (
-                <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-                    <div className="px-6 py-4 bg-primary-50 border-b border-primary-100">
-                        <h3 className="text-lg font-medium text-primary-800 flex items-center">
-                            <Book className="h-5 w-5 mr-2" />
-                            About {userProfile.name}
-                        </h3>
-                    </div>
-                    <div className="p-6">
-                        <div className="prose max-w-none">
-                            <div className="whitespace-pre-line">{userProfile.bio}</div>
-                        </div>
-                    </div>
-                </div>
+            {/* Bio Section - only shown if user has a bio */}
+            {userProfile.bio && activeTab === 'bio' && (
+                <TabContentWrapper
+                    title={`About ${userProfile.name}`}
+                    icon={<Book className="h-5 w-5" />}
+                    className="prose max-w-none"
+                >
+                    <div className="whitespace-pre-line">{userProfile.bio}</div>
+                </TabContentWrapper>
             )}
 
             {/* Tab Content */}
-            <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="mb-8">
                 {/* Overview Tab */}
                 {activeTab === 'overview' && (
-                    <div className="p-6">
-                        <div className="flex items-center mb-4">
-                            <User className="h-5 w-5 text-gray-500 mr-2" />
-                            <h2 className="text-xl font-bold text-gray-900">Profile Overview</h2>
-                        </div>
-
+                    <TabContentWrapper title="Profile Overview" icon={<Book className="h-5 w-5" />}>
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -342,7 +224,7 @@ const UserProfile = () => {
                                     {userProfile.username && (
                                         <p className="text-gray-700 mb-1"><span className="font-medium">Username:</span> @{userProfile.username}</p>
                                     )}
-                                    <p className="text-gray-700 mb-1"><span className="font-medium">Member since:</span> {formatDate(userProfile.createdAt)}</p>
+                                    <p className="text-gray-700 mb-1"><span className="font-medium">Member since:</span> {new Date(userProfile.createdAt).toLocaleDateString()}</p>
                                 </div>
 
                                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -353,40 +235,27 @@ const UserProfile = () => {
                                 </div>
                             </div>
 
-                            {!isOwnProfile && (
-                                <div className="mt-6 flex flex-wrap gap-3">
-                                    <button
-                                        onClick={handleFollow}
-                                        disabled={followLoading}
-                                        className={`px-4 py-2 rounded-md text-sm font-medium flex items-center ${
-                                            isFollowing 
-                                                ? 'bg-primary-50 text-primary-700 border border-primary-300 hover:bg-primary-100' 
-                                                : 'bg-primary-600 text-white hover:bg-primary-700'
-                                        }`}
-                                    >
-                                        {followLoading ? (
-                                            <Loader className="h-4 w-4 mr-2 animate-spin" />
-                                        ) : isFollowing ? (
-                                            <UserCheck className="h-4 w-4 mr-2" />
-                                        ) : (
-                                            <UserPlus className="h-4 w-4 mr-2" />
-                                        )}
-                                        {isFollowing ? 'Following' : 'Follow'}
-                                    </button>
+                            {userProfile.bio && (
+                                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Bio</h3>
+                                    <div className="whitespace-pre-line line-clamp-3">{userProfile.bio}</div>
+                                    {userProfile.bio.split('\n').length > 3 && (
+                                        <button
+                                            onClick={() => handleTabChange('bio')}
+                                            className="mt-2 text-primary-600 hover:text-primary-800 text-sm font-medium"
+                                        >
+                                            Read more
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </TabContentWrapper>
                 )}
 
                 {/* Grading Methods Tab */}
                 {activeTab === 'grading-methods' && (
-                    <div className="p-6">
-                        <div className="flex items-center mb-4">
-                            <FileText className="h-5 w-5 text-gray-500 mr-2" />
-                            <h2 className="text-xl font-bold text-gray-900">Grading Methods</h2>
-                        </div>
-
+                    <TabContentWrapper title="Grading Methods" icon={<Book className="h-5 w-5" />}>
                         {gradingMethods.length > 0 ? (
                             <div className="space-y-4">
                                 {gradingMethods.map(method => (
@@ -397,7 +266,7 @@ const UserProfile = () => {
                                         <h3 className="font-medium text-lg">{method.name}</h3>
                                         <div className="mt-2 flex items-center justify-between">
                                             <div className="text-sm text-gray-500">
-                                                Created: {formatDate(method.createdAt)}
+                                                Created: {new Date(method.createdAt).toLocaleDateString()}
                                             </div>
                                             <div className="flex">
                                                 <span
@@ -422,16 +291,15 @@ const UserProfile = () => {
                             </div>
                         ) : (
                             <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg">
-                                <ListMusic className="h-10 w-10 text-gray-400 mx-auto mb-2" />
                                 <p className="text-gray-600">
                                     {userProfile.username} hasn't shared any public grading methods.
                                 </p>
                             </div>
                         )}
-                    </div>
+                    </TabContentWrapper>
                 )}
 
-                {/* New History Tab */}
+                {/* History Tab */}
                 {activeTab === 'history' && (
                     <PublicProfileHistoryTab
                         userId={id || ''}
@@ -439,7 +307,7 @@ const UserProfile = () => {
                     />
                 )}
 
-                {/* New Preferences Tab */}
+                {/* Preferences Tab */}
                 {activeTab === 'preferences' && (
                     <PublicProfilePreferencesTab
                         userId={id || ''}
@@ -449,95 +317,33 @@ const UserProfile = () => {
 
                 {/* Following Tab */}
                 {activeTab === 'following' && (
-                    <div className="p-6">
-                        <div className="flex items-center mb-4">
-                            <UserPlus className="h-5 w-5 text-gray-500 mr-2" />
-                            <h2 className="text-xl font-bold text-gray-900">Following</h2>
-                        </div>
-
-                        {socialLoading ? (
-                            <div className="flex justify-center items-center py-12">
-                                <Loader className="h-8 w-8 text-primary-600 animate-spin mr-3" />
-                                <span className="text-gray-600">Loading...</span>
-                            </div>
-                        ) : followingData.length === 0 ? (
-                            <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg">
-                                <UserPlus className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                                <p className="text-gray-500 mb-2">
-                                    {userProfile.username} isn't following anyone yet.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                {followingData.map(user => renderUserCard(user))}
-                            </div>
-                        )}
-                    </div>
+                    <SocialTabContent
+                        type="following"
+                        users={followingData}
+                        loading={socialLoading}
+                        error={null}
+                        isOwnProfile={false}
+                        username={userProfile.username}
+                    />
                 )}
 
                 {/* Followers Tab */}
                 {activeTab === 'followers' && (
-                    <div className="p-6">
-                        <div className="flex items-center mb-4">
-                            <User className="h-5 w-5 text-gray-500 mr-2" />
-                            <h2 className="text-xl font-bold text-gray-900">Followers</h2>
-                        </div>
-
-                        {socialLoading ? (
-                            <div className="flex justify-center items-center py-12">
-                                <Loader className="h-8 w-8 text-primary-600 animate-spin mr-3" />
-                                <span className="text-gray-600">Loading...</span>
-                            </div>
-                        ) : followersData.length === 0 ? (
-                            <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg">
-                                <User className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                                <p className="text-gray-500 mb-2">
-                                    {userProfile.username} doesn't have any followers yet.
-                                </p>
-
-                                {isAuthenticated && !isFollowing && !isOwnProfile && (
-                                    <button
-                                        onClick={handleFollow}
-                                        className="mt-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm font-medium"
-                                    >
-                                        <UserPlus className="h-4 w-4 mr-1 inline" />
-                                        Be the first to follow
-                                    </button>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                {followersData.map(user => renderUserCard(user))}
-                            </div>
-                        )}
-                    </div>
+                    <SocialTabContent
+                        type="followers"
+                        users={followersData}
+                        loading={socialLoading}
+                        error={null}
+                        isOwnProfile={false}
+                        username={userProfile.username}
+                        isFollowing={isFollowing}
+                        onFollow={handleFollow}
+                        followLoading={followLoading}
+                        isAuthenticated={isAuthenticated}
+                    />
                 )}
             </div>
         </div>
-    );
-};
-
-// Helper component for tabs
-interface TabButtonProps {
-    active: boolean;
-    onClick: () => void;
-    icon: React.ReactNode;
-    label: string;
-}
-
-const TabButton = ({ active, onClick, icon, label }: TabButtonProps) => {
-    return (
-        <button
-            onClick={onClick}
-            className={`mr-8 py-4 px-6 border-b-2 font-medium text-sm flex items-center ${
-                active
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-        >
-            <div className="mr-2">{icon}</div>
-            {label}
-        </button>
     );
 };
 
