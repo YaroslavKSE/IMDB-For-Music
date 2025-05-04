@@ -26,7 +26,8 @@ import UserProfilePage from './pages/UserProfile';
 import CreateInteractionPage from './pages/CreateInteractionPage';
 import InteractionDetailPage from './pages/InteractionDetailPage';
 import FollowingFeed from './pages/FollowingFeed';
-import Lists from "./pages/Lists.tsx";
+import Lists from "./pages/Lists";
+import ListDetailsPage from './pages/ListDetailsPage';
 
 // Auth callback handler component
 const AuthCallback = () => {
@@ -53,9 +54,9 @@ const AuthCallback = () => {
 
   // Show a subtle loading indicator while processing the callback
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gray-50">
-      <LoadingIndicator size="large" text="Completing sign-in" />
-    </div>
+      <div className="min-h-screen flex flex-col justify-center items-center bg-gray-50">
+        <LoadingIndicator size="large" text="Completing sign-in" />
+      </div>
   );
 };
 
@@ -71,12 +72,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // If still loading, render the current route but with a subtle loading indicator
   if (isLoading) {
     return (
-      <div className="opacity-50 pointer-events-none">
-        {children}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-primary-600 h-1">
-          <div className="h-full bg-primary-300 animate-pulse"></div>
+        <div className="opacity-50 pointer-events-none">
+          {children}
+          <div className="fixed top-0 left-0 right-0 z-50 bg-primary-600 h-1">
+            <div className="h-full bg-primary-300 animate-pulse"></div>
+          </div>
         </div>
-      </div>
     );
   }
 
@@ -103,101 +104,104 @@ function App() {
   // Show a minimal loading indicator only during initial app load
   if (isInitializing) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="fixed top-0 left-0 right-0 z-50 bg-primary-100 h-1">
-          <div className="h-full bg-primary-600 w-24 animate-pulse"></div>
+        <div className="min-h-screen bg-gray-50">
+          <div className="fixed top-0 left-0 right-0 z-50 bg-primary-100 h-1">
+            <div className="h-full bg-primary-600 w-24 animate-pulse"></div>
+          </div>
         </div>
-      </div>
     );
   }
 
   return (
-    <Router>
-      <Routes>
-        {/* Auth0 callback route - outside MainLayout */}
-        <Route path="/callback" element={<AuthCallback />} />
+      <Router>
+        <Routes>
+          {/* Auth0 callback route - outside MainLayout */}
+          <Route path="/callback" element={<AuthCallback />} />
 
-        {/* Main layout with routes */}
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Home />} />
-          <Route path="login" element={<Login />} />
-          <Route path="register" element={<Register />} />
-          <Route path="search" element={<Search />} />
-          <Route path="album/:id" element={<Album />} />
-          <Route path="track/:id" element={<Song />} />
-          <Route path="artist/:id" element={<Artist />} />
+          {/* Main layout with routes */}
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<Home />} />
+            <Route path="login" element={<Login />} />
+            <Route path="register" element={<Register />} />
+            <Route path="search" element={<Search />} />
+            <Route path="album/:id" element={<Album />} />
+            <Route path="track/:id" element={<Song />} />
+            <Route path="artist/:id" element={<Artist />} />
 
-          {/* ItemHistory detail page - publicly viewable */}
-          <Route path="interaction/:id" element={<InteractionDetailPage />} />
+            {/* Interaction detail page - publicly viewable */}
+            <Route path="interaction/:id" element={<InteractionDetailPage />} />
 
-          {/* People Routes */}
-          <Route path="people" element={<PeoplePage />} />
-          <Route path="people/:id" element={<UserProfilePage />} />
+            {/* List detail page - publicly viewable */}
+            <Route path="lists/:id" element={<ListDetailsPage />} />
 
-          {/* Protected routes */}
-          <Route
-            path="profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-          {/* Diary route */}
-          <Route
-            path="diary"
-            element={
-              <ProtectedRoute>
-                <Diary />
-              </ProtectedRoute>
-            }
-          />
-          {/* Grading method routes */}
-          <Route
-            path="grading-methods/create"
-            element={
-              <ProtectedRoute>
-                <CreateGradingMethod />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="grading-methods/:id"
-            element={<ViewGradingMethod />}
-          />
+            {/* People Routes */}
+            <Route path="people" element={<PeoplePage />} />
+            <Route path="people/:id" element={<UserProfilePage />} />
 
-          <Route
-            path="create-interaction/:itemType/:itemId"
-            element={
-              <ProtectedRoute>
-                <CreateInteractionPage />
-              </ProtectedRoute>
-            }
-          />
+            {/* Protected routes */}
+            <Route
+                path="profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+            />
+            {/* Diary route */}
+            <Route
+                path="diary"
+                element={
+                  <ProtectedRoute>
+                    <Diary />
+                  </ProtectedRoute>
+                }
+            />
+            {/* Grading method routes */}
+            <Route
+                path="grading-methods/create"
+                element={
+                  <ProtectedRoute>
+                    <CreateGradingMethod />
+                  </ProtectedRoute>
+                }
+            />
+            <Route
+                path="grading-methods/:id"
+                element={<ViewGradingMethod />}
+            />
 
-          <Route
-              path="following-feed"
-              element={
-                <ProtectedRoute>
-                  <FollowingFeed />
-                </ProtectedRoute>
-              }
-          />
+            <Route
+                path="create-interaction/:itemType/:itemId"
+                element={
+                  <ProtectedRoute>
+                    <CreateInteractionPage />
+                  </ProtectedRoute>
+                }
+            />
 
-          <Route
-              path="lists"
-              element={
-                <ProtectedRoute>
-                  <Lists />
-                </ProtectedRoute>
-              }
-          />
+            <Route
+                path="following-feed"
+                element={
+                  <ProtectedRoute>
+                    <FollowingFeed />
+                  </ProtectedRoute>
+                }
+            />
 
-          {/* Catch-all route for 404 */}
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </Router>
+            <Route
+                path="lists"
+                element={
+                  <ProtectedRoute>
+                    <Lists />
+                  </ProtectedRoute>
+                }
+            />
+
+            {/* Catch-all route for 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+      </Router>
   );
 }
 
