@@ -1,410 +1,448 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Filter, Search, Music, Disc, ArrowDown, Loader, RefreshCw } from 'lucide-react';
-import InteractionService, { InteractionDetailDTO } from '../../api/interaction';
+import { Loader } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
-import CatalogService, { AlbumSummary, TrackSummary } from '../../api/catalog';
-import { formatDate } from '../../utils/formatters';
-import NormalizedStarDisplay from '../CreateInteraction/NormalizedStarDisplay';
-
-// Define types for catalog items
-type CatalogItem = AlbumSummary | TrackSummary;
+import InteractionService from '../../api/interaction';
+import CatalogService from '../../api/catalog';
+import ReviewModal from "../Diary/ReviewModal";
+import { DiaryEntry, GroupedEntries } from '../Diary/types';
+import { DiaryLoadingState, DiaryErrorState, DiaryEmptyState } from '../Diary/DiaryStates';
+import DiaryDateGroup from '../Diary/DiaryDateGroup';
 
 const ProfileHistoryTab = () => {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
-  const [interactions, setInteractions] = useState<InteractionDetailDTO[]>([]);
+  const { user, isAuthenticated } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
+  const [groupedEntries, setGroupedEntries] = useState<GroupedEntries[]>([]);
   const [offset, setOffset] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
-  const [catalogItems, setCatalogItems] = useState<Map<string, CatalogItem>>(new Map());
+  const [, setTotalInteractions] = useState(0);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedReview, setSelectedReview] = useState<{
+    review: { reviewId: string; reviewText: string };
+    itemName: string;
+    artistName: string;
+    date: string;
+  } | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState<DiaryEntry | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [noInteractions, setNoInteractions] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const itemsPerPage = 20;
 
-  // For infinite scrolling
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
+  // Load initial diary entries
+  const loadInitialDiaryEntries = useCallback(async () => {
+    if (!user) return;
 
-  const limit = 20; // Number of items to fetch per page
-
-  // Fetch interactions
-  const fetchInteractions = useCallback(async (offsetValue = 0, append = false) => {
-    if (!user?.id) return;
+    setLoading(true);
+    setError(null);
+    setNoInteractions(false);
+    setOffset(0);
+    setDiaryEntries([]);
 
     try {
-      if (offsetValue === 0) {
-        setLoading(true);
+      // Fetch initial interactions for the user
+      const { items: initialInteractions, totalCount } =
+          await InteractionService.getUserInteractionsByUserId(user.id, itemsPerPage, 0);
+
+      // Set total interactions and check if there are more to load
+      setTotalInteractions(totalCount);
+      setHasMore(totalCount > itemsPerPage);
+
+      if (totalCount === 0) {
+        setNoInteractions(true);
+        setLoading(false);
+        return;
+      }
+
+      // Extract all item ids for preview info
+      const itemIds: string[] = initialInteractions.map(interaction => interaction.itemId);
+
+      // Fetch preview information for all items in a single request
+      const previewResponse = await CatalogService.getItemPreviewInfo(itemIds, ['album', 'track']);
+
+      // Create lookup maps for quick access
+      const itemsMap = new Map();
+
+      // Process results from the preview response
+      previewResponse.results?.forEach(resultGroup => {
+        resultGroup.items?.forEach(item => {
+          // Create a simplified catalog item with the preview information
+          const catalogItem = {
+            spotifyId: item.spotifyId,
+            name: item.name,
+            imageUrl: item.imageUrl,
+            artistName: item.artistName
+          };
+
+          itemsMap.set(item.spotifyId, catalogItem);
+        });
+      });
+
+      // Combine interactions with catalog items
+      const entries = initialInteractions.map(interaction => {
+        const entry: DiaryEntry = { interaction };
+
+        // Get the preview info from our map
+        entry.catalogItem = itemsMap.get(interaction.itemId);
+
+        return entry;
+      });
+
+      setDiaryEntries(entries);
+      setOffset(initialInteractions.length);
+    } catch (err: unknown) {
+      console.error('Error loading diary entries:', err);
+      if (err && typeof err === 'object' && 'response' in err &&
+          err.response && typeof err.response === 'object' && 'status' in err.response &&
+          err.response.status === 404) {
+        // When a 404 is received, it means there are no interactions for this user
+        setNoInteractions(true);
+        setTotalInteractions(0);
       } else {
-        setLoadingMore(true);
+        setError('Failed to load your rating history. Please try again later.');
       }
-
-      setError(null);
-
-      // Get user interactions
-      const response = await InteractionService.getUserInteractionsByUserId(
-        user.id,
-        limit,
-        offsetValue
-      );
-
-      const newInteractions = response.items;
-      setTotalCount(response.totalCount);
-
-      // Update interactions list
-      if (append) {
-        setInteractions(prev => [...prev, ...newInteractions]);
-      } else {
-        setInteractions(newInteractions);
-      }
-
-      // Determine if there are more results to load
-      setHasMore(offsetValue + newInteractions.length < response.totalCount);
-      setOffset(offsetValue + newInteractions.length);
-
-      // Fetch catalog item details for all the interactions
-      if (newInteractions.length > 0) {
-        await fetchCatalogItems(newInteractions);
-      }
-    } catch (err) {
-      console.error('Error fetching interactions:', err);
-      setError('Failed to load your rating history. Please try again.');
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
-  }, [user?.id]);
+  }, [user]);
 
-  // Fetch catalog items for interactions
-  const fetchCatalogItems = async (interactionsList: InteractionDetailDTO[]) => {
-    // Extract unique item IDs and types
-    const itemsToFetch = new Map<string, string>(); // Map of ID to type
+  // Load more diary entries
+  const loadMoreDiaryEntries = useCallback(async () => {
+    if (!user || loadingMore || !hasMore) {
+      return;
+    }
 
-    interactionsList.forEach(interaction => {
-      if (!catalogItems.has(interaction.itemId)) {
-        itemsToFetch.set(interaction.itemId, interaction.itemType.toLowerCase());
-      }
-    });
-
-    if (itemsToFetch.size === 0) return;
-
-    // Separate IDs by type
-    const albumIds: string[] = [];
-    const trackIds: string[] = [];
-
-    itemsToFetch.forEach((type, id) => {
-      if (type === 'album') albumIds.push(id);
-      else if (type === 'track') trackIds.push(id);
-    });
+    // Store current offset in local variable to ensure consistency during this function execution
+    const currentOffset = offset;
+    setLoadingMore(true);
 
     try {
-      const newCatalogItems = new Map(catalogItems);
+      // Fetch additional interactions for the user
+      const { items: interactions, totalCount } =
+          await InteractionService.getUserInteractionsByUserId(user.id, itemsPerPage, currentOffset);
 
-      // Fetch albums in batches
-      if (albumIds.length > 0) {
-        // Process in batches of 20 (API limit)
-        for (let i = 0; i < albumIds.length; i += 20) {
-          const batch = albumIds.slice(i, i + 20);
-          const albumsResponse = await CatalogService.getBatchAlbums(batch);
-
-          if (albumsResponse.albums) {
-            albumsResponse.albums.forEach(album => {
-              newCatalogItems.set(album.spotifyId, album);
-            });
-          }
-        }
+      // Check if we received any new interactions
+      if (interactions.length === 0) {
+        setHasMore(false);
+        setLoadingMore(false);
+        return;
       }
 
-      // Fetch tracks in batches
-      if (trackIds.length > 0) {
-        // Process in batches of 20 (API limit)
-        for (let i = 0; i < trackIds.length; i += 20) {
-          const batch = trackIds.slice(i, i + 20);
-          const tracksResponse = await CatalogService.getBatchTracks(batch);
+      // Extract all item ids for preview info
+      const itemIds: string[] = interactions.map(interaction => interaction.itemId);
 
-          if (tracksResponse.tracks) {
-            tracksResponse.tracks.forEach(track => {
-              newCatalogItems.set(track.spotifyId, track);
-            });
-          }
-        }
-      }
+      // Fetch preview information for all items in a single request
+      const previewResponse = await CatalogService.getItemPreviewInfo(itemIds, ['album', 'track']);
 
-      setCatalogItems(newCatalogItems);
-    } catch (err) {
-      console.error('Error fetching catalog items:', err);
+      // Create lookup maps for quick access
+      const itemsMap = new Map();
+
+      // Process results from the preview response
+      previewResponse.results?.forEach(resultGroup => {
+        resultGroup.items?.forEach(item => {
+          // Create a simplified catalog item with the preview information
+          const catalogItem = {
+            spotifyId: item.spotifyId,
+            name: item.name,
+            imageUrl: item.imageUrl,
+            artistName: item.artistName
+          };
+
+          itemsMap.set(item.spotifyId, catalogItem);
+        });
+      });
+
+      // Combine interactions with catalog items
+      const newEntries = interactions.map(interaction => {
+        const entry: DiaryEntry = { interaction };
+
+        // Get the preview info from our map
+        entry.catalogItem = itemsMap.get(interaction.itemId);
+
+        return entry;
+      });
+
+      // Update hasMore status based on whether we've reached the total count
+      const newOffset = currentOffset + interactions.length;
+      const newHasMore = newOffset < totalCount;
+      setHasMore(newHasMore);
+
+      // Append new entries to existing entries
+      setDiaryEntries(prevEntries => [...prevEntries, ...newEntries]);
+      setOffset(newOffset);
+    } catch (err: unknown) {
+      console.error('Error loading more diary entries:', err);
+      setError('Failed to load more entries. Please try again later.');
+    } finally {
+      setLoadingMore(false);
     }
-  };
+  }, [user, offset, loadingMore, hasMore]);
 
-  // Initial load
+  // Setup scroll event for loading more entries
   useEffect(() => {
-    if (user?.id) {
-      fetchInteractions(0, false);
-    }
-  }, [user?.id, fetchInteractions]);
+    // Don't set up scroll handler if we're in initial loading
+    // or if there are no more items to load
+    if (loading || !hasMore || diaryEntries.length === 0) return;
 
-  // Set up intersection observer for infinite scrolling
-  useEffect(() => {
-    if (loading || !hasMore) return;
+    // Use a debounce mechanism to prevent multiple rapid scroll events
+    let scrollTimeout: number | null = null;
+    let isLoadingTriggered = false;
 
-    // Disconnect previous observer
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
+    const handleScroll = () => {
+      // Skip if already triggered but not yet processed
+      if (isLoadingTriggered || loadingMore) return;
 
-    // Create new intersection observer
-    observerRef.current = new IntersectionObserver(entries => {
-      const [entry] = entries;
-      if (entry.isIntersecting && !loadingMore) {
-        loadMoreInteractions();
-      }
-    }, { threshold: 0.5 });
+      // Check if user has scrolled to bottom (with 200px threshold)
+      if (
+          window.innerHeight + window.scrollY >=
+          document.documentElement.scrollHeight - 200
+      ) {
+        // Set flag to avoid multiple triggers before the timeout
+        isLoadingTriggered = true;
 
-    // Observe the load more trigger element
-    if (loadMoreTriggerRef.current) {
-      observerRef.current.observe(loadMoreTriggerRef.current);
-    }
+        // Clear any existing timeout
+        if (scrollTimeout) {
+          window.clearTimeout(scrollTimeout);
+        }
 
-    // Clean up observer on unmount
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
+        // Set a timeout to debounce multiple scroll events
+        scrollTimeout = window.setTimeout(() => {
+          if (!loadingMore && hasMore) {
+            loadMoreDiaryEntries();
+          }
+          isLoadingTriggered = false;
+        }, 300); // 300ms debounce
       }
     };
-  }, [loading, loadingMore, hasMore]);
 
-  // Load more interactions
-  const loadMoreInteractions = () => {
-    if (!loadingMore && hasMore) {
-      fetchInteractions(offset, true);
+    // Add scroll event listener
+    window.addEventListener('scroll', handleScroll);
+
+    // Clean up
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) window.clearTimeout(scrollTimeout);
+    };
+  }, [loading, loadingMore, hasMore, loadMoreDiaryEntries, diaryEntries.length]);
+
+  // Load diary entries when authenticated user changes
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      navigate('/login', { state: { from: '/profile' } });
+      return;
     }
-  };
 
-  // Handle interaction click
-  const handleInteractionClick = (interactionId: string) => {
-    navigate(`/interaction/${interactionId}`);
-  };
+    loadInitialDiaryEntries();
+  }, [isAuthenticated, user, navigate, loadInitialDiaryEntries]);
 
-  if (loading && interactions.length === 0) {
-    return (
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="p-6">
-          <div className="flex justify-center items-center py-12">
-            <RefreshCw className="h-8 w-8 text-primary-600 animate-spin mr-3" />
-            <span className="text-gray-600">Loading your rating history...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Group entries by date whenever diary entries change
+  useEffect(() => {
+    if (diaryEntries.length === 0) return;
 
-  if (error) {
-    return (
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="p-6">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-            {error}
-            <button
-              onClick={() => fetchInteractions(0, false)}
-              className="ml-2 underline hover:text-red-900"
-            >
-              Try again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    // Group entries by date
+    const grouped: Record<string, DiaryEntry[]> = {};
+    diaryEntries.forEach(entry => {
+      const date = new Date(entry.interaction.createdAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
 
-  if (interactions.length === 0) {
-    return (
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="p-6 text-center">
-          <Music className="h-16 w-16 text-gray-400 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-gray-900">No Rating History</h3>
-          <p className="text-gray-500 mt-2 mb-6">
-            You haven't rated any music yet. Start exploring and rating albums and tracks to build your history.
-          </p>
-          <button
-            onClick={() => navigate('/')}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none"
-          >
-            Discover Music
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Group interactions by date for better display
-  const groupedInteractions: Record<string, InteractionDetailDTO[]> = {};
-
-  interactions.forEach(interaction => {
-    const date = new Date(interaction.createdAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+      if (!grouped[date]) {
+        grouped[date] = [];
+      }
+      grouped[date].push(entry);
     });
 
-    if (!groupedInteractions[date]) {
-      groupedInteractions[date] = [];
-    }
+    // Convert to array sorted by date (newest first)
+    const result: GroupedEntries[] = Object.keys(grouped)
+        .map(date => ({ date, entries: grouped[date] }))
+        .sort((a, b) => new Date(b.entries[0].interaction.createdAt).getTime() -
+            new Date(a.entries[0].interaction.createdAt).getTime());
 
-    groupedInteractions[date].push(interaction);
-  });
+    setGroupedEntries(result);
+  }, [diaryEntries]);
+
+  // Show success message briefly
+  useEffect(() => {
+    if (deleteSuccess) {
+      const timer = setTimeout(() => {
+        setDeleteSuccess(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [deleteSuccess]);
+
+  const handleReviewClick = (e: React.MouseEvent, entry: DiaryEntry) => {
+    e.stopPropagation(); // Prevent triggering the row click
+
+    if (!entry.interaction.review) return;
+
+    const formattedDate = new Date(entry.interaction.createdAt).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    setSelectedReview({
+      review: entry.interaction.review,
+      itemName: entry.catalogItem?.name || 'Unknown Title',
+      artistName: entry.catalogItem?.artistName || 'Unknown Artist',
+      date: formattedDate
+    });
+
+    setReviewModalOpen(true);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, entry: DiaryEntry) => {
+    e.stopPropagation(); // Prevent triggering the row click
+    setEntryToDelete(entry);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!entryToDelete) return;
+
+    try {
+      await InteractionService.deleteInteraction(entryToDelete.interaction.aggregateId);
+
+      // Remove the deleted entry from the diary entries
+      const updatedEntries = diaryEntries.filter(
+          entry => entry.interaction.aggregateId !== entryToDelete.interaction.aggregateId
+      );
+      setDiaryEntries(updatedEntries);
+
+      // Update total interactions count
+      setTotalInteractions(prev => prev - 1);
+
+      // Show success message
+      setDeleteSuccess(true);
+    } catch (err: unknown) {
+      console.error('Error deleting entry:', err);
+      setError('Failed to delete the entry. Please try again.');
+    } finally {
+      setDeleteModalOpen(false);
+      setEntryToDelete(null);
+    }
+  };
+
+  // Show loading state
+  if (loading && diaryEntries.length === 0) {
+    return <DiaryLoadingState />;
+  }
 
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden">
-      <div className="px-6 py-4 bg-primary-50 border-b border-primary-100">
-        <h3 className="text-lg font-medium text-primary-800 flex items-center">
-          <Calendar className="h-5 w-5 mr-2" />
-          Your Rating History
-        </h3>
-      </div>
+      <div className="bg-white shadow rounded-lg overflow-hidden">
 
-      <div className="p-6">
-        {/* Filter controls */}
-        <div className="mb-6 flex justify-between items-center">
-          <div className="flex items-center">
-            <Filter className="h-5 w-5 text-gray-400 mr-2" />
-            <span className="text-gray-700">
-              {totalCount} {totalCount === 1 ? 'entry' : 'entries'}
-            </span>
-          </div>
+        <div className="p-6">
+          {error && <DiaryErrorState error={error} onRetry={loadInitialDiaryEntries} />}
 
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search your ratings..."
-              className="block pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-            />
-          </div>
-        </div>
-
-        {/* Timeline of interactions */}
-        <div className="space-y-8">
-          {Object.entries(groupedInteractions).map(([date, dayInteractions]) => (
-            <div key={date} className="space-y-4">
-              <div className="flex items-center">
-                <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                  <Calendar className="h-5 w-5 text-primary-600" />
-                </div>
-                <h4 className="ml-3 text-lg font-medium text-gray-900">{date}</h4>
+          {/* Success notification */}
+          {deleteSuccess && (
+              <div className="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50 shadow-md">
+                Entry has been deleted successfully!
               </div>
+          )}
 
-              <div className="ml-5 pl-6 border-l-2 border-gray-200 space-y-4">
-                {dayInteractions.map(interaction => {
-                  const catalogItem = catalogItems.get(interaction.itemId);
-                  return (
-                    <div
-                      key={interaction.aggregateId}
-                      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => handleInteractionClick(interaction.aggregateId)}
-                    >
-                      <div className="flex">
-                        {/* Item image */}
-                        <div className="flex-shrink-0 mr-4">
-                          <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden">
-                            {catalogItem?.imageUrl ? (
-                              <img
-                                src={catalogItem.imageUrl}
-                                alt={catalogItem.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              interaction.itemType === 'Album' ? (
-                                <Disc className="w-full h-full p-3 text-gray-400" />
-                              ) : (
-                                <Music className="w-full h-full p-3 text-gray-400" />
-                              )
-                            )}
-                          </div>
+          {(groupedEntries.length === 0 && !loading && !error) || noInteractions ? (
+              <DiaryEmptyState />
+          ) : (
+              <>
+                {/* Diary entries by date */}
+                <div className="space-y-8">
+                  {groupedEntries.map((group) => (
+                      <DiaryDateGroup
+                          key={group.date}
+                          group={group}
+                          onReviewClick={handleReviewClick}
+                          onDeleteClick={handleDeleteClick}
+                      />
+                  ))}
+                </div>
+
+                {/* Loading more indicator */}
+                {loadingMore && (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader className="h-6 w-6 text-primary-600 animate-spin mr-2" />
+                      <span className="text-gray-600">Loading more entries...</span>
+                    </div>
+                )}
+
+                {/* End of list message */}
+                {!hasMore && diaryEntries.length > 0 && !loadingMore && (
+                    <div className="text-center py-6 text-gray-500">
+                      You've reached the end of your rating history
+                    </div>
+                )}
+              </>
+          )}
+
+          {/* Review Modal */}
+          {selectedReview && (
+              <ReviewModal
+                  isOpen={reviewModalOpen}
+                  onClose={() => setReviewModalOpen(false)}
+                  review={selectedReview.review}
+                  itemName={selectedReview.itemName}
+                  artistName={selectedReview.artistName}
+                  date={selectedReview.date}
+              />
+          )}
+
+          {/* Delete Confirmation Modal */}
+          {deleteModalOpen && entryToDelete && (
+              <div className="fixed inset-0 z-50 overflow-y-auto">
+                <div className="flex items-center justify-center min-h-screen p-4">
+                  {/* Backdrop */}
+                  <div
+                      className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+                      onClick={() => setDeleteModalOpen(false)}
+                  ></div>
+
+                  {/* Modal */}
+                  <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full z-10">
+                    <div className="p-6">
+                      <div className="flex items-center mb-4">
+                        <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                          <span className="text-red-500 font-bold">!</span>
                         </div>
+                        <h3 className="text-lg font-bold text-gray-900">Delete Entry</h3>
+                      </div>
 
-                        {/* Item details */}
-                        <div className="flex-grow">
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
-                            <div>
-                              <h4 className="font-medium text-gray-900 line-clamp-1">
-                                {catalogItem?.name || 'Unknown Item'}
-                              </h4>
-                              <p className="text-sm text-gray-600 line-clamp-1">
-                                {catalogItem?.artistName || 'Unknown Artist'}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {formatDate(interaction.createdAt)}
-                              </p>
-                            </div>
+                      <p className="mb-4">
+                        Are you sure you want to delete this entry for "{entryToDelete.catalogItem?.name || 'Unknown Title'}"?
+                        This action cannot be undone.
+                      </p>
 
-                            <div className="flex items-center space-x-3 mt-2 sm:mt-0">
-                              {/* Rating display */}
-                              {interaction.rating && (
-                                <div className="flex items-center">
-                                  <NormalizedStarDisplay
-                                    currentGrade={interaction.rating.normalizedGrade}
-                                    minGrade={1}
-                                    maxGrade={10}
-                                    size="sm"
-                                  />
-                                </div>
-                              )}
-
-                              {/* Review indicator */}
-                              {interaction.review && (
-                                <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                                  Review
-                                </div>
-                              )}
-
-                              {/* Like indicator */}
-                              {interaction.isLiked && (
-                                <div className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
-                                  Loved
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Preview of review text if available */}
-                          {interaction.review && interaction.review.reviewText && (
-                            <div className="mt-2 text-sm text-gray-700 line-clamp-2">
-                              {interaction.review.reviewText}
-                            </div>
-                          )}
-                        </div>
+                      <div className="flex justify-end space-x-3 mt-6">
+                        <button
+                            type="button"
+                            onClick={() => setDeleteModalOpen(false)}
+                            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={confirmDelete}
+                            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
-
-          {/* Load more trigger for infinite scrolling */}
-          {hasMore && (
-            <div
-              ref={loadMoreTriggerRef}
-              className="flex justify-center items-center py-8"
-            >
-              {loadingMore ? (
-                <div className="flex items-center">
-                  <Loader className="h-5 w-5 text-primary-600 animate-spin mr-2" />
-                  <span className="text-gray-600">Loading more...</span>
-                </div>
-              ) : (
-                <div className="text-gray-500 text-sm flex items-center">
-                  <ArrowDown className="h-4 w-4 mr-1" />
-                  Scroll for more
-                </div>
-              )}
-            </div>
           )}
         </div>
       </div>
-    </div>
   );
 };
 

@@ -169,14 +169,16 @@ const DiaryEntryComponent = ({ entry, onReviewClick, onDeleteClick }: DiaryEntry
                     <Disc className="h-5 w-5" />
                 </button>
 
-                {/* Delete button */}
-                <button
-                    onClick={handleDelete}
-                    className={`ml-2 p-2 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-full transition-colors ${isHovered ? 'visible' : 'invisible'}`}
-                    title="Delete this entry"
-                >
-                    <Trash2 className="h-5 w-5" />
-                </button>
+                {/* Delete button - only show if not a public entry */}
+                {!entry.isPublic && onDeleteClick && (
+                    <button
+                        onClick={handleDelete}
+                        className={`ml-2 p-2 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-full transition-colors ${isHovered ? 'visible' : 'invisible'}`}
+                        title="Delete this entry"
+                    >
+                        <Trash2 className="h-5 w-5" />
+                    </button>
+                )}
             </div>
 
             {/* Complex Rating Modal */}
