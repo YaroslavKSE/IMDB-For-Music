@@ -26,6 +26,7 @@ import UserProfilePage from './pages/UserProfile';
 import CreateInteractionPage from './pages/CreateInteractionPage';
 import InteractionDetailPage from './pages/InteractionDetailPage';
 import FollowingFeed from './pages/FollowingFeed';
+import Lists from "./pages/Lists.tsx";
 
 // Auth callback handler component
 const AuthCallback = () => {
@@ -179,6 +180,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <FollowingFeed />
+                </ProtectedRoute>
+              }
+          />
+
+          <Route
+              path="lists"
+              element={
+                <ProtectedRoute>
+                  <Lists />
                 </ProtectedRoute>
               }
           />
