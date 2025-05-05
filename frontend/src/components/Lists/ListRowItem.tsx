@@ -128,12 +128,6 @@ const ListRowItem: React.FC<ListRowItemProps> = ({ list, onDelete }) => {
                             {list.previewItems.slice(0, 5).map((item, index) => (
                                 renderItem(item, index)
                             ))}
-
-                            {list.totalItems > 5 && (
-                                <div className="w-24 h-24 flex items-center justify-center ml-3 bg-gray-50 rounded">
-                                    <span className="text-base text-gray-500">+{list.totalItems - 5} more</span>
-                                </div>
-                            )}
                         </div>
                     ) : (
                         <div className="w-24 h-24 bg-gray-100 rounded flex items-center justify-center">
