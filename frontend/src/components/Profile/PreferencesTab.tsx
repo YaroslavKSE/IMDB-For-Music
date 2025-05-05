@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Music, Disc, User, Plus, Loader, AlertCircle, ChevronRight } from 'lucide-react';
+import { Music, Disc, User, Plus, Loader, AlertCircle, Trash2 } from 'lucide-react';
 import UserPreferencesService, { UserPreferencesResponse } from '../../api/preferences';
 import UsersService from '../../api/users';
 import SearchModal from './SearchModal';
@@ -18,13 +18,16 @@ interface PreferencesTabProps {
 }
 
 const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesTabProps) => {
-  // We're not directly using this state, but keeping it as it might be needed for API structure
-  // We could directly use artistItems, albumItems, trackItems instead
-  const [, setPreferences] = useState<UserPreferencesResponse | null>(null);
+  // Maximum number of items per category
+  const MAX_ITEMS_PER_CATEGORY = 5;
+
+  // Removed the unused [preferences, setPreferences] state and now only store the data
+  // in the separate arrays for artists, albums, and tracks
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [currentSearchType, setCurrentSearchType] = useState<PreferenceType>('artists');
+  const [deletingItems, setDeletingItems] = useState<Record<string, boolean>>({});
 
   // Properly defined with specific types
   const [artistItems, setArtistItems] = useState<ArtistSummary[]>([]);
@@ -68,29 +71,32 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
         throw new Error('Either userId, username, or isOwnProfile must be provided');
       }
 
-      setPreferences(response);
+      // Limit each category to MAX_ITEMS_PER_CATEGORY maximum
+      const limitedArtists = response.artists.slice(0, MAX_ITEMS_PER_CATEGORY);
+      const limitedAlbums = response.albums.slice(0, MAX_ITEMS_PER_CATEGORY);
+      const limitedTracks = response.tracks.slice(0, MAX_ITEMS_PER_CATEGORY);
 
       // Determine if the user has any preferences
       const hasAnyPreferences =
-        (response.artists && response.artists.length > 0) ||
-        (response.albums && response.albums.length > 0) ||
-        (response.tracks && response.tracks.length > 0);
+        (limitedArtists.length > 0) ||
+        (limitedAlbums.length > 0) ||
+        (limitedTracks.length > 0);
 
       setHasPreferences(hasAnyPreferences);
 
       // Fetch details for each type of preference
-      if (response.artists.length > 0) {
-        const artistDetails = await fetchItemDetails(response.artists, 'artists');
+      if (limitedArtists.length > 0) {
+        const artistDetails = await fetchItemDetails(limitedArtists, 'artists');
         setArtistItems(artistDetails as ArtistSummary[]);
       }
 
-      if (response.albums.length > 0) {
-        const albumDetails = await fetchItemDetails(response.albums, 'albums');
+      if (limitedAlbums.length > 0) {
+        const albumDetails = await fetchItemDetails(limitedAlbums, 'albums');
         setAlbumItems(albumDetails as AlbumSummary[]);
       }
 
-      if (response.tracks.length > 0) {
-        const trackDetails = await fetchItemDetails(response.tracks, 'tracks');
+      if (limitedTracks.length > 0) {
+        const trackDetails = await fetchItemDetails(limitedTracks, 'tracks');
         setTrackItems(trackDetails as TrackSummary[]);
       }
     } catch (err) {
@@ -103,7 +109,6 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
         setArtistItems([]);
         setAlbumItems([]);
         setTrackItems([]);
-        setPreferences({ artists: [], albums: [], tracks: [] });
       } else {
         // For other errors, set the error state
         const userDisplayName = isOwnProfile ? 'your' : (username ? `${username}'s` : "user's");
@@ -114,9 +119,44 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
     }
   };
 
+  // Delete a preference
+  const handleDeletePreference = async (id: string, type: PreferenceType) => {
+    if (deletingItems[id]) return; // Prevent double submission
+
+    try {
+      setDeletingItems(prev => ({ ...prev, [id]: true }));
+
+      // Use singular form: 'artist', 'album', 'track'
+      const itemType = type === 'artists' ? 'artist' :
+                      type === 'albums' ? 'album' : 'track';
+
+      await UserPreferencesService.removePreference(itemType, id);
+
+      // Update the local state to remove the item
+      if (type === 'artists') {
+        setArtistItems(prev => prev.filter(item => item.spotifyId !== id));
+      } else if (type === 'albums') {
+        setAlbumItems(prev => prev.filter(item => item.spotifyId !== id));
+      } else {
+        setTrackItems(prev => prev.filter(item => item.spotifyId !== id));
+      }
+
+      // No success message shown as requested
+
+    } catch (err) {
+      console.error('Error removing preference:', err);
+      setError('Failed to remove preference. Please try again.');
+    } finally {
+      setDeletingItems(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
   // Fetch details for a specific item type
   const fetchItemDetails = async (ids: string[], type: PreferenceType) => {
     if (ids.length === 0) return [];
+
+    // Ensure we respect the MAX_ITEMS_PER_CATEGORY limit
+    const limitedIds = ids.slice(0, MAX_ITEMS_PER_CATEGORY);
 
     try {
       const loadingStateSetter =
@@ -127,13 +167,13 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
       loadingStateSetter(true);
 
       // Limit the number of requests by using batch endpoints when possible
-      if (type === 'albums' && ids.length > 0) {
+      if (type === 'albums' && limitedIds.length > 0) {
         // BatchAlbums supports up to 20 IDs at once
         const batchSize = 20;
         let fetchedAlbums: AlbumSummary[] = [];
 
-        for (let i = 0; i < ids.length; i += batchSize) {
-          const batchIds = ids.slice(i, i + batchSize);
+        for (let i = 0; i < limitedIds.length; i += batchSize) {
+          const batchIds = limitedIds.slice(i, i + batchSize);
           const response = await CatalogService.getBatchAlbums(batchIds);
           if (response.albums) {
             fetchedAlbums = [...fetchedAlbums, ...response.albums];
@@ -141,13 +181,13 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
         }
 
         return fetchedAlbums;
-      } else if (type === 'tracks' && ids.length > 0) {
+      } else if (type === 'tracks' && limitedIds.length > 0) {
         // BatchTracks supports up to 20 IDs at once
         const batchSize = 20;
         let fetchedTracks: TrackSummary[] = [];
 
-        for (let i = 0; i < ids.length; i += batchSize) {
-          const batchIds = ids.slice(i, i + batchSize);
+        for (let i = 0; i < limitedIds.length; i += batchSize) {
+          const batchIds = limitedIds.slice(i, i + batchSize);
           const response = await CatalogService.getBatchTracks(batchIds);
           if (response.tracks) {
             fetchedTracks = [...fetchedTracks, ...response.tracks];
@@ -158,7 +198,7 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
       } else {
         // For artists, we need to fetch them one by one (no batch endpoint available)
         return await Promise.all(
-          ids.map(async (id) => {
+          limitedIds.map(async (id) => {
             try {
               if (type === 'artists') return await CatalogService.getArtist(id);
               return null; // Should not reach here
@@ -183,6 +223,18 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
   };
 
   const handleAddPreference = (type: PreferenceType) => {
+    // Check if we've already reached the maximum for this category
+    const currentCount =
+      type === 'artists' ? artistItems.length :
+      type === 'albums' ? albumItems.length :
+      trackItems.length;
+
+    if (currentCount >= MAX_ITEMS_PER_CATEGORY) {
+      // Could show an error message here
+      alert(`You can only have up to ${MAX_ITEMS_PER_CATEGORY} ${type} in your preferences.`);
+      return;
+    }
+
     setCurrentSearchType(type);
     setSearchModalOpen(true);
   };
@@ -219,12 +271,16 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
       ? `You haven't added any favorite ${type} yet.`
       : `${username || 'This user'} hasn't added any favorite ${type} yet.`;
 
+    // Get count of current items
+    const currentCount = items.length;
+    const canAdd = isOwnProfile && currentCount < MAX_ITEMS_PER_CATEGORY;
+
     // Loading skeleton UI
     const renderLoadingSkeleton = () => {
       if (type === 'artists') {
         return (
           <div className="animate-pulse grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(MAX_ITEMS_PER_CATEGORY)].map((_, i) => (
               <div key={i} className="bg-white rounded-lg shadow overflow-hidden">
                 <div className="aspect-square w-full overflow-hidden bg-gray-200 rounded-full mx-auto p-2"></div>
                 <div className="p-3 text-center">
@@ -237,8 +293,8 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
         );
       } else if (type === 'albums') {
         return (
-          <div className="animate-pulse grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
+          <div className="animate-pulse grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[...Array(MAX_ITEMS_PER_CATEGORY)].map((_, i) => (
               <div key={i} className="bg-white rounded-lg shadow overflow-hidden">
                 <div className="bg-gray-200 aspect-square w-full"></div>
                 <div className="p-3">
@@ -252,7 +308,7 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
       } else {
         return (
           <div className="animate-pulse space-y-4 bg-white rounded-lg shadow overflow-hidden">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(MAX_ITEMS_PER_CATEGORY)].map((_, i) => (
               <div key={i} className="flex items-center px-6 py-4">
                 <div className="w-12 h-12 bg-gray-200 mr-4"></div>
                 <div className="flex-1">
@@ -273,7 +329,7 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
           <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
             {emptyIcon}
             <p className="text-gray-500">{emptyText}</p>
-            {isOwnProfile && (
+            {canAdd && (
               <button
                 onClick={() => handleAddPreference(type)}
                 className="mt-3 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
@@ -288,62 +344,76 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
 
       if (type === 'artists') {
         return (
-          <div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {(items as ArtistSummary[]).slice(0, 4).map((artist) => (
-                <ArtistCard key={artist.spotifyId} artist={artist} />
-              ))}
-            </div>
-            {items.length > 4 && (
-              <div className="mt-4 text-right">
-                <button
-                  onClick={() => console.log(`View all ${type}`)}
-                  className="text-primary-600 hover:text-primary-800 flex items-center text-sm font-medium ml-auto"
-                >
-                  View all {type} <ChevronRight className="h-4 w-4 ml-1" />
-                </button>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {(items as ArtistSummary[]).map((artist) => (
+              <div key={artist.spotifyId} className="relative group">
+                <ArtistCard artist={artist} />
+                {isOwnProfile && (
+                  <button
+                    onClick={() => handleDeletePreference(artist.spotifyId, 'artists')}
+                    disabled={deletingItems[artist.spotifyId]}
+                    className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    title="Remove from favorites"
+                  >
+                    {deletingItems[artist.spotifyId] ? (
+                      <Loader className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
               </div>
-            )}
+            ))}
           </div>
         );
       } else if (type === 'albums') {
         return (
-          <div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {(items as AlbumSummary[]).slice(0, 4).map((album) => (
-                <AlbumCard key={album.spotifyId} album={album} />
-              ))}
-            </div>
-            {items.length > 4 && (
-              <div className="mt-4 text-right">
-                <button
-                  onClick={() => console.log(`View all ${type}`)}
-                  className="text-primary-600 hover:text-primary-800 flex items-center text-sm font-medium ml-auto"
-                >
-                  View all {type} <ChevronRight className="h-4 w-4 ml-1" />
-                </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {(items as AlbumSummary[]).map((album) => (
+              <div key={album.spotifyId} className="relative group">
+                <AlbumCard album={album} />
+                {isOwnProfile && (
+                  <button
+                    onClick={() => handleDeletePreference(album.spotifyId, 'albums')}
+                    disabled={deletingItems[album.spotifyId]}
+                    className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    title="Remove from favorites"
+                  >
+                    {deletingItems[album.spotifyId] ? (
+                      <Loader className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
               </div>
-            )}
+            ))}
           </div>
         );
       } else {
         return (
-          <div>
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              {(items as TrackSummary[]).slice(0, 4).map((track, index) => (
-                <TrackRow key={track.spotifyId} track={track} index={index} />
-              ))}
-            </div>
-            {items.length > 4 && (
-              <div className="mt-4 text-right">
-                <button
-                  onClick={() => console.log(`View all ${type}`)}
-                  className="text-primary-600 hover:text-primary-800 flex items-center text-sm font-medium ml-auto"
-                >
-                  View all {type} <ChevronRight className="h-4 w-4 ml-1" />
-                </button>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            {(items as TrackSummary[]).map((track, index) => (
+              <div key={track.spotifyId} className="relative group">
+                <div className="pr-12"> {/* Add padding to make room for delete button */}
+                  <TrackRow track={track} index={index} />
+                </div>
+                {isOwnProfile && (
+                  <button
+                    onClick={() => handleDeletePreference(track.spotifyId, 'tracks')}
+                    disabled={deletingItems[track.spotifyId]}
+                    className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-red-500 text-white p-1.5 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    title="Remove from favorites"
+                  >
+                    {deletingItems[track.spotifyId] ? (
+                      <Loader className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
               </div>
-            )}
+            ))}
           </div>
         );
       }
@@ -354,12 +424,13 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
         <div className="flex justify-between items-center mb-4">
           <h4 className="text-md font-medium text-gray-800 flex items-center">
             {icon}
-            {title}
+            {title} <span className="ml-2 text-xs text-gray-500">({currentCount}/{MAX_ITEMS_PER_CATEGORY})</span>
           </h4>
-          {isOwnProfile && (
+          {canAdd && (
             <button
               onClick={() => handleAddPreference(type)}
               className="flex items-center text-sm text-primary-600 hover:text-primary-800"
+              disabled={currentCount >= MAX_ITEMS_PER_CATEGORY}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add {type === 'artists' ? 'Artist' : type === 'albums' ? 'Album' : 'Track'}
@@ -404,7 +475,7 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
 
         {isOwnProfile && (
           <p className="text-gray-600 mb-6">
-            Add your favorite artists, albums, and tracks to personalize your experience and help us recommend music you'll love.
+            Add your favorite artists, albums, and tracks to personalize your experience (maximum {MAX_ITEMS_PER_CATEGORY} per category).
           </p>
         )}
 

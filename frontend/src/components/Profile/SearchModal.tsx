@@ -18,6 +18,8 @@ const SearchModal: React.FC<PreferenceSearchModalProps> = ({
   type,
   onPreferenceAdded
 }) => {
+  const MAX_ITEMS_PER_CATEGORY = 5;
+
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,8 +28,34 @@ const SearchModal: React.FC<PreferenceSearchModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addingIds, setAddingIds] = useState<Record<string, boolean>>({});
 
+  // NEW: Add state to track current preferences count
+  const [currentCount, setCurrentCount] = useState(0);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // NEW: Get current count of preferences for the selected type
+  useEffect(() => {
+    const fetchCurrentPreferences = async () => {
+      try {
+        const preferences = await UserPreferencesService.getUserPreferences();
+        const count = type === 'artists'
+          ? preferences.artists.length
+          : type === 'albums'
+            ? preferences.albums.length
+            : preferences.tracks.length;
+
+        setCurrentCount(count);
+      } catch (error) {
+        console.error('Error fetching preference count:', error);
+        setCurrentCount(0);
+      }
+    };
+
+    if (isOpen) {
+      fetchCurrentPreferences();
+    }
+  }, [isOpen, type]);
 
   // Focus search input when modal opens
   useEffect(() => {
@@ -61,6 +89,9 @@ const SearchModal: React.FC<PreferenceSearchModalProps> = ({
         return 'Tracks';
     }
   };
+
+  // Calculate remaining slots
+  const remainingSlots = Math.max(0, MAX_ITEMS_PER_CATEGORY - currentCount);
 
   // Search function with debounce
   const performSearch = useCallback(async (searchQuery: string) => {
@@ -116,13 +147,25 @@ const SearchModal: React.FC<PreferenceSearchModalProps> = ({
     if (selectedItems.includes(id)) {
       setSelectedItems(prev => prev.filter(itemId => itemId !== id));
     } else {
-      setSelectedItems(prev => [...prev, id]);
+      // Check if we can add more items
+      if (selectedItems.length < remainingSlots) {
+        setSelectedItems(prev => [...prev, id]);
+      } else {
+        // Show a warning
+        alert(`You can only add up to ${MAX_ITEMS_PER_CATEGORY} ${type} to your preferences.`);
+      }
     }
   };
 
   // Add a single item directly
   const addSingleItem = async (id: string) => {
     if (addingIds[id]) return; // Prevent double submission
+
+    // Check if we can add one more item
+    if (currentCount >= MAX_ITEMS_PER_CATEGORY) {
+      alert(`You've reached the maximum of ${MAX_ITEMS_PER_CATEGORY} ${type}.`);
+      return;
+    }
 
     try {
       setAddingIds(prev => ({ ...prev, [id]: true }));
@@ -142,6 +185,12 @@ const SearchModal: React.FC<PreferenceSearchModalProps> = ({
   // Submit selected items
   const handleSubmit = async () => {
     if (selectedItems.length === 0) return;
+
+    // Check if we've exceeded the limit
+    if (currentCount + selectedItems.length > MAX_ITEMS_PER_CATEGORY) {
+      alert(`You can only have ${MAX_ITEMS_PER_CATEGORY} ${type} in your preferences.`);
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -218,6 +267,9 @@ const SearchModal: React.FC<PreferenceSearchModalProps> = ({
           <h3 className="text-lg font-medium text-gray-900 flex items-center">
             {getTypeIcon()}
             Add Favorite {getTypeTitle()}
+            <span className="ml-2 text-xs text-gray-500">
+              ({MAX_ITEMS_PER_CATEGORY - currentCount} remaining)
+            </span>
           </h3>
           <button
             onClick={onClose}
@@ -242,6 +294,13 @@ const SearchModal: React.FC<PreferenceSearchModalProps> = ({
               className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
             />
           </div>
+
+          {/* Display warning if at maximum limit */}
+          {remainingSlots <= 0 && (
+            <div className="mt-2 text-sm text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+              You've reached the maximum of {MAX_ITEMS_PER_CATEGORY} {type}. Please remove some to add more.
+            </div>
+          )}
         </div>
 
         {/* Results */}
@@ -280,7 +339,14 @@ const SearchModal: React.FC<PreferenceSearchModalProps> = ({
         <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
           <div className="text-sm text-gray-500">
             {selectedItems.length > 0 ? (
-              <span>{selectedItems.length} item{selectedItems.length !== 1 ? 's' : ''} selected</span>
+              <span>
+                {selectedItems.length} item{selectedItems.length !== 1 ? 's' : ''} selected
+                {remainingSlots > 0 && (
+                  <span className="text-xs text-gray-400 ml-1">
+                    (max {MAX_ITEMS_PER_CATEGORY})
+                  </span>
+                )}
+              </span>
             ) : (
               <span>Select items or add them individually</span>
             )}
@@ -294,7 +360,7 @@ const SearchModal: React.FC<PreferenceSearchModalProps> = ({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={selectedItems.length === 0 || isSubmitting}
+              disabled={selectedItems.length === 0 || isSubmitting || remainingSlots <= 0}
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none disabled:bg-primary-400 disabled:cursor-not-allowed flex items-center"
             >
               {isSubmitting ? (

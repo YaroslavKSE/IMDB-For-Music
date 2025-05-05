@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { UserCheck, X, Save, AlertCircle, Book } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
-import { UpdateProfileParams } from '../../api/auth';
+import { UpdateProfileParams, UserProfile } from '../../api/auth';
+import { PublicUserProfile } from '../../api/users';
 
 interface ProfileEditFormProps {
   onCancel: () => void;
   onSuccess: () => void;
+  initialData?: UserProfile | PublicUserProfile;
 }
 
 interface ProfileFormData {
@@ -16,35 +18,47 @@ interface ProfileFormData {
   bio: string;
 }
 
-const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
+const ProfileEditForm = ({ onCancel, onSuccess, initialData }: ProfileEditFormProps) => {
   const { user, updateProfile, error, clearError } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
-  const [bioLength, setBioLength] = useState(user?.bio?.length || 0);
   const MAX_BIO_LENGTH = 500; // Set maximum bio length
 
+  // Get profile data either from initialData prop or from user store
+  const profileData = initialData || user;
+
+  // Initialize with the form data
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
+    setValue
   } = useForm<ProfileFormData>({
     defaultValues: {
-      name: user?.name || '',
-      surname: user?.surname || '',
-      username: user?.username || '',
-      bio: user?.bio || '',
+      name: profileData?.name || '',
+      surname: profileData?.surname || '',
+      username: profileData?.username || '',
+      bio: 'bio' in profileData ? profileData.bio || '' : '',
     },
   });
 
+  // Set up form data when initialData changes
+  useEffect(() => {
+    if (profileData) {
+      setValue('name', profileData.name);
+      setValue('surname', profileData.surname || '');
+      setValue('username', profileData.username || '');
+      if ('bio' in profileData) {
+        setValue('bio', profileData.bio || '');
+      }
+    }
+  }, [profileData, setValue]);
+
   // Watch bio field to update character count
   const watchBio = watch('bio');
-
-  // Update bio length when it changes
-  if (watchBio?.length !== bioLength) {
-    setBioLength(watchBio?.length || 0);
-  }
+  const bioLength = watchBio?.length || 0;
 
   const onSubmit = async (data: ProfileFormData) => {
     try {
@@ -54,10 +68,15 @@ const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
 
       // Only include fields that have changed
       const updateData: UpdateProfileParams = {};
-      if (data.name !== user?.name) updateData.name = data.name;
-      if (data.surname !== user?.surname) updateData.surname = data.surname;
-      if (data.username !== user?.username) updateData.username = data.username;
-      if (data.bio !== user?.bio) updateData.bio = data.bio;
+      if (data.name !== profileData?.name) updateData.name = data.name;
+      if (data.surname !== profileData?.surname) updateData.surname = data.surname; // This is now optional
+      if (data.username !== profileData?.username) updateData.username = data.username;
+
+      if ('bio' in profileData && data.bio !== profileData.bio) {
+        updateData.bio = data.bio;
+      } else if (!('bio' in profileData) && data.bio) {
+        updateData.bio = data.bio;
+      }
 
       // No changes, just return
       if (Object.keys(updateData).length === 0) {
@@ -142,16 +161,16 @@ const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
           )}
         </div>
 
-        {/* Last Name Field */}
+        {/* Last Name Field - Now OPTIONAL */}
         <div>
           <label htmlFor="surname" className="block text-sm font-medium text-gray-700 mb-1">
-            Last Name
+            Last Name <span className="text-gray-400 text-xs">(optional)</span>
           </label>
           <input
             id="surname"
             type="text"
             {...register('surname', {
-              required: 'Last name is required',
+              // No required rule
               maxLength: {
                 value: 50,
                 message: 'Last name cannot exceed 50 characters',

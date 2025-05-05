@@ -3,24 +3,23 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import UsersService, { UserSubscriptionResponse } from '../api/users'; // Import the type
 import GradingMethodsTab from '../components/Profile/GradingMethodsTab';
-import ProfileOverviewTab from '../components/Profile/ProfileOverviewTab';
 import ProfileSettingsTab from '../components/Profile/ProfileSettingsTab';
 import ProfileLoadingState from '../components/Profile/ProfileLoadingState';
 import ProfileHeader from '../components/Profile/ProfileHeader';
 import ProfileTabs, { ProfileTabType } from '../components/Profile/ProfileTabs';
 import SocialTabContent from '../components/Profile/SocialTabContent';
-import PreferencesTab from '../components/Profile/PreferencesTab'; // Updated import
-import ProfileHistoryTab from '../components/Profile/ProfileHistoryTab'; // Use ProfileHistoryTab instead
+import PreferencesTab from '../components/Profile/PreferencesTab';
+import ProfileHistoryTab from '../components/Profile/ProfileHistoryTab';
 
 const Profile = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, fetchUserProfile, isLoading, isAuthenticated } = useAuthStore();
 
-  // Get active tab from URL params or default to overview
+  // Get active tab from URL params or default to history
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState<ProfileTabType>(
-    tabParam as ProfileTabType || 'overview'
+    tabParam as ProfileTabType || 'history'
   );
 
   // Fixed type definitions for arrays
@@ -102,7 +101,6 @@ const Profile = () => {
 
       {/* Tab Content */}
       <div className="mb-8">
-        {activeTab === 'overview' && <ProfileOverviewTab user={user} />}
         {activeTab === 'grading-methods' && <GradingMethodsTab />}
 
         {/* Using unified components */}
