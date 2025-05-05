@@ -236,9 +236,7 @@ const ListEditPage = () => {
 
             if (response.success) {
                 setSaveSuccess(true);
-                setTimeout(() => {
-                    navigate(`/lists/${list.listId}`);
-                }, 1500);
+                navigate(-1);
             } else {
                 setError(response.errorMessage || 'Failed to update list');
             }
@@ -286,7 +284,7 @@ const ListEditPage = () => {
             {/* Header with back button */}
             <div className="mb-6 flex justify-between items-center">
                 <button
-                    onClick={() => navigate(`/lists/${list.listId}`)}
+                    onClick={() => navigate(-1)}
                     className="text-gray-600 hover:text-gray-900 flex items-center"
                 >
                     <ArrowLeft className="h-5 w-5 mr-1" />
@@ -377,9 +375,6 @@ const ListEditPage = () => {
                         </div>
 
                         <div className="flex items-center text-sm text-gray-500">
-                            <span className="uppercase bg-gray-200 rounded px-2 py-0.5 mr-2">
-                                {list.listType} List
-                            </span>
                             <span>
                                 {items.length} {items.length === 1 ?
                                 (list.listType === 'Album' ? 'album' : 'track') :

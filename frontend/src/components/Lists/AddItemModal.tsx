@@ -22,6 +22,9 @@ const AddItemModal = ({ isOpen, onClose, onAddItems, listType, existingItemIds }
     const [offset, setOffset] = useState(0);
     const [loadingMore, setLoadingMore] = useState(false);
 
+    // Define the maximum number of items that can be selected at once
+    const MAX_ITEMS = 20;
+
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -137,6 +140,11 @@ const AddItemModal = ({ isOpen, onClose, onAddItems, listType, existingItemIds }
             if (prev.includes(spotifyId)) {
                 return prev.filter(id => id !== spotifyId);
             } else {
+                // Check if adding this item would exceed the limit
+                if (prev.length >= MAX_ITEMS) {
+                    // Don't add the item if it would exceed the limit
+                    return prev;
+                }
                 return [...prev, spotifyId];
             }
         });
@@ -170,6 +178,9 @@ const AddItemModal = ({ isOpen, onClose, onAddItems, listType, existingItemIds }
     const isItemInList = (spotifyId: string) => {
         return existingItemIds.includes(spotifyId);
     };
+
+    // Check if selection limit has been reached
+    const isSelectionLimitReached = selectedItems.length >= MAX_ITEMS;
 
     // Clean up on unmount
     useEffect(() => {
@@ -242,6 +253,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItems, listType, existingItemIds }
                                 {searchResults.map((item) => {
                                     const isSelected = selectedItems.includes(item.spotifyId);
                                     const isInList = isItemInList(item.spotifyId);
+                                    const isDisabled = isInList || (isSelectionLimitReached && !isSelected);
 
                                     return (
                                         <div
@@ -251,7 +263,9 @@ const AddItemModal = ({ isOpen, onClose, onAddItems, listType, existingItemIds }
                                                     ? 'border-primary-500 bg-primary-50'
                                                     : isInList
                                                         ? 'border-gray-300 bg-gray-100'
-                                                        : 'border-gray-200 hover:bg-gray-50'
+                                                        : isDisabled
+                                                            ? 'border-gray-200 bg-gray-50 opacity-70'
+                                                            : 'border-gray-200 hover:bg-gray-50'
                                             }`}
                                         >
                                             <div className="flex-shrink-0 mr-3">
@@ -261,7 +275,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItems, listType, existingItemIds }
                                                         checked={isSelected}
                                                         onChange={() => handleToggleSelect(item.spotifyId)}
                                                         className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                                                        disabled={isInList}
+                                                        disabled={isDisabled && !isSelected}
                                                     />
                                                 )}
                                                 {isInList && (
@@ -300,10 +314,13 @@ const AddItemModal = ({ isOpen, onClose, onAddItems, listType, existingItemIds }
                                             ) : (
                                                 <button
                                                     onClick={() => handleToggleSelect(item.spotifyId)}
+                                                    disabled={isDisabled && !isSelected}
                                                     className={`ml-2 p-1 rounded-full ${
                                                         isSelected
                                                             ? 'bg-primary-100 text-primary-600'
-                                                            : 'text-gray-400 hover:text-primary-600 hover:bg-primary-50'
+                                                            : isDisabled
+                                                                ? 'text-gray-300 cursor-not-allowed'
+                                                                : 'text-gray-400 hover:text-primary-600 hover:bg-primary-50'
                                                     }`}
                                                 >
                                                     {isSelected ? (
@@ -353,9 +370,9 @@ const AddItemModal = ({ isOpen, onClose, onAddItems, listType, existingItemIds }
                     <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
                         <div className="text-sm text-gray-500">
                             {selectedItems.length > 0 ? (
-                                <span>{selectedItems.length} item{selectedItems.length !== 1 ? 's' : ''} selected</span>
+                                <span>{selectedItems.length} of {MAX_ITEMS} item{selectedItems.length !== 1 ? 's' : ''} selected</span>
                             ) : (
-                                <span>Select items to add to your list</span>
+                                <span>Select up to {MAX_ITEMS} items</span>
                             )}
                         </div>
                         <div className="flex space-x-2">

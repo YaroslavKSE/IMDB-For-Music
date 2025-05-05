@@ -10,7 +10,6 @@ import {
     ThumbsUp,
     Music,
     Disc,
-    Medal,
     Pencil
 } from 'lucide-react';
 import ListsService, { ListDetail, ListComment } from '../api/lists';
@@ -382,20 +381,10 @@ const ListDetailsPage = () => {
                         <div className="flex-grow">
                             <div className="flex items-center mb-2">
                                 <h1 className="text-2xl font-bold text-gray-900 mr-3">{list.listName}</h1>
-                                {list.isRanked && (
-                                    <span
-                                        className="bg-purple-100 text-purple-800 rounded-full px-3 py-1 text-xs font-medium flex items-center">
-                                        <Medal className="h-3 w-3 mr-1"/>
-                                        Ranked
-                                    </span>
-                                )}
                             </div>
 
                             {/* List type and date */}
                             <div className="flex items-center text-gray-600 text-sm mb-4">
-                                <span className="uppercase bg-gray-200 rounded px-2 py-0.5 mr-3">
-                                    {list.listType} List
-                                </span>
                                 <span className="flex items-center">
                                     <Calendar className="h-3.5 w-3.5 mr-1"/>
                                     {formatDate(list.createdAt)}
@@ -417,45 +406,49 @@ const ListDetailsPage = () => {
                             {list.items.map((item, index) => (
                                 <div
                                     key={item.spotifyId}
-                                    onClick={() => navigateToItemPage(item.spotifyId)}
-                                    className="relative group bg-white rounded-lg overflow-visible shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                                    className="relative flex flex-col items-center"
                                 >
-                                    {/* Item image */}
-                                    <div className="aspect-square w-full overflow-hidden">
-                                        {itemImages[item.spotifyId] ? (
-                                            <img
-                                                src={itemImages[item.spotifyId]}
-                                                alt={itemNames[item.spotifyId] || 'Unknown item'}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                                                {list.listType === 'Album' ? (
-                                                    <Disc className="h-12 w-12 text-gray-400"/>
-                                                ) : (
-                                                    <Music className="h-12 w-12 text-gray-400"/>
-                                                )}
-                                            </div>
-                                        )}
+                                    {/* Item card */}
+                                    <div
+                                        onClick={() => navigateToItemPage(item.spotifyId)}
+                                        className="w-full group bg-white rounded-lg overflow-visible shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer mb-1.5"
+                                    >
+                                        {/* Item image */}
+                                        <div className="aspect-square w-full overflow-hidden">
+                                            {itemImages[item.spotifyId] ? (
+                                                <img
+                                                    src={itemImages[item.spotifyId]}
+                                                    alt={itemNames[item.spotifyId] || 'Unknown item'}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                                    {list.listType === 'Album' ? (
+                                                        <Disc className="h-12 w-12 text-gray-400"/>
+                                                    ) : (
+                                                        <Music className="h-12 w-12 text-gray-400"/>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Item details */}
+                                        <div className="p-2">
+                                            <p className="text-sm font-medium text-gray-900 truncate">
+                                                {itemNames[item.spotifyId] || 'Unknown item'}
+                                            </p>
+                                            <p className="text-xs text-gray-500 truncate">
+                                                {itemArtists[item.spotifyId] || 'Unknown artist'}
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    {/* Item details */}
-                                    <div className="p-2">
-                                        <p className="text-sm font-medium text-gray-900 truncate">
-                                            {itemNames[item.spotifyId] || 'Unknown item'}
-                                        </p>
-                                        <p className="text-xs text-gray-500 truncate">
-                                            {itemArtists[item.spotifyId] || 'Unknown artist'}
-                                        </p>
-
-                                        {/* Show rank if list is ranked */}
-                                        {list.isRanked && (
-                                            <div
-                                                className="mt-1 inline-block bg-purple-100 text-purple-800 rounded px-2 py-0.5 text-xs font-medium">
-                                                #{item.number || index + 1}
-                                            </div>
-                                        )}
-                                    </div>
+                                    {/* Show rank if list is ranked - now below the card */}
+                                    {list.isRanked && (
+                                        <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-800 font-medium">
+                                            {item.number || index + 1}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
