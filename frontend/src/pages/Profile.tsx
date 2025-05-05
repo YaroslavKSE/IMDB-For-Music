@@ -1,16 +1,17 @@
+// Updated Profile.tsx with unified components and fixed TypeScript errors
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import UsersService from '../api/users';
+import UsersService, { UserSubscriptionResponse } from '../api/users'; // Import the type
 import GradingMethodsTab from '../components/Profile/GradingMethodsTab';
 import ProfileOverviewTab from '../components/Profile/ProfileOverviewTab';
 import ProfileSettingsTab from '../components/Profile/ProfileSettingsTab';
-import ProfilePreferencesTab from '../components/Profile/ProfilePreferencesTab';
-import ProfileHistoryTab from '../components/Profile/ProfileHistoryTab';
 import ProfileLoadingState from '../components/Profile/ProfileLoadingState';
 import ProfileHeader from '../components/Profile/ProfileHeader';
 import ProfileTabs, { ProfileTabType } from '../components/Profile/ProfileTabs';
 import SocialTabContent from '../components/Profile/SocialTabContent';
+import PreferencesTab from '../components/Profile/PreferencesTab'; // Updated import
+import HistoryTab from '../components/Profile/HistoryTab'; // Updated import
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -23,8 +24,9 @@ const Profile = () => {
     tabParam as ProfileTabType || 'overview'
   );
 
-  const [followersData, setFollowersData] = useState([]);
-  const [followingData, setFollowingData] = useState([]);
+  // Fixed type definitions for arrays
+  const [followersData, setFollowersData] = useState<UserSubscriptionResponse[]>([]);
+  const [followingData, setFollowingData] = useState<UserSubscriptionResponse[]>([]);
   const [socialLoading, setSocialLoading] = useState(false);
   const [socialError, setSocialError] = useState<string | null>(null);
 
@@ -103,8 +105,22 @@ const Profile = () => {
       <div className="mb-8">
         {activeTab === 'overview' && <ProfileOverviewTab user={user} />}
         {activeTab === 'grading-methods' && <GradingMethodsTab />}
-        {activeTab === 'preferences' && <ProfilePreferencesTab />}
-        {activeTab === 'history' && <ProfileHistoryTab />}
+
+        {/* Using unified components */}
+        {activeTab === 'preferences' && (
+          <PreferencesTab
+            userId={user.id}
+            isOwnProfile={true}
+          />
+        )}
+
+        {activeTab === 'history' && (
+          <HistoryTab
+            userId={user.id}
+            isOwnProfile={true}
+          />
+        )}
+
         {activeTab === 'settings' && <ProfileSettingsTab />}
 
         {/* Following Tab */}

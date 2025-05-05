@@ -4,13 +4,13 @@ import { Book, AlertTriangle } from 'lucide-react';
 import UsersService from '../api/users';
 import InteractionService from '../api/interaction';
 import useAuthStore from '../store/authStore';
-import PublicProfileHistoryTab from '../components/Profile/PublicProfileHistoryTab';
-import PublicProfilePreferencesTab from '../components/Profile/PublicProfilePreferencesTab';
 import ProfileLoadingState from '../components/Profile/ProfileLoadingState';
 import ProfileHeader from '../components/Profile/ProfileHeader';
 import ProfileTabs, { ProfileTabType } from '../components/Profile/ProfileTabs';
 import SocialTabContent from '../components/Profile/SocialTabContent';
 import TabContentWrapper from '../components/Profile/TabContentWrapper';
+import PreferencesTab from '../components/Profile/PreferencesTab';
+import HistoryTab from '../components/Profile/HistoryTab';
 
 const UserProfile = () => {
     const { id } = useParams<{ id: string }>();
@@ -299,19 +299,20 @@ const UserProfile = () => {
                     </TabContentWrapper>
                 )}
 
-                {/* History Tab */}
+                {/* Using the unified components */}
                 {activeTab === 'history' && (
-                    <PublicProfileHistoryTab
-                        userId={id || ''}
+                    <HistoryTab
+                        userId={id}
                         username={userProfile.username}
+                        isOwnProfile={false}
                     />
                 )}
 
-                {/* Preferences Tab */}
                 {activeTab === 'preferences' && (
-                    <PublicProfilePreferencesTab
-                        userId={id || ''}
+                    <PreferencesTab
+                        userId={id}
                         username={userProfile.username}
+                        isOwnProfile={false}
                     />
                 )}
 

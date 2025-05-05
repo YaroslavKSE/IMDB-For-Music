@@ -2,17 +2,21 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Filter, Search, Music, Disc, ArrowDown, Loader, RefreshCw } from 'lucide-react';
 import InteractionService, { InteractionDetailDTO } from '../../api/interaction';
-import useAuthStore from '../../store/authStore';
 import CatalogService, { AlbumSummary, TrackSummary } from '../../api/catalog';
 import { formatDate } from '../../utils/formatters';
 import NormalizedStarDisplay from '../CreateInteraction/NormalizedStarDisplay';
+import axios from 'axios';
 
-// Define types for catalog items
 type CatalogItem = AlbumSummary | TrackSummary;
 
-const ProfileHistoryTab = () => {
+interface HistoryTabProps {
+  userId: string;           // User ID (required for both own profile and public profile)
+  username?: string;        // Optional username for display purposes
+  isOwnProfile?: boolean;   // Whether this is the current user's profile
+}
+
+const HistoryTab = ({ userId, username, isOwnProfile = false }: HistoryTabProps) => {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
   const [interactions, setInteractions] = useState<InteractionDetailDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -21,6 +25,7 @@ const ProfileHistoryTab = () => {
   const [offset, setOffset] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [catalogItems, setCatalogItems] = useState<Map<string, CatalogItem>>(new Map());
+  const [hasInteractions, setHasInteractions] = useState(true); // Flag to track if user has any interactions
 
   // For infinite scrolling
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -30,7 +35,7 @@ const ProfileHistoryTab = () => {
 
   // Fetch interactions
   const fetchInteractions = useCallback(async (offsetValue = 0, append = false) => {
-    if (!user?.id) return;
+    if (!userId) return;
 
     try {
       if (offsetValue === 0) {
@@ -41,39 +46,53 @@ const ProfileHistoryTab = () => {
 
       setError(null);
 
-      // Get user interactions
-      const response = await InteractionService.getUserInteractionsByUserId(
-        user.id,
-        limit,
-        offsetValue
-      );
+      try {
+        // Get user interactions
+        const response = await InteractionService.getUserInteractionsByUserId(
+          userId,
+          limit,
+          offsetValue
+        );
 
-      const newInteractions = response.items;
-      setTotalCount(response.totalCount);
+        const newInteractions = response.items;
+        setTotalCount(response.totalCount);
 
-      // Update interactions list
-      if (append) {
-        setInteractions(prev => [...prev, ...newInteractions]);
-      } else {
-        setInteractions(newInteractions);
+        // Update interactions list
+        if (append) {
+          setInteractions(prev => [...prev, ...newInteractions]);
+        } else {
+          setInteractions(newInteractions);
+        }
+
+        // Determine if there are more results to load
+        setHasMore(offsetValue + newInteractions.length < response.totalCount);
+        setOffset(offsetValue + newInteractions.length);
+        setHasInteractions(newInteractions.length > 0);
+
+        // Fetch catalog item details for all the interactions
+        if (newInteractions.length > 0) {
+          await fetchCatalogItems(newInteractions);
+        }
+      } catch (err) {
+        // Handle 404 as no interactions available rather than an error
+        if (axios.isAxiosError(err) && err.response?.status === 404) {
+          // This means the user has no interactions - this is not an error state
+          setHasInteractions(false);
+          setInteractions([]);
+          setTotalCount(0);
+          setHasMore(false);
+        } else {
+          // For other errors, set the error state
+          console.error('Error fetching interactions:', err);
+          const userDisplayName = isOwnProfile ? 'your' : (username ? `${username}'s` : "user's");
+          setError(`Failed to load ${userDisplayName} rating history.`);
+        }
       }
-
-      // Determine if there are more results to load
-      setHasMore(offsetValue + newInteractions.length < response.totalCount);
-      setOffset(offsetValue + newInteractions.length);
-
-      // Fetch catalog item details for all the interactions
-      if (newInteractions.length > 0) {
-        await fetchCatalogItems(newInteractions);
-      }
-    } catch (err) {
-      console.error('Error fetching interactions:', err);
-      setError('Failed to load your rating history. Please try again.');
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [user?.id]);
+  }, [userId, username, isOwnProfile]);
 
   // Fetch catalog items for interactions
   const fetchCatalogItems = async (interactionsList: InteractionDetailDTO[]) => {
@@ -138,10 +157,10 @@ const ProfileHistoryTab = () => {
 
   // Initial load
   useEffect(() => {
-    if (user?.id) {
+    if (userId) {
       fetchInteractions(0, false);
     }
-  }, [user?.id, fetchInteractions]);
+  }, [userId, fetchInteractions]);
 
   // Set up intersection observer for infinite scrolling
   useEffect(() => {
@@ -191,7 +210,9 @@ const ProfileHistoryTab = () => {
         <div className="p-6">
           <div className="flex justify-center items-center py-12">
             <RefreshCw className="h-8 w-8 text-primary-600 animate-spin mr-3" />
-            <span className="text-gray-600">Loading your rating history...</span>
+            <span className="text-gray-600">
+              {isOwnProfile ? "Loading your rating history..." : `Loading ${username || "user"}'s rating history...`}
+            </span>
           </div>
         </div>
       </div>
@@ -216,21 +237,28 @@ const ProfileHistoryTab = () => {
     );
   }
 
-  if (interactions.length === 0) {
+  // No interactions
+  if (!hasInteractions || interactions.length === 0) {
     return (
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="p-6 text-center">
           <Music className="h-16 w-16 text-gray-400 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-gray-900">No Rating History</h3>
+          <h3 className="text-lg font-medium text-gray-900">
+            {isOwnProfile ? "No Rating History" : "No Public Ratings Yet"}
+          </h3>
           <p className="text-gray-500 mt-2 mb-6">
-            You haven't rated any music yet. Start exploring and rating albums and tracks to build your history.
+            {isOwnProfile
+              ? "You haven't rated any music yet. Start exploring and rating albums and tracks to build your history."
+              : `${username ? `${username} hasn't` : "This user hasn't"} shared any public ratings yet.`}
           </p>
-          <button
-            onClick={() => navigate('/')}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none"
-          >
-            Discover Music
-          </button>
+          {isOwnProfile && (
+            <button
+              onClick={() => navigate('/')}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none"
+            >
+              Discover Music
+            </button>
+          )}
         </div>
       </div>
     );
@@ -258,7 +286,7 @@ const ProfileHistoryTab = () => {
       <div className="px-6 py-4 bg-primary-50 border-b border-primary-100">
         <h3 className="text-lg font-medium text-primary-800 flex items-center">
           <Calendar className="h-5 w-5 mr-2" />
-          Your Rating History
+          {isOwnProfile ? "Your Rating History" : `${username ? `${username}'s` : "User's"} Rating History`}
         </h3>
       </div>
 
@@ -268,7 +296,7 @@ const ProfileHistoryTab = () => {
           <div className="flex items-center">
             <Filter className="h-5 w-5 text-gray-400 mr-2" />
             <span className="text-gray-700">
-              {totalCount} {totalCount === 1 ? 'entry' : 'entries'}
+              {totalCount} {totalCount === 1 ? (isOwnProfile ? 'entry' : 'public entry') : (isOwnProfile ? 'entries' : 'public entries')}
             </span>
           </div>
 
@@ -278,7 +306,7 @@ const ProfileHistoryTab = () => {
             </div>
             <input
               type="text"
-              placeholder="Search your ratings..."
+              placeholder={isOwnProfile ? "Search your ratings..." : "Search ratings..."}
               className="block pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
             />
           </div>
@@ -408,4 +436,4 @@ const ProfileHistoryTab = () => {
   );
 };
 
-export default ProfileHistoryTab;
+export default HistoryTab;
