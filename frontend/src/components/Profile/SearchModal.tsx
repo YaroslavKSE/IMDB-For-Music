@@ -99,7 +99,7 @@ const SearchModal: React.FC<PreferenceSearchModalProps> = ({
     // Set new timer
     debounceTimerRef.current = setTimeout(() => {
       performSearch(value);
-    }, 1000); // 300ms debounce delay
+    }, 500); // 500ms debounce delay
   };
 
   // Clean up timer on unmount
