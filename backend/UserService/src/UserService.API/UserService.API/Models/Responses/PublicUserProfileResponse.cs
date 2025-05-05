@@ -1,4 +1,4 @@
-﻿using System;
+﻿namespace UserService.API.Models.Responses;
 
 public class PublicUserProfileResponse
 {

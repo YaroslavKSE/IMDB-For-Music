@@ -78,7 +78,8 @@ public class UserController : ControllerBase
                 Username = userProfile.Username,
                 Surname = userProfile.Surname,
                 Bio = userProfile.Bio,
-                AvatarUrl = userProfile.AvatarUrl
+                AvatarUrl = userProfile.AvatarUrl,
+                CreatedAt = userProfile.CreatedAt
             };
 
             return Ok(response);
