@@ -85,7 +85,7 @@ const ListRowItem: React.FC<ListRowItemProps> = ({ list, onDelete }) => {
                 key={`${item.spotifyId}-${index}`}
                 className="w-24 h-24 relative rounded overflow-hidden"
                 style={{
-                    marginLeft: index > 0 ? '-12px' : '0',
+                    marginLeft: index > 0 ? '-30px' : '0',
                     zIndex: 5 - index,
                     boxShadow: index > 0 ? '-2px 0 4px rgba(0, 0, 0, 0.15)' : 'none',
                 }}
