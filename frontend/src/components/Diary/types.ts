@@ -5,6 +5,7 @@ import { AlbumSummary, TrackSummary } from '../../api/catalog';
 export interface DiaryEntry {
     interaction: InteractionDetailDTO;
     catalogItem?: AlbumSummary | TrackSummary;
+    isPublic?: boolean; // New property to indicate if the entry is for public view
 }
 
 // Group diary entries by date

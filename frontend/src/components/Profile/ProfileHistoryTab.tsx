@@ -1,19 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Calendar, Loader } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Loader } from 'lucide-react';
+import useAuthStore from '../../store/authStore';
 import InteractionService from '../../api/interaction';
 import CatalogService from '../../api/catalog';
-import ReviewModal from '../Diary/ReviewModal';
+import ReviewModal from "../Diary/ReviewModal";
 import { DiaryEntry, GroupedEntries } from '../Diary/types';
-import { DiaryLoadingState, DiaryErrorState } from '../Diary/DiaryStates';
+import { DiaryLoadingState, DiaryErrorState, DiaryEmptyState } from '../Diary/DiaryStates';
 import DiaryDateGroup from '../Diary/DiaryDateGroup';
-import axios from 'axios';
 
-interface PublicProfileHistoryTabProps {
-  userId: string;
-  username?: string;
-}
-
-const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabProps) => {
+const ProfileHistoryTab = () => {
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,13 +26,16 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
     artistName: string;
     date: string;
   } | null>(null);
-  const [hasMore, setHasMore] = useState(true);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState<DiaryEntry | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [noInteractions, setNoInteractions] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const itemsPerPage = 20;
 
   // Load initial diary entries
   const loadInitialDiaryEntries = useCallback(async () => {
-    if (!userId) return;
+    if (!user) return;
 
     setLoading(true);
     setError(null);
@@ -43,9 +44,9 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
     setDiaryEntries([]);
 
     try {
-      // Fetch initial interactions for the user - using public endpoint
+      // Fetch initial interactions for the user
       const { items: initialInteractions, totalCount } =
-          await InteractionService.getUserInteractionsByUserId(userId, itemsPerPage, 0);
+          await InteractionService.getUserInteractionsByUserId(user.id, itemsPerPage, 0);
 
       // Set total interactions and check if there are more to load
       setTotalInteractions(totalCount);
@@ -83,10 +84,7 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
 
       // Combine interactions with catalog items
       const entries = initialInteractions.map(interaction => {
-        const entry: DiaryEntry = {
-          interaction,
-          isPublic: true  // Mark all entries as public
-        };
+        const entry: DiaryEntry = { interaction };
 
         // Get the preview info from our map
         entry.catalogItem = itemsMap.get(interaction.itemId);
@@ -98,26 +96,23 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
       setOffset(initialInteractions.length);
     } catch (err: unknown) {
       console.error('Error loading diary entries:', err);
-
-      // Handle 404 as no interactions available rather than an error
-      if (axios.isAxiosError(err) && err.response?.status === 404) {
-        // This means the user has no interactions - this is not an error state
+      if (err && typeof err === 'object' && 'response' in err &&
+          err.response && typeof err.response === 'object' && 'status' in err.response &&
+          err.response.status === 404) {
+        // When a 404 is received, it means there are no interactions for this user
         setNoInteractions(true);
-        setDiaryEntries([]);
         setTotalInteractions(0);
-        setHasMore(false);
       } else {
-        // For other errors, set the error state
-        setError(`Failed to load ${username || 'user'}'s rating history.`);
+        setError('Failed to load your rating history. Please try again later.');
       }
     } finally {
       setLoading(false);
     }
-  }, [userId, username]);
+  }, [user]);
 
   // Load more diary entries
   const loadMoreDiaryEntries = useCallback(async () => {
-    if (!userId || loadingMore || !hasMore) {
+    if (!user || loadingMore || !hasMore) {
       return;
     }
 
@@ -128,7 +123,7 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
     try {
       // Fetch additional interactions for the user
       const { items: interactions, totalCount } =
-          await InteractionService.getUserInteractionsByUserId(userId, itemsPerPage, currentOffset);
+          await InteractionService.getUserInteractionsByUserId(user.id, itemsPerPage, currentOffset);
 
       // Check if we received any new interactions
       if (interactions.length === 0) {
@@ -163,10 +158,7 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
 
       // Combine interactions with catalog items
       const newEntries = interactions.map(interaction => {
-        const entry: DiaryEntry = {
-          interaction,
-          isPublic: true  // Mark all entries as public
-        };
+        const entry: DiaryEntry = { interaction };
 
         // Get the preview info from our map
         entry.catalogItem = itemsMap.get(interaction.itemId);
@@ -188,7 +180,7 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
     } finally {
       setLoadingMore(false);
     }
-  }, [userId, offset, loadingMore, hasMore]);
+  }, [user, offset, loadingMore, hasMore]);
 
   // Setup scroll event for loading more entries
   useEffect(() => {
@@ -237,10 +229,15 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
     };
   }, [loading, loadingMore, hasMore, loadMoreDiaryEntries, diaryEntries.length]);
 
-  // Load diary entries on component mount
+  // Load diary entries when authenticated user changes
   useEffect(() => {
+    if (!isAuthenticated || !user) {
+      navigate('/login', { state: { from: '/profile' } });
+      return;
+    }
+
     loadInitialDiaryEntries();
-  }, [loadInitialDiaryEntries]);
+  }, [isAuthenticated, user, navigate, loadInitialDiaryEntries]);
 
   // Group entries by date whenever diary entries change
   useEffect(() => {
@@ -270,6 +267,16 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
     setGroupedEntries(result);
   }, [diaryEntries]);
 
+  // Show success message briefly
+  useEffect(() => {
+    if (deleteSuccess) {
+      const timer = setTimeout(() => {
+        setDeleteSuccess(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [deleteSuccess]);
+
   const handleReviewClick = (e: React.MouseEvent, entry: DiaryEntry) => {
     e.stopPropagation(); // Prevent triggering the row click
 
@@ -293,7 +300,37 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
     setReviewModalOpen(true);
   };
 
-  // No delete function is needed since this is a public profile view
+  const handleDeleteClick = (e: React.MouseEvent, entry: DiaryEntry) => {
+    e.stopPropagation(); // Prevent triggering the row click
+    setEntryToDelete(entry);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!entryToDelete) return;
+
+    try {
+      await InteractionService.deleteInteraction(entryToDelete.interaction.aggregateId);
+
+      // Remove the deleted entry from the diary entries
+      const updatedEntries = diaryEntries.filter(
+          entry => entry.interaction.aggregateId !== entryToDelete.interaction.aggregateId
+      );
+      setDiaryEntries(updatedEntries);
+
+      // Update total interactions count
+      setTotalInteractions(prev => prev - 1);
+
+      // Show success message
+      setDeleteSuccess(true);
+    } catch (err: unknown) {
+      console.error('Error deleting entry:', err);
+      setError('Failed to delete the entry. Please try again.');
+    } finally {
+      setDeleteModalOpen(false);
+      setEntryToDelete(null);
+    }
+  };
 
   // Show loading state
   if (loading && diaryEntries.length === 0) {
@@ -306,19 +343,17 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
         <div className="p-6">
           {error && <DiaryErrorState error={error} onRetry={loadInitialDiaryEntries} />}
 
-          {(groupedEntries.length === 0 && !loading && !error) || noInteractions ? (
-              <div className="text-center py-6 border border-dashed border-gray-300 rounded-lg">
-                <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="h-8 w-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Public Ratings Yet</h3>
-                <p className="text-gray-500">
-                  {username ? `${username} hasn't` : "This user hasn't"} shared any public ratings yet.
-                </p>
+          {/* Success notification */}
+          {deleteSuccess && (
+              <div className="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50 shadow-md">
+                Entry has been deleted successfully!
               </div>
+          )}
+
+          {(groupedEntries.length === 0 && !loading && !error) || noInteractions ? (
+              <DiaryEmptyState />
           ) : (
               <>
-
                 {/* Diary entries by date */}
                 <div className="space-y-8">
                   {groupedEntries.map((group) => (
@@ -326,7 +361,7 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
                           key={group.date}
                           group={group}
                           onReviewClick={handleReviewClick}
-                          onDeleteClick={() => {}} // Empty function since deletion isn't allowed for public views
+                          onDeleteClick={handleDeleteClick}
                       />
                   ))}
                 </div>
@@ -342,7 +377,7 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
                 {/* End of list message */}
                 {!hasMore && diaryEntries.length > 0 && !loadingMore && (
                     <div className="text-center py-6 text-gray-500">
-                      You've reached the end of {username ? `${username}'s` : "this user's"} rating history
+                      You've reached the end of your rating history
                     </div>
                 )}
               </>
@@ -359,9 +394,56 @@ const PublicProfileHistoryTab = ({ userId, username }: PublicProfileHistoryTabPr
                   date={selectedReview.date}
               />
           )}
+
+          {/* Delete Confirmation Modal */}
+          {deleteModalOpen && entryToDelete && (
+              <div className="fixed inset-0 z-50 overflow-y-auto">
+                <div className="flex items-center justify-center min-h-screen p-4">
+                  {/* Backdrop */}
+                  <div
+                      className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+                      onClick={() => setDeleteModalOpen(false)}
+                  ></div>
+
+                  {/* Modal */}
+                  <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full z-10">
+                    <div className="p-6">
+                      <div className="flex items-center mb-4">
+                        <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                          <span className="text-red-500 font-bold">!</span>
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900">Delete Entry</h3>
+                      </div>
+
+                      <p className="mb-4">
+                        Are you sure you want to delete this entry for "{entryToDelete.catalogItem?.name || 'Unknown Title'}"?
+                        This action cannot be undone.
+                      </p>
+
+                      <div className="flex justify-end space-x-3 mt-6">
+                        <button
+                            type="button"
+                            onClick={() => setDeleteModalOpen(false)}
+                            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={confirmDelete}
+                            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          )}
         </div>
       </div>
   );
 };
 
-export default PublicProfileHistoryTab;
+export default ProfileHistoryTab;
