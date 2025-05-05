@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { UserProfile } from '../../api/auth';
 import { PublicUserProfile } from '../../api/users';
 import { Edit, Calendar } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatDate } from '../../utils/formatters';
 import AvatarUploadModal from './AvatarUploadModal';
 import FollowButton from './FollowButton';
@@ -27,16 +27,46 @@ const ProfileHeader = ({
   followLoading = false
 }: ProfileHeaderProps) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isAvatarUploadModalOpen, setIsAvatarUploadModalOpen] = useState(false);
 
-  // Define variables based on profile type
-  const followerCount = 'followerCount' in profile ? profile.followerCount : 0;
-  const followingCount = 'followingCount' in profile ? profile.followingCount : 0;
+  // Define variables based on profile type with proper fallbacks
+  const followerCount = 'followerCount' in profile ? profile.followerCount || 0 : 0;
+  const followingCount = 'followingCount' in profile ? profile.followingCount || 0 : 0;
+
+  // Better date formatting with proper fallback
+  const formatMemberSince = (dateString?: string) => {
+    if (!dateString) return 'Unknown';
+
+    try {
+      return formatDate(dateString);
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Unknown';
+    }
+  };
+
+  const memberSince = formatMemberSince(profile.createdAt);
 
   const handleAvatarUploadSuccess = () => {
     setIsAvatarUploadModalOpen(false);
     if (onAvatarUpdate) {
       onAvatarUpdate();
+    }
+  };
+
+  // Tab navigation functions
+  const navigateToTab = (tab: string) => {
+    // Create a new URLSearchParams instance to preserve other params
+    const newParams = new URLSearchParams(searchParams);
+    // Set the tab parameter
+    newParams.set('tab', tab);
+
+    // Navigate to the same path but with the updated tab parameter
+    if (isOwnProfile) {
+      navigate(`/profile?${newParams.toString()}`);
+    } else {
+      navigate(`/people/${profile.id}?${newParams.toString()}`);
     }
   };
 
@@ -79,18 +109,18 @@ const ProfileHeader = ({
           <div className="mt-2 flex flex-wrap gap-3">
             <div className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm flex items-center">
               <Calendar className="h-4 w-4 mr-1" />
-              Member since {formatDate(profile.createdAt || '')}
+              Member since {memberSince}
             </div>
 
             <button
-              onClick={() => navigate(isOwnProfile ? '/profile?tab=followers' : `/people/${profile.id}?tab=followers`)}
+              onClick={() => navigateToTab('followers')}
               className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm"
             >
               <span className="font-medium">{followerCount}</span> Followers
             </button>
 
             <button
-              onClick={() => navigate(isOwnProfile ? '/profile?tab=following' : `/people/${profile.id}?tab=following`)}
+              onClick={() => navigateToTab('following')}
               className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm"
             >
               <span className="font-medium">{followingCount}</span> Following

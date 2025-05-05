@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Book, AlertTriangle } from 'lucide-react';
-import UsersService from '../api/users';
-import InteractionService from '../api/interaction';
+import UsersService, { PublicUserProfile, UserSubscriptionResponse } from '../api/users';
+import InteractionService, { GradingMethodSummary } from '../api/interaction';
 import useAuthStore from '../store/authStore';
 import ProfileLoadingState from '../components/Profile/ProfileLoadingState';
 import ProfileHeader from '../components/Profile/ProfileHeader';
@@ -17,21 +17,21 @@ const UserProfile = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const { isAuthenticated, user: currentUser } = useAuthStore();
-    const [userProfile, setUserProfile] = useState(null);
+    const [userProfile, setUserProfile] = useState<PublicUserProfile | null>(null);
     const [isFollowing, setIsFollowing] = useState(false);
-    const [gradingMethods, setGradingMethods] = useState([]);
+    const [gradingMethods, setGradingMethods] = useState<GradingMethodSummary[]>([]);
 
     // Get active tab from URL params or default to overview
     const tabParam = searchParams.get('tab');
     const [activeTab, setActiveTab] = useState<ProfileTabType>(
-      tabParam as ProfileTabType || 'overview'
+      (tabParam as ProfileTabType) || 'overview'
     );
 
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [followLoading, setFollowLoading] = useState(false);
-    const [followersData, setFollowersData] = useState([]);
-    const [followingData, setFollowingData] = useState([]);
+    const [followersData, setFollowersData] = useState<UserSubscriptionResponse[]>([]);
+    const [followingData, setFollowingData] = useState<UserSubscriptionResponse[]>([]);
     const [socialLoading, setSocialLoading] = useState(false);
 
     // Check if viewing own profile
@@ -57,20 +57,22 @@ const UserProfile = () => {
                 setUserProfile(userData);
 
                 // Check if the current user is following this user
-                if (isAuthenticated && !isOwnProfile) {
+                if (isAuthenticated && !isOwnProfile && id) {
                     const followStatus = await UsersService.checkFollowingStatus(id);
                     setIsFollowing(followStatus);
                 }
 
                 // Fetch public grading methods
                 try {
-                    const methods = await InteractionService.getUserGradingMethods(id);
-                    // Filter to only public methods if not viewing own profile
-                    const filteredMethods = isOwnProfile
-                        ? methods
-                        : methods.filter(method => method.isPublic);
+                    if (id) {
+                        const methods = await InteractionService.getUserGradingMethods(id);
+                        // Filter to only public methods if not viewing own profile
+                        const filteredMethods = isOwnProfile
+                            ? methods
+                            : methods.filter(method => method.isPublic);
 
-                    setGradingMethods(filteredMethods);
+                        setGradingMethods(filteredMethods);
+                    }
                 } catch (err) {
                     console.error('Error fetching grading methods:', err);
                     // Non-critical error, don't set the main error state
@@ -102,11 +104,11 @@ const UserProfile = () => {
                 setSocialLoading(true);
 
                 try {
-                    if (activeTab === 'followers') {
+                    if (activeTab === 'followers' && id) {
                         // Call the public endpoint for followers
                         const response = await UsersService.getPublicUserFollowers(id);
                         setFollowersData(response.items);
-                    } else {
+                    } else if (activeTab === 'following' && id) {
                         // Call the public endpoint for following
                         const response = await UsersService.getPublicUserFollowing(id);
                         setFollowingData(response.items);
@@ -142,8 +144,10 @@ const UserProfile = () => {
             setIsFollowing(!isFollowing);
 
             // Update user profile to reflect the new follower count
-            const updatedProfile = await UsersService.getUserProfileById(id);
-            setUserProfile(updatedProfile);
+            if (id) {
+                const updatedProfile = await UsersService.getUserProfileById(id);
+                setUserProfile(updatedProfile);
+            }
         } catch (err) {
             console.error('Error toggling follow status:', err);
         } finally {
@@ -175,9 +179,6 @@ const UserProfile = () => {
         );
     }
 
-    // Determine if the bio tab should be shown
-    const showBioTab = !!userProfile.bio;
-
     return (
         <div className="max-w-6xl mx-auto py-8 px-4">
             {/* Profile Header */}
@@ -196,7 +197,6 @@ const UserProfile = () => {
                     activeTab={activeTab}
                     onTabChange={handleTabChange}
                     isOwnProfile={isOwnProfile}
-                    showBioTab={showBioTab}
                 />
             </div>
 
@@ -258,7 +258,7 @@ const UserProfile = () => {
                     <TabContentWrapper title="Grading Methods" icon={<Book className="h-5 w-5" />}>
                         {gradingMethods.length > 0 ? (
                             <div className="space-y-4">
-                                {gradingMethods.map(method => (
+                                {gradingMethods.map((method) => (
                                     <div
                                         key={method.id}
                                         className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
@@ -300,15 +300,14 @@ const UserProfile = () => {
                 )}
 
                 {/* Using the unified components */}
-                {activeTab === 'history' && (
+                {activeTab === 'history' && id && (
                     <HistoryTab
                         userId={id}
                         username={userProfile.username}
-                        isOwnProfile={false}
                     />
                 )}
 
-                {activeTab === 'preferences' && (
+                {activeTab === 'preferences' && id && (
                     <PreferencesTab
                         userId={id}
                         username={userProfile.username}

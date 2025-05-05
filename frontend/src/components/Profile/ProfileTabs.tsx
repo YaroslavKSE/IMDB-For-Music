@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, ListMusic, History, UserPlus, Users, Settings, UserCog, Book } from 'lucide-react';
+import { User, ListMusic, History, UserPlus, Users, Settings, UserCog } from 'lucide-react';
 
 // Define the tab types that can be used in both Profile and UserProfile
 export type ProfileTabType =
@@ -23,7 +23,6 @@ interface ProfileTabsProps {
   activeTab: ProfileTabType;
   onTabChange: (tab: ProfileTabType) => void;
   isOwnProfile: boolean;
-  showBioTab?: boolean;
 }
 
 // Individual tab button component - extracted from ProfileTabButton.tsx
@@ -52,7 +51,6 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({
   activeTab,
   onTabChange,
   isOwnProfile,
-  showBioTab = false
 }) => {
   return (
     <div className="border-b border-gray-200">
@@ -99,14 +97,6 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({
           label="Followers"
         />
 
-        {showBioTab && (
-          <ProfileTabButton
-            active={activeTab === 'bio'}
-            onClick={() => onTabChange('bio')}
-            icon={<Book className="h-4 w-4" />}
-            label="Bio"
-          />
-        )}
 
         {isOwnProfile && (
           <ProfileTabButton

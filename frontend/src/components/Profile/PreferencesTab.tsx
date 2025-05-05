@@ -17,22 +17,19 @@ interface PreferencesTabProps {
   isOwnProfile?: boolean; // Whether this is the current user's profile
 }
 
-// Define more specific types
-type ArtistItem = ArtistSummary;
-type AlbumItem = AlbumSummary;
-type TrackItem = TrackSummary;
-
 const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesTabProps) => {
-  const [preferences, setPreferences] = useState<UserPreferencesResponse | null>(null);
+  // We're not directly using this state, but keeping it as it might be needed for API structure
+  // We could directly use artistItems, albumItems, trackItems instead
+  const [, setPreferences] = useState<UserPreferencesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [currentSearchType, setCurrentSearchType] = useState<PreferenceType>('artists');
 
   // Properly defined with specific types
-  const [artistItems, setArtistItems] = useState<ArtistItem[]>([]);
-  const [albumItems, setAlbumItems] = useState<AlbumItem[]>([]);
-  const [trackItems, setTrackItems] = useState<TrackItem[]>([]);
+  const [artistItems, setArtistItems] = useState<ArtistSummary[]>([]);
+  const [albumItems, setAlbumItems] = useState<AlbumSummary[]>([]);
+  const [trackItems, setTrackItems] = useState<TrackSummary[]>([]);
 
   // Loading states for each type
   const [artistsLoading, setArtistsLoading] = useState(false);
@@ -84,17 +81,17 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
       // Fetch details for each type of preference
       if (response.artists.length > 0) {
         const artistDetails = await fetchItemDetails(response.artists, 'artists');
-        setArtistItems(artistDetails as ArtistItem[]);
+        setArtistItems(artistDetails as ArtistSummary[]);
       }
 
       if (response.albums.length > 0) {
         const albumDetails = await fetchItemDetails(response.albums, 'albums');
-        setAlbumItems(albumDetails as AlbumItem[]);
+        setAlbumItems(albumDetails as AlbumSummary[]);
       }
 
       if (response.tracks.length > 0) {
         const trackDetails = await fetchItemDetails(response.tracks, 'tracks');
-        setTrackItems(trackDetails as TrackItem[]);
+        setTrackItems(trackDetails as TrackSummary[]);
       }
     } catch (err) {
       console.error('Error fetching preferences:', err);
@@ -133,7 +130,7 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
       if (type === 'albums' && ids.length > 0) {
         // BatchAlbums supports up to 20 IDs at once
         const batchSize = 20;
-        let fetchedAlbums: AlbumItem[] = [];
+        let fetchedAlbums: AlbumSummary[] = [];
 
         for (let i = 0; i < ids.length; i += batchSize) {
           const batchIds = ids.slice(i, i + batchSize);
@@ -147,7 +144,7 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
       } else if (type === 'tracks' && ids.length > 0) {
         // BatchTracks supports up to 20 IDs at once
         const batchSize = 20;
-        let fetchedTracks: TrackItem[] = [];
+        let fetchedTracks: TrackSummary[] = [];
 
         for (let i = 0; i < ids.length; i += batchSize) {
           const batchIds = ids.slice(i, i + batchSize);
@@ -170,7 +167,7 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
               return null;
             }
           })
-        ).then(results => results.filter(item => item !== null));
+        ).then(results => results.filter(item => item !== null) as ArtistSummary[]);
       }
     } catch (err) {
       console.error(`Error fetching ${type} details:`, err);
@@ -197,7 +194,7 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
   };
 
   // Render section for a specific preference type (artists, albums, tracks)
-  const renderPreferenceSection = (type: PreferenceType, items: ArtistItem[] | AlbumItem[] | TrackItem[]) => {
+  const renderPreferenceSection = (type: PreferenceType, items: ArtistSummary[] | AlbumSummary[] | TrackSummary[]) => {
     const isLoading =
       type === 'artists' ? artistsLoading :
       type === 'albums' ? albumsLoading :
@@ -293,7 +290,7 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
         return (
           <div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {items.slice(0, 4).map(artist => (
+              {(items as ArtistSummary[]).slice(0, 4).map((artist) => (
                 <ArtistCard key={artist.spotifyId} artist={artist} />
               ))}
             </div>
@@ -313,7 +310,7 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
         return (
           <div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {items.slice(0, 4).map(album => (
+              {(items as AlbumSummary[]).slice(0, 4).map((album) => (
                 <AlbumCard key={album.spotifyId} album={album} />
               ))}
             </div>
@@ -333,7 +330,7 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
         return (
           <div>
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              {items.slice(0, 4).map((track, index) => (
+              {(items as TrackSummary[]).slice(0, 4).map((track, index) => (
                 <TrackRow key={track.spotifyId} track={track} index={index} />
               ))}
             </div>

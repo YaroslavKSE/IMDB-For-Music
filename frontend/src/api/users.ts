@@ -53,6 +53,14 @@ export interface PublicUserProfile {
   bio?: string;
 }
 
+export interface FollowResponse {
+  subscriptionId: string;
+  followerId: string;
+  followedId: string;
+  createdAt: string;
+}
+
+
 export interface BatchSubscriptionCheckRequest {
   targetUserIds: string[];
 }
@@ -96,13 +104,13 @@ const UsersService = {
   },
 
   // Follow a user
-  followUser: async (userId: string): Promise<any> => {
+  followUser: async (userId: string): Promise<FollowResponse> => {
     const response = await subscriptionApi.post('/subscribe', { userId });
     return response.data;
   },
 
   // Unfollow a user
-  unfollowUser: async (userId: string): Promise<any> => {
+  unfollowUser: async (userId: string): Promise<FollowResponse> => {
     const response = await subscriptionApi.delete(`/unsubscribe/${userId}`);
     return response.data;
   },

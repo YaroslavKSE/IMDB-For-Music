@@ -1,4 +1,3 @@
-// Updated Profile.tsx with unified components and fixed TypeScript errors
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
@@ -11,7 +10,7 @@ import ProfileHeader from '../components/Profile/ProfileHeader';
 import ProfileTabs, { ProfileTabType } from '../components/Profile/ProfileTabs';
 import SocialTabContent from '../components/Profile/SocialTabContent';
 import PreferencesTab from '../components/Profile/PreferencesTab'; // Updated import
-import HistoryTab from '../components/Profile/HistoryTab'; // Updated import
+import ProfileHistoryTab from '../components/Profile/ProfileHistoryTab'; // Use ProfileHistoryTab instead
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -114,11 +113,9 @@ const Profile = () => {
           />
         )}
 
+        {/* Fixed: Use ProfileHistoryTab instead of HistoryTab */}
         {activeTab === 'history' && (
-          <HistoryTab
-            userId={user.id}
-            isOwnProfile={true}
-          />
+          <ProfileHistoryTab />
         )}
 
         {activeTab === 'settings' && <ProfileSettingsTab />}
