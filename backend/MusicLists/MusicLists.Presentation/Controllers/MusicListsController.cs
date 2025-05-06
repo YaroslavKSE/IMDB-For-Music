@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace MusicLists.Presentation.Controllers;
 
 [ApiController]
-[Route("api/music-lists")]
+[Route("api/v1/music-lists")]
 public class MusicListsController : ControllerBase
 {
     private readonly IMediator _mediator;
