@@ -46,11 +46,12 @@ public class User
         };
     }
 
-    public void Update(string username, string name, string surname)
+    public void Update(string username, string name, string surname, string bio)
     {
         Username = username;
         Name = name;
         Surname = surname;
+        Bio = bio;
         UpdatedAt = DateTime.UtcNow;
     }
 

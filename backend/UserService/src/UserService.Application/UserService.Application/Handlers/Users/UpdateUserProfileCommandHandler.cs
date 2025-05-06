@@ -50,9 +50,10 @@ public class UpdateUserProfileCommandHandler : IRequestHandler<UpdateUserProfile
         var usernameToUpdate = !string.IsNullOrEmpty(command.Username) ? command.Username : user.Username;
         var nameToUpdate = !string.IsNullOrEmpty(command.Name) ? command.Name : user.Name;
         var surnameToUpdate = !string.IsNullOrEmpty(command.Surname) ? command.Surname : user.Surname;
+        var bioToUpdate = !string.IsNullOrEmpty(command.Bio) ? command.Bio : user.Bio;
 
         // Update the user
-        user.Update(usernameToUpdate, nameToUpdate, surnameToUpdate);
+        user.Update(usernameToUpdate, nameToUpdate, surnameToUpdate, bioToUpdate);
 
         await _userRepository.SaveChangesAsync();
 

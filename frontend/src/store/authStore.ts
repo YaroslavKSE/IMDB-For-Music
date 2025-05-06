@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import axios from 'axios';
 import AuthService, { UserProfile, UpdateProfileParams } from '../api/auth';
 import { handleAuth0Logout } from '../utils/auth0-config';
+import UsersService from "../api/users.ts";
 
 interface AuthState {
   user: UserProfile | null;
@@ -19,13 +20,23 @@ interface AuthState {
   setUser: (user: UserProfile | null) => void;
   fetchUserProfile: () => Promise<void>;
   updateProfile: (params: UpdateProfileParams) => Promise<void>;
+  updateBio: (bio: string) => Promise<void>;
+  deleteBio: () => Promise<void>;
   initializeAuth: () => Promise<void>; // New action to initialize auth state
 }
 
 const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
+  user: (() => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch (e) {
+      console.error('Error parsing stored user:', e);
+      return null;
+    }
+  })(),
   isAuthenticated: AuthService.isAuthenticated(),
-  isLoading: true, // Start with loading state true
+  isLoading: true,
   authInitialized: false,
   error: null,
 
@@ -37,13 +48,26 @@ const useAuthStore = create<AuthState>((set, get) => ({
 
       if (hasToken) {
         try {
-          const userProfile = await AuthService.getCurrentUser();
-          set({
-            user: userProfile,
-            isAuthenticated: true,
-            isLoading: false,
-            authInitialized: true
-          });
+          // Try to get user from localStorage first
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            set({
+              user: parsedUser,
+              isAuthenticated: true,
+              isLoading: false,
+              authInitialized: true
+            });
+
+            // Optionally fetch fresh data in background
+            get().fetchUserProfile().catch(err => {
+              console.error('Background refresh error:', err);
+            });
+          } else {
+            // If no stored user, fetch it
+            await get().fetchUserProfile();
+            set({ authInitialized: true });
+          }
         } catch (error) {
           // If getting the user profile fails, we invalidate the auth
           console.error('Error getting user profile during init:', error);
@@ -224,50 +248,155 @@ const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  // Add function to update bio
+  updateBio: async (bio: string) => {
+    try {
+      set({ isLoading: true, error: null });
+      const updatedUser = await AuthService.updateBio(bio);
+      set({
+        user: updatedUser,
+        isLoading: false
+      });
+    } catch (error) {
+      console.error('Bio update error:', error);
+
+      let errorMessage = 'Failed to update bio. Please try again.';
+
+      if (axios.isAxiosError(error)) {
+        const responseData = error.response?.data;
+        if (responseData && typeof responseData === 'object' && 'message' in responseData) {
+          errorMessage = String(responseData.message);
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      set({
+        isLoading: false,
+        error: errorMessage
+      });
+
+      throw error;
+    }
+  },
+
+  // Add function to delete bio
+  deleteBio: async () => {
+    try {
+      set({ isLoading: true, error: null });
+      const updatedUser = await AuthService.deleteBio();
+      set({
+        user: updatedUser,
+        isLoading: false
+      });
+    } catch (error) {
+      console.error('Bio delete error:', error);
+
+      let errorMessage = 'Failed to delete bio. Please try again.';
+
+      if (axios.isAxiosError(error)) {
+        const responseData = error.response?.data;
+        if (responseData && typeof responseData === 'object' && 'message' in responseData) {
+          errorMessage = String(responseData.message);
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      set({
+        isLoading: false,
+        error: errorMessage
+      });
+
+      throw error;
+    }
+  },
+
   clearError: () => set({ error: null }),
 
   // Fixed setUser method - this replaces the need for updateUser
   setUser: (user) => set({ user }),
 
   fetchUserProfile: async () => {
-    if (!AuthService.isAuthenticated()) {
-      set({ isLoading: false, isAuthenticated: false });
-      return;
-    }
+  if (!AuthService.isAuthenticated()) {
+    set({ isLoading: false, isAuthenticated: false });
+    return;
+  }
 
+  try {
+    set({ isLoading: true });
+
+    // Step 1: Fetch basic user profile from AuthService
+    const userProfile = await AuthService.getCurrentUser();
+
+    // Step 2: Enhance with follower/following counts
     try {
-      set({ isLoading: true });
-      const userProfile = await AuthService.getCurrentUser();
-      set({ user: userProfile, isLoading: false, isAuthenticated: true });
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
+      // Get followers - we only need the count, not the actual followers
+      const followersResponse = await UsersService.getUserFollowers(1, 1);
 
-      let errorMessage = 'Failed to fetch user profile.';
+      // Get following count - again, just need the count
+      const followingResponse = await UsersService.getUserFollowing(1, 1);
 
-      if (!axios.isAxiosError(error)) {
-        if (error instanceof Error) {
-          errorMessage = error.message;
-        }
-      } else {
-        const responseData = error.response?.data;
-        if (responseData && typeof responseData === 'object' && 'message' in responseData) {
-          errorMessage = String(responseData.message);
-        }
-      }
+      // Enhance the user profile with the counts
+      const enhancedProfile = {
+        ...userProfile,
+        followerCount: followersResponse.totalCount || 0,
+        followingCount: followingResponse.totalCount || 0
+      };
 
-      // If we fail to fetch the user profile, we should clear the authentication state
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      // Save the enhanced profile to localStorage
+      localStorage.setItem('user', JSON.stringify(enhancedProfile));
+
+      // Update the state with the enhanced profile
+      set({
+        user: enhancedProfile,
+        isLoading: false,
+        isAuthenticated: true
+      });
+
+    } catch (countError) {
+      console.error('Error fetching follower/following counts:', countError);
+
+      // If we fail to get the counts, just use the basic profile
+      localStorage.setItem('user', JSON.stringify(userProfile));
 
       set({
+        user: userProfile,
         isLoading: false,
-        isAuthenticated: false,
-        user: null,
-        error: errorMessage
+        isAuthenticated: true
       });
     }
+
+  } catch (error) {
+    // Handle error when the basic profile fetch fails
+    console.error('Error fetching user profile:', error);
+
+    let errorMessage = 'Failed to fetch user profile.';
+
+    if (!axios.isAxiosError(error)) {
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+    } else {
+      const responseData = error.response?.data;
+      if (responseData && typeof responseData === 'object' && 'message' in responseData) {
+        errorMessage = String(responseData.message);
+      }
+    }
+
+    // Clear authentication state on failure
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+
+    set({
+      isLoading: false,
+      isAuthenticated: false,
+      user: null,
+      error: errorMessage
+    });
   }
+}
 }));
 
 export default useAuthStore;

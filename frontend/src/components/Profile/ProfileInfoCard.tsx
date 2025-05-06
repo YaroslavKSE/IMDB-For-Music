@@ -1,4 +1,4 @@
-import { Edit2, Mail, User, Calendar } from 'lucide-react';
+import { Edit2, Mail, User, Calendar, Book } from 'lucide-react';
 import { UserProfile } from '../../api/auth';
 import { formatDate } from '../../utils/formatters';
 
@@ -87,6 +87,23 @@ const ProfileInfoCard = ({ user, onEdit }: ProfileInfoCardProps) => {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Bio Section */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="flex items-start mb-3">
+              <div className="bg-primary-100 p-2 rounded-md mr-3">
+                <Book className="h-5 w-5 text-primary-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-gray-500 text-sm">Bio</p>
+                {user.bio ? (
+                  <p className="text-gray-900 whitespace-pre-line">{user.bio}</p>
+                ) : (
+                  <p className="text-gray-500 italic">No bio added yet. Click 'Edit Profile' to add one.</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -78,7 +78,8 @@ public class UserController : ControllerBase
                 Username = userProfile.Username,
                 Surname = userProfile.Surname,
                 Bio = userProfile.Bio,
-                AvatarUrl = userProfile.AvatarUrl
+                AvatarUrl = userProfile.AvatarUrl,
+                CreatedAt = userProfile.CreatedAt
             };
 
             return Ok(response);
@@ -131,7 +132,8 @@ public class UserController : ControllerBase
                 auth0UserId,
                 request.Username,
                 request.Name,
-                request.Surname);
+                request.Surname,
+                request.Bio);
 
             var updatedProfile = await _mediator.Send(command);
 

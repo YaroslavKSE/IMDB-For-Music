@@ -1,37 +1,65 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { UserCheck, X, Save, AlertCircle } from 'lucide-react';
+import { UserCheck, X, Save, AlertCircle, Book } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
-import { UpdateProfileParams } from '../../api/auth';
+import { UpdateProfileParams, UserProfile } from '../../api/auth';
+import { PublicUserProfile } from '../../api/users';
 
 interface ProfileEditFormProps {
   onCancel: () => void;
   onSuccess: () => void;
+  initialData?: UserProfile | PublicUserProfile;
 }
 
 interface ProfileFormData {
   name: string;
   surname: string;
   username: string;
+  bio: string;
 }
 
-const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
+const ProfileEditForm = ({ onCancel, onSuccess, initialData }: ProfileEditFormProps) => {
   const { user, updateProfile, error, clearError } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const MAX_BIO_LENGTH = 500; // Set maximum bio length
 
+  // Get profile data either from initialData prop or from user store
+  const profileData = initialData || user;
+
+  // Initialize with the form data
   const {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
+    setValue
   } = useForm<ProfileFormData>({
     defaultValues: {
-      name: user?.name || '',
-      surname: user?.surname || '',
-      username: user?.username || '',
+      name: profileData?.name || '',
+      surname: profileData?.surname || '',
+      username: profileData?.username || '',
+      // Fixed TypeScript error by adding null check and proper type guard
+      bio: profileData && 'bio' in profileData ? profileData.bio || '' : '',
     },
   });
+
+  // Set up form data when initialData changes
+  useEffect(() => {
+    if (profileData) {
+      setValue('name', profileData.name);
+      setValue('surname', profileData.surname || '');
+      setValue('username', profileData.username || '');
+      if ('bio' in profileData) {
+        setValue('bio', profileData.bio || '');
+      }
+    }
+  }, [profileData, setValue]);
+
+  // Watch bio field to update character count
+  const watchBio = watch('bio');
+  const bioLength = watchBio?.length || 0;
 
   const onSubmit = async (data: ProfileFormData) => {
     try {
@@ -41,9 +69,15 @@ const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
 
       // Only include fields that have changed
       const updateData: UpdateProfileParams = {};
-      if (data.name !== user?.name) updateData.name = data.name;
-      if (data.surname !== user?.surname) updateData.surname = data.surname;
-      if (data.username !== user?.username) updateData.username = data.username;
+      if (data.name !== profileData?.name) updateData.name = data.name;
+      if (data.surname !== profileData?.surname) updateData.surname = data.surname;
+      if (data.username !== profileData?.username) updateData.username = data.username;
+
+      if (profileData && 'bio' in profileData && data.bio !== profileData.bio) {
+        updateData.bio = data.bio;
+      } else if (profileData && !('bio' in profileData) && data.bio) {
+        updateData.bio = data.bio;
+      }
 
       // No changes, just return
       if (Object.keys(updateData).length === 0) {
@@ -82,13 +116,13 @@ const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
         </h3>
         <button
           onClick={onCancel}
-          className="text-gray-500 hover:text-gray-700 transition-colors"
+          className="text-gray-500 hover:text-gray-700 transition-colors rounded-md"
         >
           <X className="h-5 w-5" />
         </button>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4 text-gray-900">
         {/* Error message display */}
         {formError && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-start">
@@ -121,14 +155,14 @@ const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
             })}
             className={`w-full px-3 py-2 border ${
               errors.name ? 'border-red-300' : 'border-gray-300'
-            } rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
+            } rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-gray-900`}
           />
           {errors.name && (
             <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
           )}
         </div>
 
-        {/* Last Name Field */}
+        {/* Last Name Field - Now OPTIONAL */}
         <div>
           <label htmlFor="surname" className="block text-sm font-medium text-gray-700 mb-1">
             Last Name
@@ -137,7 +171,7 @@ const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
             id="surname"
             type="text"
             {...register('surname', {
-              required: 'Last name is required',
+              // No required rule
               maxLength: {
                 value: 50,
                 message: 'Last name cannot exceed 50 characters',
@@ -145,7 +179,7 @@ const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
             })}
             className={`w-full px-3 py-2 border ${
               errors.surname ? 'border-red-300' : 'border-gray-300'
-            } rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
+            } rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-gray-900`}
           />
           {errors.surname && (
             <p className="mt-1 text-sm text-red-600">{errors.surname.message}</p>
@@ -177,13 +211,44 @@ const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
             })}
             className={`w-full px-3 py-2 border ${
               errors.username ? 'border-red-300' : 'border-gray-300'
-            } rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
+            } rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-gray-900`}
           />
           {errors.username && (
             <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
           )}
           <p className="mt-1 text-xs text-gray-500">
             This will be your public username visible to other users.
+          </p>
+        </div>
+
+        {/* Bio Field */}
+        <div>
+          <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+            <Book className="h-4 w-4 mr-1.5" />
+            Bio
+            <span className={`ml-2 text-xs ${bioLength > MAX_BIO_LENGTH ? 'text-red-600' : 'text-gray-500'}`}>
+              ({bioLength}/{MAX_BIO_LENGTH})
+            </span>
+          </label>
+          <textarea
+            id="bio"
+            rows={5}
+            {...register('bio', {
+              maxLength: {
+                value: MAX_BIO_LENGTH,
+                message: `Bio cannot exceed ${MAX_BIO_LENGTH} characters`,
+              },
+            })}
+            className={`w-full px-3 py-2 border ${
+              errors.bio ? 'border-red-300' : 'border-gray-300'
+            } rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-gray-900`}
+            placeholder="Tell others about yourself..."
+          />
+          {errors.bio && (
+            <p className="mt-1 text-sm text-red-600">{errors.bio.message}</p>
+          )}
+          <p className="mt-1 text-xs text-gray-500">
+            Write a short bio about yourself. This will be visible on your public profile.
           </p>
         </div>
 
@@ -200,7 +265,7 @@ const ProfileEditForm = ({ onCancel, onSuccess }: ProfileEditFormProps) => {
           <button
             type="submit"
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none disabled:bg-primary-400 disabled:cursor-not-allowed flex items-center"
-            disabled={isSubmitting}
+            disabled={isSubmitting || bioLength > MAX_BIO_LENGTH}
           >
             {isSubmitting ? (
               <>
