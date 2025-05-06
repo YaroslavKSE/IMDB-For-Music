@@ -131,27 +131,45 @@ public class AlbumService : IAlbumService
 
             // Try to get from cache first
             var cachedResult = await _cacheService.GetAsync<AlbumTracksResultDto>(cacheKey);
+            
+            // Check if cached result is complete (has expected number of tracks)
+            bool cacheComplete;
             if (cachedResult != null)
             {
-                _logger.LogInformation("Album tracks for {SpotifyId} retrieved from cache", spotifyId);
-                return cachedResult;
+                // A complete cache should either:
+                // 1. Have exactly the requested limit number of tracks, or
+                // 2. Have fewer tracks than the limit but equal to total results minus offset
+                //    (meaning we've reached the end of available tracks)
+                cacheComplete = cachedResult.Tracks.Count == limit || 
+                               (cachedResult.Tracks.Count < limit && 
+                                cachedResult.Tracks.Count == cachedResult.TotalResults - offset);
+                    
+                if (cacheComplete)
+                {
+                    _logger.LogInformation("Complete album tracks for {SpotifyId} retrieved from cache", spotifyId);
+                    return cachedResult;
+                }
+                
+                _logger.LogInformation("Incomplete cache result found for album {SpotifyId}. " +
+                                      "Expected: up to {Limit}, Found: {CachedCount}, Total: {Total}", 
+                                      spotifyId, limit, cachedResult.Tracks.Count, cachedResult.TotalResults);
             }
 
             // Get the album to ensure it exists and to get the name
             var album = await _catalogRepository.GetAlbumBySpotifyIdAsync(spotifyId);
-            string albumName = "Unknown Album";
-            List<string> trackIds = new List<string>();
+            var albumName = "Unknown Album";
+            var trackIds = new List<string>();
             
             if (album != null)
             {
                 albumName = album.Name;
-                trackIds = album.TrackIds ?? new List<string>();
+                trackIds = album.TrackIds;
                 
-                // If we have track IDs stored and Spotify API is unavailable,
-                // we can still return something useful
+                // If we have track IDs stored
                 if (trackIds.Any())
                 {
-                    _logger.LogInformation("Using stored track IDs for album {SpotifyId}", spotifyId);
+                    _logger.LogInformation("Found {Count} stored track IDs for album {SpotifyId}", 
+                        trackIds.Count, spotifyId);
                     
                     // Apply paging logic
                     var pagedTrackIds = trackIds
@@ -162,8 +180,14 @@ public class AlbumService : IAlbumService
                     // Try to get track details from our database
                     var tracks = await _catalogRepository.GetBatchTracksBySpotifyIdsAsync(pagedTrackIds);
                     
-                    if (tracks.Any())
+                    // Check if we got all the tracks we need from the database
+                    bool databaseComplete = tracks.Count() == pagedTrackIds.Count;
+                    
+                    if (tracks.Any() && databaseComplete)
                     {
+                        _logger.LogInformation("Retrieved all {Count} tracks from database for album {SpotifyId}", 
+                            tracks.Count(), spotifyId);
+                        
                         var trackSummaries = tracks
                             .Where(t => t != null)
                             .Select(track => TrackMapper.MapToTrackSummaryDto(track))
@@ -191,7 +215,7 @@ public class AlbumService : IAlbumService
             }
             else
             {
-                // Try to fetch album from Spotify
+                // Try to fetch album from Spotify to get the name
                 var albumResponse = await _spotifyApiClient.GetAlbumAsync(spotifyId);
                 if (albumResponse != null)
                 {
@@ -203,10 +227,20 @@ public class AlbumService : IAlbumService
             _logger.LogInformation("Fetching tracks for album {SpotifyId} from Spotify API", spotifyId);
             var tracksResponse = await _spotifyApiClient.GetAlbumTracksAsync(spotifyId, limit, offset, market);
             
-            // If Spotify API is unavailable and we have no stored data, return a minimal result
+            // If Spotify API is unavailable and we have a partial cached result, return it
             if (tracksResponse == null)
             {
-                _logger.LogWarning("No tracks found for album {SpotifyId} from Spotify API", spotifyId);
+                _logger.LogWarning("Spotify API returned no tracks for album {SpotifyId}", spotifyId);
+                
+                // If we have ANY cached result, use it even if incomplete
+                if (cachedResult != null)
+                {
+                    _logger.LogInformation("Using incomplete cached result for album {SpotifyId} due to Spotify API failure", 
+                        spotifyId);
+                    return cachedResult;
+                }
+                
+                // Otherwise return a minimal result
                 return new AlbumTracksResultDto
                 {
                     AlbumId = spotifyId,
@@ -219,6 +253,74 @@ public class AlbumService : IAlbumService
 
             // Map the response to our DTO
             var mappedResult = AlbumMapper.MapToAlbumTracksResultDto(tracksResponse, spotifyId, albumName, limit, offset);
+
+            // Update album entity with track IDs if needed
+            if (album != null && tracksResponse.Items != null && tracksResponse.Items.Any())
+            {
+                // Get the track IDs from the response
+                var newTrackIds = tracksResponse.Items.Select(t => t.Id).ToList();
+                
+                // If this is the first page (offset == 0), we can calculate how many total tracks to expect
+                if (offset == 0)
+                {
+                    // Create a new list with expected capacity
+                    var allTrackIds = new List<string>(tracksResponse.Total);
+                    
+                    // Add all track IDs we already have that aren't in the current response
+                    // (this preserves any track IDs beyond the current page)
+                    if (album.TrackIds != null && album.TrackIds.Count > newTrackIds.Count)
+                    {
+                        // Add tracks from beyond the current page
+                        for (int i = newTrackIds.Count; i < album.TrackIds.Count; i++)
+                        {
+                            if (i < album.TrackIds.Count)
+                            {
+                                allTrackIds.Add(album.TrackIds[i]);
+                            }
+                        }
+                    }
+                    
+                    // Add all new track IDs from the current page
+                    allTrackIds.AddRange(newTrackIds);
+                    
+                    // Update album's track IDs
+                    album.TrackIds = allTrackIds;
+                }
+                else 
+                {
+                    // If this is not the first page, we need to merge the new track IDs at the right position
+                    var allTrackIds = new List<string>(album.TrackIds ?? new List<string>());
+                    
+                    // Make sure our list is long enough
+                    while (allTrackIds.Count < offset + newTrackIds.Count)
+                    {
+                        allTrackIds.Add(null); // Placeholder
+                    }
+                    
+                    // Replace or add the new track IDs at the correct position
+                    for (int i = 0; i < newTrackIds.Count; i++)
+                    {
+                        int position = offset + i;
+                        if (position < allTrackIds.Count)
+                        {
+                            allTrackIds[position] = newTrackIds[i];
+                        }
+                        else
+                        {
+                            allTrackIds.Add(newTrackIds[i]);
+                        }
+                    }
+                    
+                    // Remove any null placeholders
+                    allTrackIds = allTrackIds.Where(id => id != null).ToList();
+                    
+                    // Update album's track IDs
+                    album.TrackIds = allTrackIds;
+                }
+                
+                // Save updated album to database
+                await _catalogRepository.AddOrUpdateAlbumAsync(album);
+            }
 
             // Cache the result
             await _cacheService.SetAsync(
