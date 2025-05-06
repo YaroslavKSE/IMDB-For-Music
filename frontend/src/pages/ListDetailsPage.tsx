@@ -414,7 +414,7 @@ const ListDetailsPage = () => {
                                         className="w-full group bg-white rounded-lg overflow-visible shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer mb-1.5"
                                     >
                                         {/* Item image */}
-                                        <div className="aspect-square w-full overflow-hidden">
+                                        <div className="aspect-square w-full overflow-hidden rounded-t-lg">
                                             {itemImages[item.spotifyId] ? (
                                                 <img
                                                     src={itemImages[item.spotifyId]}

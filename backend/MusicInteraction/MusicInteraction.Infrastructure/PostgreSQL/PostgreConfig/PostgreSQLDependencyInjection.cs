@@ -34,6 +34,7 @@ namespace MusicInteraction.Infrastructure.PostgreSQL
             services.AddSingleton<ReviewHotScoreCalculator>();
 
             // Register the background services
+            services.AddHostedService<ItemStatsInitializerService>();
             services.AddHostedService<ItemStatsUpdateService>();
             services.AddHostedService<ReviewHotScoreUpdateService>();
 
