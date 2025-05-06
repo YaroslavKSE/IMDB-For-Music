@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Save, Music, Disc } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import ListsService, { CreateListRequest } from '../../api/lists';
@@ -7,16 +7,33 @@ interface CreateListModalProps {
     isOpen: boolean;
     onClose: () => void;
     onListCreated: () => void;
+    initialListType?: 'Album' | 'Track'; // New prop to set initial list type
 }
 
-const CreateListModal: React.FC<CreateListModalProps> = ({ isOpen, onClose, onListCreated }) => {
+const CreateListModal: React.FC<CreateListModalProps> = ({
+                                                             isOpen,
+                                                             onClose,
+                                                             onListCreated,
+                                                             initialListType = 'Album' // Default to Album if not provided
+                                                         }) => {
     const { user } = useAuthStore();
     const [listName, setListName] = useState('');
     const [listDescription, setListDescription] = useState('');
-    const [listType, setListType] = useState<string>('Album');
+    const [listType, setListType] = useState<string>(initialListType);
     const [isRanked, setIsRanked] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Reset form values when modal opens and set initial list type
+    useEffect(() => {
+        if (isOpen) {
+            setListName('');
+            setListDescription('');
+            setListType(initialListType);
+            setIsRanked(false);
+            setError(null);
+        }
+    }, [isOpen, initialListType]);
 
     if (!isOpen) return null;
 
@@ -51,7 +68,7 @@ const CreateListModal: React.FC<CreateListModalProps> = ({ isOpen, onClose, onLi
             if (response.success) {
                 setListName('');
                 setListDescription('');
-                setListType('Album');
+                setListType(initialListType);
                 setIsRanked(false);
                 onListCreated();
             } else {

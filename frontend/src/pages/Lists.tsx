@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, List, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Plus, List, RefreshCw, AlertTriangle, Disc, Music, Loader } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import ListsService, { ListOverview } from '../api/lists';
 import CreateListModal from '../components/Lists/CreateListModal';
@@ -9,39 +9,183 @@ import ListRowItem from '../components/Lists/ListRowItem';
 const Lists = () => {
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAuthStore();
-    const [lists, setLists] = useState<ListOverview[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [totalLists, setTotalLists] = useState(0);
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [deleteError, setDeleteError] = useState<string | null>(null);
-    const [, setIsDeleting] = useState(false);
 
-    // Fetch user's lists
-    useEffect(() => {
-        const fetchUserLists = async () => {
-            if (!isAuthenticated || !user) {
-                navigate('/login', { state: { from: '/lists' } });
-                return;
+    // Separate lists for albums and tracks
+    const [albumLists, setAlbumLists] = useState<ListOverview[]>([]);
+    const [trackLists, setTrackLists] = useState<ListOverview[]>([]);
+
+    // Initial loading states
+    const [loadingAlbums, setLoadingAlbums] = useState(true);
+    const [loadingTracks, setLoadingTracks] = useState(true);
+
+    // Loading more states
+    const [loadingMoreAlbums, setLoadingMoreAlbums] = useState(false);
+    const [loadingMoreTracks, setLoadingMoreTracks] = useState(false);
+
+    // Error states
+    const [albumError, setAlbumError] = useState<string | null>(null);
+    const [trackError, setTrackError] = useState<string | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    // Pagination states
+    const [albumOffset, setAlbumOffset] = useState(0);
+    const [trackOffset, setTrackOffset] = useState(0);
+    const [albumsTotal, setAlbumsTotal] = useState(0);
+    const [tracksTotal, setTracksTotal] = useState(0);
+    const [hasMoreAlbums, setHasMoreAlbums] = useState(true);
+    const [hasMoreTracks, setHasMoreTracks] = useState(true);
+
+    // UI states
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [, setIsDeleting] = useState(false);
+    const [activeListType, setActiveListType] = useState<'Album' | 'Track'>('Album');
+
+    // Refs for infinite scrolling
+    const observerRef = useRef<IntersectionObserver | null>(null);
+    const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+    // Items per page
+    const PAGE_SIZE = 10;
+
+    // Fetch initial album lists
+    const fetchAlbumLists = useCallback(async (offset = 0) => {
+        if (!isAuthenticated || !user) return;
+
+        try {
+            if (offset === 0) {
+                setLoadingAlbums(true);
+            } else {
+                setLoadingMoreAlbums(true);
             }
 
-            try {
-                setLoading(true);
-                setError(null);
+            setAlbumError(null);
 
-                const response = await ListsService.getUserLists(user.id, 20, 0);
-                setLists(response.lists);
-                setTotalLists(response.totalCount);
-            } catch (err) {
-                console.error('Error fetching lists:', err);
-                setError('Failed to load your lists. Please try again later.');
-            } finally {
-                setLoading(false);
+            const response = await ListsService.getUserLists(
+                user.id,
+                PAGE_SIZE,
+                offset,
+                'Album' // Set list type to Album
+            );
+
+            if (offset === 0) {
+                setAlbumLists(response.lists);
+            } else {
+                setAlbumLists(prev => [...prev, ...response.lists]);
+            }
+
+            setAlbumsTotal(response.totalCount);
+            setAlbumOffset(offset + response.lists.length);
+            setHasMoreAlbums((offset + response.lists.length) < response.totalCount);
+        } catch (err) {
+            console.error('Error fetching album lists:', err);
+            setAlbumError('Failed to load album lists. Please try again later.');
+        } finally {
+            if (offset === 0) {
+                setLoadingAlbums(false);
+            } else {
+                setLoadingMoreAlbums(false);
+            }
+        }
+    }, [isAuthenticated, user]);
+
+    // Fetch initial track lists
+    const fetchTrackLists = useCallback(async (offset = 0) => {
+        if (!isAuthenticated || !user) return;
+
+        try {
+            if (offset === 0) {
+                setLoadingTracks(true);
+            } else {
+                setLoadingMoreTracks(true);
+            }
+
+            setTrackError(null);
+
+            const response = await ListsService.getUserLists(
+                user.id,
+                PAGE_SIZE,
+                offset,
+                'Track' // Set list type to Track
+            );
+
+            if (offset === 0) {
+                setTrackLists(response.lists);
+            } else {
+                setTrackLists(prev => [...prev, ...response.lists]);
+            }
+
+            setTracksTotal(response.totalCount);
+            setTrackOffset(offset + response.lists.length);
+            setHasMoreTracks((offset + response.lists.length) < response.totalCount);
+        } catch (err) {
+            console.error('Error fetching track lists:', err);
+            setTrackError('Failed to load track lists. Please try again later.');
+        } finally {
+            if (offset === 0) {
+                setLoadingTracks(false);
+            } else {
+                setLoadingMoreTracks(false);
+            }
+        }
+    }, [isAuthenticated, user]);
+
+    // Initial data loading
+    useEffect(() => {
+        if (!isAuthenticated || !user) {
+            navigate('/login', { state: { from: '/lists' } });
+            return;
+        }
+
+        fetchAlbumLists(0);
+        fetchTrackLists(0);
+    }, [isAuthenticated, user, navigate, fetchAlbumLists, fetchTrackLists]);
+
+    // Set up intersection observer for infinite scrolling
+    useEffect(() => {
+        if (observerRef.current) {
+            observerRef.current.disconnect();
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const [entry] = entries;
+                if (entry.isIntersecting) {
+                    if (activeListType === 'Album' && hasMoreAlbums && !loadingMoreAlbums) {
+                        fetchAlbumLists(albumOffset);
+                    } else if (activeListType === 'Track' && hasMoreTracks && !loadingMoreTracks) {
+                        fetchTrackLists(trackOffset);
+                    }
+                }
+            },
+            {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.1
+            }
+        );
+
+        observerRef.current = observer;
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
+        }
+
+        return () => {
+            if (observerRef.current) {
+                observerRef.current.disconnect();
             }
         };
-
-        fetchUserLists();
-    }, [isAuthenticated, user, navigate]);
+    }, [
+        activeListType,
+        albumOffset,
+        trackOffset,
+        hasMoreAlbums,
+        hasMoreTracks,
+        loadingMoreAlbums,
+        loadingMoreTracks,
+        fetchAlbumLists,
+        fetchTrackLists
+    ]);
 
     const handleCreateList = () => {
         setIsCreateModalOpen(true);
@@ -50,18 +194,11 @@ const Lists = () => {
     const handleListCreated = async () => {
         setIsCreateModalOpen(false);
 
-        // Reload lists after creation
-        if (user) {
-            try {
-                setLoading(true);
-                const response = await ListsService.getUserLists(user.id, 20, 0);
-                setLists(response.lists);
-                setTotalLists(response.totalCount);
-            } catch (err) {
-                console.error('Error refreshing lists:', err);
-            } finally {
-                setLoading(false);
-            }
+        // Reload the appropriate list type after creation
+        if (activeListType === 'Album') {
+            fetchAlbumLists(0);
+        } else {
+            fetchTrackLists(0);
         }
     };
 
@@ -75,9 +212,14 @@ const Lists = () => {
             const response = await ListsService.deleteList(listId);
 
             if (response.success) {
-                // Update local state to remove the deleted list
-                setLists(prevLists => prevLists.filter(list => list.listId !== listId));
-                setTotalLists(prev => prev - 1);
+                // Update the appropriate list in state
+                if (activeListType === 'Album') {
+                    setAlbumLists(prevLists => prevLists.filter(list => list.listId !== listId));
+                    setAlbumsTotal(prev => Math.max(0, prev - 1));
+                } else {
+                    setTrackLists(prevLists => prevLists.filter(list => list.listId !== listId));
+                    setTracksTotal(prev => Math.max(0, prev - 1));
+                }
             } else {
                 setDeleteError(response.errorMessage || 'Failed to delete the list.');
             }
@@ -89,9 +231,32 @@ const Lists = () => {
         }
     };
 
-    // Group lists by type
-    const albumLists = lists.filter(list => list.listType === 'Album');
-    const trackLists = lists.filter(list => list.listType === 'Track');
+    // Handle list type change
+    const handleListTypeChange = (type: 'Album' | 'Track') => {
+        setActiveListType(type);
+    };
+
+    // Get current lists and loading state based on active tab
+    const getCurrentLists = () => {
+        return activeListType === 'Album' ? albumLists : trackLists;
+    };
+
+    const isLoading = () => {
+        return activeListType === 'Album' ? loadingAlbums : loadingTracks;
+    };
+
+    const isLoadingMore = () => {
+        return activeListType === 'Album' ? loadingMoreAlbums : loadingMoreTracks;
+    };
+
+    const getCurrentError = () => {
+        return activeListType === 'Album' ? albumError : trackError;
+    };
+
+    // Get total count of all lists
+    const getTotalLists = () => {
+        return albumsTotal + tracksTotal;
+    };
 
     if (!isAuthenticated) {
         return null;
@@ -104,8 +269,8 @@ const Lists = () => {
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Lists</h1>
                     <p className="text-gray-600">
-                        {totalLists > 0
-                            ? `You have ${totalLists} ${totalLists === 1 ? 'list' : 'lists'}`
+                        {getTotalLists() > 0
+                            ? `You have ${getTotalLists()} ${getTotalLists() === 1 ? 'list' : 'lists'}`
                             : 'Create your first list to organize your music'}
                     </p>
                 </div>
@@ -120,9 +285,9 @@ const Lists = () => {
             </div>
 
             {/* Error messages */}
-            {error && (
+            {getCurrentError() && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
-                    {error}
+                    {getCurrentError()}
                     <button
                         onClick={() => window.location.reload()}
                         className="ml-2 underline hover:text-red-900"
@@ -145,16 +310,46 @@ const Lists = () => {
                 </div>
             )}
 
-            {/* Loading state */}
-            {loading && (
-                <div className="flex justify-center items-center py-20">
-                    <RefreshCw className="h-10 w-10 text-primary-600 animate-spin mr-3" />
-                    <span className="text-lg text-gray-600">Loading your lists...</span>
+            {/* List Type Toggle */}
+            {(!isLoading() || albumLists.length > 0 || trackLists.length > 0) && (
+                <div className="flex space-x-2 mb-6">
+                    <button
+                        onClick={() => handleListTypeChange('Album')}
+                        className={`px-4 py-2 rounded-md font-medium text-sm flex items-center ${
+                            activeListType === 'Album'
+                                ? 'bg-primary-600 text-white'
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                    >
+                        <Disc className="h-4 w-4 mr-2" />
+                        Albums ({albumsTotal})
+                    </button>
+                    <button
+                        onClick={() => handleListTypeChange('Track')}
+                        className={`px-4 py-2 rounded-md font-medium text-sm flex items-center ${
+                            activeListType === 'Track'
+                                ? 'bg-primary-600 text-white'
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                    >
+                        <Music className="h-4 w-4 mr-2" />
+                        Tracks ({tracksTotal})
+                    </button>
                 </div>
             )}
 
-            {/* Empty state */}
-            {!loading && lists.length === 0 && (
+            {/* Initial Loading state */}
+            {isLoading() && getCurrentLists().length === 0 && (
+                <div className="flex justify-center items-center py-20">
+                    <RefreshCw className="h-10 w-10 text-primary-600 animate-spin mr-3" />
+                    <span className="text-lg text-gray-600">
+                        Loading your {activeListType.toLowerCase()} lists...
+                    </span>
+                </div>
+            )}
+
+            {/* Empty state when no lists at all */}
+            {!isLoading() && albumLists.length === 0 && trackLists.length === 0 && (
                 <div className="bg-white shadow rounded-lg p-8 text-center">
                     <List className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                     <h2 className="text-xl font-semibold text-gray-800 mb-2">You don't have any lists yet</h2>
@@ -171,42 +366,49 @@ const Lists = () => {
                 </div>
             )}
 
-            {/* Lists in row layout */}
-            {!loading && lists.length > 0 && (
-                <div className="space-y-8">
-                    {/* Album Lists */}
-                    {albumLists.length > 0 && (
-                        <div>
-                            <div className="border-b border-gray-200 mb-4 pb-2">
-                                <h2 className="text-xl font-semibold text-gray-900">Album Lists</h2>
-                            </div>
-                            <div className="space-y-2">
-                                {albumLists.map((list) => (
-                                    <ListRowItem
-                                        key={list.listId}
-                                        list={list}
-                                        onDelete={handleDeleteList}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    )}
+            {/* Empty state for specific list type */}
+            {!isLoading() && getTotalLists() > 0 && getCurrentLists().length === 0 && (
+                <div className="bg-white shadow rounded-lg p-8 text-center">
+                    <List className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                        You don't have any {activeListType.toLowerCase()} lists yet
+                    </h2>
+                    <p className="text-gray-600 mb-6">
+                        Create your first {activeListType.toLowerCase()} list to organize your music
+                    </p>
+                    <button
+                        onClick={handleCreateList}
+                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
+                    >
+                        <Plus className="h-5 w-5 mr-2" />
+                        Create {activeListType} List
+                    </button>
+                </div>
+            )}
 
-                    {/* Track Lists */}
-                    {trackLists.length > 0 && (
-                        <div>
-                            <div className="border-b border-gray-200 mb-4 pb-2">
-                                <h2 className="text-xl font-semibold text-gray-900">Track Lists</h2>
-                            </div>
-                            <div className="space-y-2">
-                                {trackLists.map((list) => (
-                                    <ListRowItem
-                                        key={list.listId}
-                                        list={list}
-                                        onDelete={handleDeleteList}
-                                    />
-                                ))}
-                            </div>
+            {/* Lists in row layout */}
+            {getCurrentLists().length > 0 && (
+                <div className="space-y-2">
+                    {getCurrentLists().map((list) => (
+                        <ListRowItem
+                            key={list.listId}
+                            list={list}
+                            onDelete={handleDeleteList}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Loading more indicator */}
+            {getCurrentLists().length > 0 && (
+                <div
+                    ref={loadMoreRef}
+                    className="mt-6 py-4 flex justify-center items-center"
+                >
+                    {isLoadingMore() && (
+                        <div className="flex items-center">
+                            <Loader className="h-5 w-5 text-primary-600 animate-spin mr-2" />
+                            <span className="text-gray-600">Loading more lists...</span>
                         </div>
                     )}
                 </div>
@@ -217,6 +419,7 @@ const Lists = () => {
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
                 onListCreated={handleListCreated}
+                initialListType={activeListType}
             />
         </div>
     );
