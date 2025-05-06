@@ -1,11 +1,11 @@
 import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Music, MessageSquare, ListMusic, History } from 'lucide-react';
-import EmptyState from '../common/EmptyState';
 import { AlbumDetail, TrackSummary } from '../../api/catalog';
 import AlbumTrackList from './AlbumTrackList';
 import ItemHistoryComponent from '../common/ItemHistoryComponent';
 import ItemReviewsComponent from '../common/ItemReviewsComponent';
+import InListsTab from '../common/InListsTab.tsx';
 import useAuthStore from '../../store/authStore';
 
 interface AlbumContentTabsProps {
@@ -22,7 +22,7 @@ interface AlbumContentTabsProps {
     tracksOffset: number;
     loadingMoreTracks: boolean;
     onLoadMoreTracks: () => void;
-    refreshTrigger?: number; // New prop to trigger refresh
+    refreshTrigger?: number; // Prop to trigger refresh
 }
 
 const AlbumContentTabs = ({
@@ -64,7 +64,7 @@ const AlbumContentTabs = ({
                         active={activeTab === 'lists'}
                         onClick={() => setActiveTab('lists')}
                         icon={<ListMusic className="h-4 w-4 mr-1 sm:mr-2" />}
-                        label="Lists"
+                        label="In Lists"
                     />
                     <TabButton
                         active={activeTab === 'my-history'}
@@ -105,15 +105,7 @@ const AlbumContentTabs = ({
             {/* Lists Tab Content */}
             {activeTab === 'lists' && (
                 <div className="p-4 sm:p-6">
-                    <EmptyState
-                        title="Not in any lists yet"
-                        message="This album hasn't been added to any lists yet."
-                        icon={<ListMusic className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />}
-                        action={{
-                            label: "Create List",
-                            onClick: () => navigate('/lists/create')
-                        }}
-                    />
+                    <InListsTab spotifyId={album.spotifyId} />
                 </div>
             )}
 
@@ -165,6 +157,38 @@ const TabButton = ({ active, onClick, icon, label }: TabButtonProps) => {
             {icon}
             {label}
         </button>
+    );
+};
+
+// Import EmptyState component for use in History tab
+const EmptyState = ({ title, message, icon, action }: {
+    title: string;
+    message: string;
+    icon?: ReactNode;
+    action?: {
+        label: string;
+        onClick: () => void;
+    };
+}) => {
+    return (
+        <div className="text-center py-12 px-4 rounded-lg border border-gray-200 bg-white">
+            <div className="mx-auto flex justify-center">
+                {icon || <MessageSquare className="h-12 w-12 text-gray-400" />}
+            </div>
+            <h3 className="mt-4 text-lg font-medium text-gray-900">{title}</h3>
+            <p className="mt-2 text-sm text-gray-500 max-w-md mx-auto">{message}</p>
+            {action && (
+                <div className="mt-6">
+                    <button
+                        type="button"
+                        onClick={action.onClick}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    >
+                        {action.label}
+                    </button>
+                </div>
+            )}
+        </div>
     );
 };
 
