@@ -87,7 +87,7 @@ const ProfileHeader = ({
           <div className="mb-4 md:hidden">
             <button
               onClick={() => setIsProfileEditModalOpen(true)}
-              className="px-3 py-1.5 rounded-full text-sm font-medium bg-primary-500 bg-opacity-40 text-white hover:bg-opacity-60 focus:outline-none transition-colors flex items-center"
+              className="px-3 py-1.5 rounded-md text-sm font-medium bg-primary-500 bg-opacity-40 text-white hover:bg-opacity-60 focus:outline-none transition-colors flex items-center"
             >
               <Edit className="h-4 w-4 mr-1.5" />
               Edit Profile
@@ -129,7 +129,7 @@ const ProfileHeader = ({
             {isOwnProfile && (
               <button
                 onClick={() => setIsProfileEditModalOpen(true)}
-                className="hidden md:flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-primary-500 bg-opacity-40 text-white hover:bg-opacity-60 focus:outline-none transition-colors"
+                className="hidden md:flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-primary-500 bg-opacity-40 text-white hover:bg-opacity-60 focus:outline-none transition-colors"
               >
                 <Edit className="h-4 w-4 mr-1.5" />
                 Edit Profile
@@ -142,21 +142,21 @@ const ProfileHeader = ({
           )}
 
           <div className="mt-2 flex flex-wrap gap-3">
-            <div className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm flex items-center">
+            <div className="bg-white bg-opacity-20 px-3 py-1 rounded-md text-sm flex items-center">
               <Calendar className="h-4 w-4 mr-1" />
               Member since {memberSince}
             </div>
 
             <button
               onClick={() => navigateToTab('followers')}
-              className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm"
+              className="bg-white bg-opacity-20 px-3 py-1 rounded-md text-sm"
             >
               <span className="font-medium">{followerCount}</span> Followers
             </button>
 
             <button
               onClick={() => navigateToTab('following')}
-              className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm"
+              className="bg-white bg-opacity-20 px-3 py-1 rounded-md text-sm"
             >
               <span className="font-medium">{followingCount}</span> Following
             </button>
@@ -183,7 +183,7 @@ const ProfileHeader = ({
               {isOwnProfile && (
                 <button
                   onClick={() => setIsProfileEditModalOpen(true)}
-                  className="absolute bottom-1 left-1 bg-primary-600 bg-opacity-70 rounded-full p-1 opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity duration-200"
+                  className="absolute bottom-1 right-1 bg-primary-600 bg-opacity-70 rounded-md p-1 opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity duration-200"
                 >
                   <Edit className="h-3 w-3 text-white" />
                 </button>

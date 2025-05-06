@@ -475,7 +475,7 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
 
         {isOwnProfile && (
           <p className="text-gray-600 mb-6">
-            Add your favorite artists, albums, and tracks to personalize your experience (maximum {MAX_ITEMS_PER_CATEGORY} per category).
+            Add up to 5 favorite artists, albums, and tracks to personalize your experience.
           </p>
         )}
 

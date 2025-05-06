@@ -52,26 +52,27 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({
 }) => {
   return (
     <div className="border-b border-gray-200">
-      <nav className="flex overflow-x-auto">
-        <ProfileTabButton
-          active={activeTab === 'grading-methods'}
-          onClick={() => onTabChange('grading-methods')}
-          icon={<ListMusic className="h-4 w-4" />}
-          label="Grading Methods"
-        />
-
-        <ProfileTabButton
+      {/* Modified to have consistent width with the avatar section */}
+      <nav className="flex overflow-x-auto px-6 md:pl-[136px]"> {/* Adjusted padding to match the avatar width + margin (24px + 6px margin) */}
+          <ProfileTabButton
           active={activeTab === 'history'}
           onClick={() => onTabChange('history')}
           icon={<History className="h-4 w-4" />}
           label="Rating History"
         />
-
+        
         <ProfileTabButton
           active={activeTab === 'preferences'}
           onClick={() => onTabChange('preferences')}
           icon={<UserCog className="h-4 w-4" />}
           label="Preferences"
+        />
+
+        <ProfileTabButton
+          active={activeTab === 'grading-methods'}
+          onClick={() => onTabChange('grading-methods')}
+          icon={<ListMusic className="h-4 w-4" />}
+          label="Grading Methods"
         />
 
         <ProfileTabButton
