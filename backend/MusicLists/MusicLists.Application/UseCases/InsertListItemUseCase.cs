@@ -22,15 +22,16 @@ public class InsertListItemUseCase : IRequestHandler<InsertListItemCommand, Inse
         try
         {
             // Call the storage to insert the item
+            // If Position is null, pass 0 to indicate "add to end"
             var result = await _musicListsStorage.InsertListItemAsync(
                 request.ListId,
                 request.SpotifyId,
-                request.Position);
+                request.Position); // Use 0 to indicate "add to end"
 
             return new InsertListItemResult
             {
                 Success = true,
-                NewPosition = request.Position,
+                NewPosition = request.Position ?? result, // If position was null, use the returned position
                 TotalItems = result
             };
         }

@@ -20,7 +20,7 @@ public interface IMusicListsStorage
     Task<PaginatedResult<ListComment>> GetListCommentsByIdAsync(Guid listId, int? limit = null, int? offset = null);
     Task<PaginatedResult<ListWithItemCount>> GetListsByUserIdAsync(string userId, int? limit = null, int? offset = null, string? listType = null);
     Task<PaginatedResult<ListWithItemCount>> GetListsBySpotifyIdAsync(string spotifyId, int? limit = null, int? offset = null, string? listType = null);
-    Task<int> InsertListItemAsync(Guid listId, string spotifyId, int position);
+    Task<int> InsertListItemAsync(Guid listId, string spotifyId, int? position);
 }
 
 public class PaginatedResult<T>
