@@ -247,7 +247,7 @@ const ListsService = {
                 success: false,
                 newPosition: -1,
                 totalItems: 0,
-                errorMessage: 'Failed to insert item into the list.'
+                errorMessage: 'Item is already in the list.'
             };
         }
     },
