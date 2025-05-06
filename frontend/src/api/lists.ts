@@ -35,7 +35,7 @@ export interface ListResponse {
 
 export interface ListItemRequest {
     spotifyId: string;
-    position: number;
+    position?: number;
 }
 
 export interface ListItemResponse {
@@ -122,12 +122,6 @@ export interface LikeResponse {
         userId: string;
         likedAt: string;
     };
-    errorMessage?: string;
-}
-
-export interface HasLikedResponse {
-    success: boolean;
-    hasLiked: boolean;
     errorMessage?: string;
 }
 
