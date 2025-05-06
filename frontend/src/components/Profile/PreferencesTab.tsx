@@ -21,8 +21,6 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
   // Maximum number of items per category
   const MAX_ITEMS_PER_CATEGORY = 5;
 
-  // Removed the unused [preferences, setPreferences] state and now only store the data
-  // in the separate arrays for artists, albums, and tracks
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -489,13 +487,29 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
                 : `${username ? `${username} hasn't` : "This user hasn't"} shared any public music preferences yet.`}
             </p>
             {isOwnProfile && (
-              <button
-                onClick={() => handleAddPreference('artists')}
-                className="mt-4 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Preferences
-              </button>
+              <div className="mt-4 flex flex-col sm:flex-row justify-center gap-2">
+                <button
+                  onClick={() => handleAddPreference('artists')}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <User className="h-4 w-4 mr-1" />
+                  Add Artists
+                </button>
+                <button
+                  onClick={() => handleAddPreference('albums')}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <Disc className="h-4 w-4 mr-1" />
+                  Add Albums
+                </button>
+                <button
+                  onClick={() => handleAddPreference('tracks')}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <Music className="h-4 w-4 mr-1" />
+                  Add Tracks
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -503,19 +517,13 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
         {hasPreferences && (
           <div className="space-y-8">
             {/* Artists Section */}
-            {(artistsLoading || artistItems.length > 0) && (
-              renderPreferenceSection('artists', artistItems)
-            )}
+            {renderPreferenceSection('artists', artistItems)}
 
             {/* Albums Section */}
-            {(albumsLoading || albumItems.length > 0) && (
-              renderPreferenceSection('albums', albumItems)
-            )}
+            {renderPreferenceSection('albums', albumItems)}
 
             {/* Tracks Section */}
-            {(tracksLoading || trackItems.length > 0) && (
-              renderPreferenceSection('tracks', trackItems)
-            )}
+            {renderPreferenceSection('tracks', trackItems)}
           </div>
         )}
       </div>

@@ -21,10 +21,10 @@ const UserProfile = () => {
     const [isFollowing, setIsFollowing] = useState(false);
     const [gradingMethods, setGradingMethods] = useState<GradingMethodSummary[]>([]);
 
-    // Get active tab from URL params or default to grading-methods
+    // Get active tab from URL params or default to history (changed from grading-methods)
     const tabParam = searchParams.get('tab');
     const [activeTab, setActiveTab] = useState<ProfileTabType>(
-      (tabParam as ProfileTabType) || 'grading-methods'
+      (tabParam as ProfileTabType) || 'history'
     );
 
     const [loading, setLoading] = useState(true);
