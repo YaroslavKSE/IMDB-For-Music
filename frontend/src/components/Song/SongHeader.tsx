@@ -1,26 +1,27 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    Heart,
     Star,
     Share,
     Disc,
     Calendar,
     Clock,
     Play,
-    Pause
+    Pause,
+    ListMusic
 } from 'lucide-react';
 import { TrackDetail } from '../../api/catalog';
 import { formatDuration, formatDate } from '../../utils/formatters';
 import ItemStatsComponent from "../common/ItemStatsComponent.tsx";
 import LatestInteractionComponent from "../common/LatestInteractionComponent.tsx";
+import AddToListModal from '../Lists/AddToListModal';
 
 interface SongHeaderProps {
     track: TrackDetail;
     isPlaying: boolean;
     handlePreviewToggle: () => Promise<void>;
     handleTrackInteraction: () => void;
-    refreshTrigger?: number; // New prop to trigger refresh
+    refreshTrigger?: number;
 }
 
 const SongHeader = ({
@@ -28,9 +29,10 @@ const SongHeader = ({
                         isPlaying,
                         handlePreviewToggle,
                         handleTrackInteraction,
-                        refreshTrigger = 0 // Default value to avoid undefined
+                        refreshTrigger = 0
                     }: SongHeaderProps) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isAddToListModalOpen, setIsAddToListModalOpen] = useState(false);
 
     // Determine if title is likely to be too long (roughly more than one line)
     const isTitleLong = track.name.length > 30;
@@ -59,8 +61,11 @@ const SongHeader = ({
                 </div>
 
                 <div className="mt-3 flex justify-between space-x-2">
-                    <button className="flex-1 flex items-center justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
-                        <Heart className="h-4 w-4 mr-2" />
+                    <button
+                        className="flex-1 flex items-center justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                        onClick={() => setIsAddToListModalOpen(true)}
+                    >
+                        <ListMusic className="h-4 w-4 mr-2" />
                         Add to List
                     </button>
 
@@ -221,6 +226,17 @@ const SongHeader = ({
                     </div>
                 </div>
             </div>
+
+            {/* Add to List Modal */}
+            <AddToListModal
+                isOpen={isAddToListModalOpen}
+                onClose={() => setIsAddToListModalOpen(false)}
+                spotifyId={track.spotifyId}
+                itemType="Track"
+                onSuccess={() => {
+                    // Optional callback when successfully added to list
+                }}
+            />
         </div>
     );
 };

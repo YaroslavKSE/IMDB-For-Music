@@ -1,23 +1,25 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Star, Share, Disc, Calendar } from 'lucide-react';
+import { Star, Share, Disc, Calendar, ListMusic } from 'lucide-react';
 import { AlbumDetail } from '../../api/catalog';
 import { formatDate } from '../../utils/formatters';
 import ItemStatsComponent from '../common/ItemStatsComponent';
 import LatestInteractionComponent from '../common/LatestInteractionComponent';
+import AddToListModal from '../Lists/AddToListModal';
 
 interface AlbumHeaderProps {
     album: AlbumDetail;
     handleAlbumInteraction: () => void;
-    refreshTrigger?: number; // New prop to trigger refresh
+    refreshTrigger?: number;
 }
 
 const AlbumHeader = ({
                          album,
                          handleAlbumInteraction,
-                         refreshTrigger = 0 // Default value to avoid undefined
+                         refreshTrigger = 0
                      }: AlbumHeaderProps) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isAddToListModalOpen, setIsAddToListModalOpen] = useState(false);
 
     // Determine if title is likely to be too long (roughly more than one line)
     const isTitleLong = album.name.length > 40;
@@ -46,8 +48,11 @@ const AlbumHeader = ({
                 </div>
 
                 <div className="mt-3 flex justify-between space-x-2">
-                    <button className="flex-1 flex items-center justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
-                        <Heart className="h-4 w-4 mr-2" />
+                    <button
+                        className="flex-1 flex items-center justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                        onClick={() => setIsAddToListModalOpen(true)}
+                    >
+                        <ListMusic className="h-4 w-4 mr-2" />
                         Add to List
                     </button>
 
@@ -162,6 +167,17 @@ const AlbumHeader = ({
                     </div>
                 </div>
             </div>
+
+            {/* Add to List Modal */}
+            <AddToListModal
+                isOpen={isAddToListModalOpen}
+                onClose={() => setIsAddToListModalOpen(false)}
+                spotifyId={album.spotifyId}
+                itemType="Album"
+                onSuccess={() => {
+                    // Optional callback when successfully added to list
+                }}
+            />
         </div>
     );
 };

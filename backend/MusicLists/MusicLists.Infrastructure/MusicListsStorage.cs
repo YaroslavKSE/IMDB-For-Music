@@ -560,6 +560,15 @@ public class MusicListsStorage : IMusicListsStorage
                 throw new KeyNotFoundException($"List with ID {listId} not found.");
             }
 
+            // Check if the item already exists in the list
+            bool alreadyExists = await _dbContext.ListItems
+                .AnyAsync(i => i.ListId == listId && i.ItemId == spotifyId);
+
+            if (alreadyExists)
+            {
+                throw new InvalidOperationException("Item is already in the list.");
+            }
+
             // Get the current items count and max position
             var existingItems = await _dbContext.ListItems
                 .Where(i => i.ListId == listId)
