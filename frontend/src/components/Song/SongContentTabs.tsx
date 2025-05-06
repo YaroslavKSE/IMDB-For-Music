@@ -5,6 +5,7 @@ import EmptyState from '../common/EmptyState';
 import ItemHistoryComponent from '../common/ItemHistoryComponent';
 import ItemReviewsComponent from '../common/ItemReviewsComponent';
 import useAuthStore from '../../store/authStore';
+import InListsTab from "../common/InListsTab.tsx";
 
 interface SongContentTabsProps {
     activeTab: 'reviews' | 'lists' | 'my-history';
@@ -68,17 +69,9 @@ const SongContentTabs = ({
             )}
 
             {/* Lists Tab Content */}
-            {activeTab === 'lists' && (
-                <div className="p-6">
-                    <EmptyState
-                        title="Not in any lists yet"
-                        message="This track hasn't been added to any lists yet."
-                        icon={<ListMusic className="h-12 w-12 text-gray-400" />}
-                        action={{
-                            label: "Create a List",
-                            onClick: () => navigate('/lists/create')
-                        }}
-                    />
+            {activeTab === 'lists' && id !== undefined && (
+                <div className="p-4 sm:p-6">
+                    <InListsTab spotifyId={id} />
                 </div>
             )}
 

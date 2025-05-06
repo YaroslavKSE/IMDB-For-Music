@@ -548,7 +548,7 @@ public class MusicListsStorage : IMusicListsStorage
         return new PaginatedResult<ListWithItemCount>(resultLists, totalCount);
     }
 
-    public async Task<int> InsertListItemAsync(Guid listId, string spotifyId, int position)
+    public async Task<int> InsertListItemAsync(Guid listId, string spotifyId, int? position)
     {
         using var transaction = await _dbContext.Database.BeginTransactionAsync();
         try
@@ -558,6 +558,15 @@ public class MusicListsStorage : IMusicListsStorage
             if (list == null)
             {
                 throw new KeyNotFoundException($"List with ID {listId} not found.");
+            }
+
+            // Check if the item already exists in the list
+            bool alreadyExists = await _dbContext.ListItems
+                .AnyAsync(i => i.ListId == listId && i.ItemId == spotifyId);
+
+            if (alreadyExists)
+            {
+                throw new InvalidOperationException("Item is already in the list.");
             }
 
             // Get the current items count and max position
@@ -571,20 +580,21 @@ public class MusicListsStorage : IMusicListsStorage
                 maxPosition = existingItems.Max(i => i.Number);
             }
 
-            // Validate the requested position
-            if (position < 1)
+            // If position is null or 0, or more than max, add to the end
+            int actualPosition = position ?? (maxPosition + 1);
+            if (actualPosition <= 0)
             {
-                position = 1; // If position is less than 1, insert at the beginning
+                actualPosition = maxPosition + 1;
             }
-            else if (position > maxPosition + 1)
+            else if (actualPosition > maxPosition + 1)
             {
-                position = maxPosition + 1; // If position is beyond the end, append to the end
+                actualPosition = maxPosition + 1;
             }
 
             // Shift all items at and after the insertion position
             var itemsToShift = existingItems
-                .Where(i => i.Number >= position)
-                .OrderByDescending(i => i.Number) // Process from highest to lowest to avoid conflicts
+                .Where(i => i.Number >= actualPosition)
+                .OrderByDescending(i => i.Number)
                 .ToList();
 
             foreach (var item in itemsToShift)
@@ -598,7 +608,7 @@ public class MusicListsStorage : IMusicListsStorage
                 ListItemId = Guid.NewGuid(),
                 ListId = listId,
                 ItemId = spotifyId,
-                Number = position
+                Number = actualPosition
             };
 
             await _dbContext.ListItems.AddAsync(newItem);
@@ -607,8 +617,8 @@ public class MusicListsStorage : IMusicListsStorage
             await _dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            // Return the total count of items after insertion
-            return existingItems.Count + 1;
+            // Return the actual position used for insertion
+            return actualPosition;
         }
         catch (Exception)
         {

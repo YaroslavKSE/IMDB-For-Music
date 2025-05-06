@@ -26,169 +26,194 @@ import UserProfilePage from './pages/UserProfile';
 import CreateInteractionPage from './pages/CreateInteractionPage';
 import InteractionDetailPage from './pages/InteractionDetailPage';
 import FollowingFeed from './pages/FollowingFeed';
+import Lists from "./pages/Lists";
+import ListDetailsPage from './pages/ListDetailsPage';
+import ListEditPage from './pages/ListEditPage';
 
 // Auth callback handler component
 const AuthCallback = () => {
-  const { socialLogin } = useAuthStore();
-  const location = useLocation();
+    const { socialLogin } = useAuthStore();
+    const location = useLocation();
 
-  useEffect(() => {
-    const processAuth = async () => {
-      try {
-        const { accessToken, provider } = await handleAuthCallback();
-        // Use the store's socialLogin function with the tokens
-        await socialLogin(accessToken, provider);
+    useEffect(() => {
+        const processAuth = async () => {
+            try {
+                const { accessToken, provider } = await handleAuthCallback();
+                // Use the store's socialLogin function with the tokens
+                await socialLogin(accessToken, provider);
 
-        // Redirect to home page or the original destination after successful login
-        window.location.href = location.state?.from || '/';
-      } catch (error) {
-        console.error('Auth callback error:', error);
-        window.location.href = '/login';
-      }
-    };
+                // Redirect to home page or the original destination after successful login
+                window.location.href = location.state?.from || '/';
+            } catch (error) {
+                console.error('Auth callback error:', error);
+                window.location.href = '/login';
+            }
+        };
 
-    processAuth();
-  }, [socialLogin, location.state]);
+        processAuth();
+    }, [socialLogin, location.state]);
 
-  // Show a subtle loading indicator while processing the callback
-  return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gray-50">
-      <LoadingIndicator size="large" text="Completing sign-in" />
-    </div>
-  );
+    // Show a subtle loading indicator while processing the callback
+    return (
+        <div className="min-h-screen flex flex-col justify-center items-center bg-gray-50">
+            <LoadingIndicator size="large" text="Completing sign-in" />
+        </div>
+    );
 };
 
 // Protected route wrapper component
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading } = useAuthStore();
-  const location = useLocation();
+    const { isAuthenticated, isLoading } = useAuthStore();
+    const location = useLocation();
 
-  // If still loading, render the current route but with a subtle loading indicator
-  if (isLoading) {
-    return (
-      <div className="opacity-50 pointer-events-none">
-        {children}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-primary-600 h-1">
-          <div className="h-full bg-primary-300 animate-pulse"></div>
-        </div>
-      </div>
-    );
-  }
+    // If still loading, render the current route but with a subtle loading indicator
+    if (isLoading) {
+        return (
+            <div className="opacity-50 pointer-events-none">
+                {children}
+                <div className="fixed top-0 left-0 right-0 z-50 bg-primary-600 h-1">
+                    <div className="h-full bg-primary-300 animate-pulse"></div>
+                </div>
+            </div>
+        );
+    }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
-  }
+    if (!isAuthenticated) {
+        return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+    }
 
-  return <>{children}</>;
+    return <>{children}</>;
 };
 
 function App() {
-  const { initializeAuth} = useAuthStore();
-  const [isInitializing, setIsInitializing] = useState(true);
+    const { initializeAuth} = useAuthStore();
+    const [isInitializing, setIsInitializing] = useState(true);
 
-  useEffect(() => {
-    const init = async () => {
-      await initializeAuth();
-      setIsInitializing(false);
-    };
+    useEffect(() => {
+        const init = async () => {
+            await initializeAuth();
+            setIsInitializing(false);
+        };
 
-    init();
-  }, [initializeAuth]);
+        init();
+    }, [initializeAuth]);
 
-  // Show a minimal loading indicator only during initial app load
-  if (isInitializing) {
+    // Show a minimal loading indicator only during initial app load
+    if (isInitializing) {
+        return (
+            <div className="min-h-screen bg-gray-50">
+                <div className="fixed top-0 left-0 right-0 z-50 bg-primary-100 h-1">
+                    <div className="h-full bg-primary-600 w-24 animate-pulse"></div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="fixed top-0 left-0 right-0 z-50 bg-primary-100 h-1">
-          <div className="h-full bg-primary-600 w-24 animate-pulse"></div>
-        </div>
-      </div>
+        <Router>
+            <Routes>
+                {/* Auth0 callback route - outside MainLayout */}
+                <Route path="/callback" element={<AuthCallback />} />
+
+                {/* Main layout with routes */}
+                <Route path="/" element={<MainLayout />}>
+                    <Route index element={<Home />} />
+                    <Route path="login" element={<Login />} />
+                    <Route path="register" element={<Register />} />
+                    <Route path="search" element={<Search />} />
+                    <Route path="album/:id" element={<Album />} />
+                    <Route path="track/:id" element={<Song />} />
+                    <Route path="artist/:id" element={<Artist />} />
+
+                    {/* Interaction detail page - publicly viewable */}
+                    <Route path="interaction/:id" element={<InteractionDetailPage />} />
+
+                    {/* List detail page - publicly viewable */}
+                    <Route path="lists/:id" element={<ListDetailsPage />} />
+
+                    {/* People Routes */}
+                    <Route path="people" element={<PeoplePage />} />
+                    <Route path="people/:id" element={<UserProfilePage />} />
+
+                    {/* Protected routes */}
+                    <Route
+                        path="profile"
+                        element={
+                            <ProtectedRoute>
+                                <Profile />
+                            </ProtectedRoute>
+                        }
+                    />
+                    {/* Diary route */}
+                    <Route
+                        path="diary"
+                        element={
+                            <ProtectedRoute>
+                                <Diary />
+                            </ProtectedRoute>
+                        }
+                    />
+                    {/* Grading method routes */}
+                    <Route
+                        path="grading-methods/create"
+                        element={
+                            <ProtectedRoute>
+                                <CreateGradingMethod />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="grading-methods/:id"
+                        element={<ViewGradingMethod />}
+                    />
+
+                    <Route
+                        path="create-interaction/:itemType/:itemId"
+                        element={
+                            <ProtectedRoute>
+                                <CreateInteractionPage />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="following-feed"
+                        element={
+                            <ProtectedRoute>
+                                <FollowingFeed />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="lists"
+                        element={
+                            <ProtectedRoute>
+                                <Lists />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* New List Edit Route */}
+                    <Route
+                        path="lists/edit/:id"
+                        element={
+                            <ProtectedRoute>
+                                <ListEditPage />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* Catch-all route for 404 */}
+                    <Route path="*" element={<NotFound />} />
+                </Route>
+            </Routes>
+        </Router>
     );
-  }
-
-  return (
-    <Router>
-      <Routes>
-        {/* Auth0 callback route - outside MainLayout */}
-        <Route path="/callback" element={<AuthCallback />} />
-
-        {/* Main layout with routes */}
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Home />} />
-          <Route path="login" element={<Login />} />
-          <Route path="register" element={<Register />} />
-          <Route path="search" element={<Search />} />
-          <Route path="album/:id" element={<Album />} />
-          <Route path="track/:id" element={<Song />} />
-          <Route path="artist/:id" element={<Artist />} />
-
-          {/* ItemHistory detail page - publicly viewable */}
-          <Route path="interaction/:id" element={<InteractionDetailPage />} />
-
-          {/* People Routes */}
-          <Route path="people" element={<PeoplePage />} />
-          <Route path="people/:id" element={<UserProfilePage />} />
-
-          {/* Protected routes */}
-          <Route
-            path="profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-          {/* Diary route */}
-          <Route
-            path="diary"
-            element={
-              <ProtectedRoute>
-                <Diary />
-              </ProtectedRoute>
-            }
-          />
-          {/* Grading method routes */}
-          <Route
-            path="grading-methods/create"
-            element={
-              <ProtectedRoute>
-                <CreateGradingMethod />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="grading-methods/:id"
-            element={<ViewGradingMethod />}
-          />
-
-          <Route
-            path="create-interaction/:itemType/:itemId"
-            element={
-              <ProtectedRoute>
-                <CreateInteractionPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-              path="following-feed"
-              element={
-                <ProtectedRoute>
-                  <FollowingFeed />
-                </ProtectedRoute>
-              }
-          />
-
-          {/* Catch-all route for 404 */}
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </Router>
-  );
 }
 
 export default App;
