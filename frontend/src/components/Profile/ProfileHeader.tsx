@@ -7,6 +7,7 @@ import { formatDate } from '../../utils/formatters';
 import AvatarUploadModal from './AvatarUploadModal';
 import FollowButton from './FollowButton';
 import ProfileEditForm from './ProfileEditForm';
+import { ProfileTabType } from './ProfileTabs';
 
 interface ProfileHeaderProps {
   profile: UserProfile | PublicUserProfile;
@@ -16,6 +17,7 @@ interface ProfileHeaderProps {
   onAvatarUpdate?: () => void;
   isAuthenticated: boolean;
   followLoading?: boolean;
+  onTabChange?: (tab: ProfileTabType) => void; // Add this prop
 }
 
 const ProfileHeader = ({
@@ -25,7 +27,8 @@ const ProfileHeader = ({
   onFollowToggle,
   onAvatarUpdate,
   isAuthenticated,
-  followLoading = false
+  followLoading = false,
+  onTabChange
 }: ProfileHeaderProps) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -65,7 +68,7 @@ const ProfileHeader = ({
   };
 
   // Tab navigation functions
-  const navigateToTab = (tab: string) => {
+  const handleTabNavigation = (tab: ProfileTabType) => {
     // Create a new URLSearchParams instance to preserve other params
     const newParams = new URLSearchParams(searchParams);
     // Set the tab parameter
@@ -76,6 +79,11 @@ const ProfileHeader = ({
       navigate(`/profile?${newParams.toString()}`);
     } else {
       navigate(`/people/${profile.id}?${newParams.toString()}`);
+    }
+
+    // Call the onTabChange prop if provided
+    if (onTabChange) {
+      onTabChange(tab);
     }
   };
 
@@ -147,15 +155,16 @@ const ProfileHeader = ({
               Member since {memberSince}
             </div>
 
+            {/* Updated to use the combined function for both URL and state updates */}
             <button
-              onClick={() => navigateToTab('followers')}
+              onClick={() => handleTabNavigation('followers')}
               className="bg-white bg-opacity-20 px-3 py-1 rounded-md text-sm"
             >
               <span className="font-medium">{followerCount}</span> Followers
             </button>
 
             <button
-              onClick={() => navigateToTab('following')}
+              onClick={() => handleTabNavigation('following')}
               className="bg-white bg-opacity-20 px-3 py-1 rounded-md text-sm"
             >
               <span className="font-medium">{followingCount}</span> Following

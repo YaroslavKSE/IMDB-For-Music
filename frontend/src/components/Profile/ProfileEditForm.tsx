@@ -165,7 +165,7 @@ const ProfileEditForm = ({ onCancel, onSuccess, initialData }: ProfileEditFormPr
         {/* Last Name Field - Now OPTIONAL */}
         <div>
           <label htmlFor="surname" className="block text-sm font-medium text-gray-700 mb-1">
-            Last Name <span className="text-gray-400 text-xs">(optional)</span>
+            Last Name
           </label>
           <input
             id="surname"

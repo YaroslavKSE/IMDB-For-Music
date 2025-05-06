@@ -19,7 +19,7 @@ const Profile = () => {
   // Get active tab from URL params or default to history
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState<ProfileTabType>(
-    tabParam as ProfileTabType || 'history'
+    (tabParam as ProfileTabType) || 'history'
   );
 
   // Fixed type definitions for arrays
@@ -27,6 +27,19 @@ const Profile = () => {
   const [followingData, setFollowingData] = useState<UserSubscriptionResponse[]>([]);
   const [socialLoading, setSocialLoading] = useState(false);
   const [socialError, setSocialError] = useState<string | null>(null);
+
+  // Listen for URL changes to update the active tab
+  useEffect(() => {
+    const newTabParam = searchParams.get('tab');
+    if (newTabParam && isValidTab(newTabParam) && newTabParam !== activeTab) {
+      setActiveTab(newTabParam as ProfileTabType);
+    }
+  }, [searchParams]);
+
+  // Helper to validate tab parameters
+  const isValidTab = (tab: string): boolean => {
+    return ['grading-methods', 'history', 'settings', 'following', 'followers', 'preferences'].includes(tab);
+  };
 
   // Ensure user data is loaded and user is authenticated
   useEffect(() => {
@@ -82,13 +95,14 @@ const Profile = () => {
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Profile Header */}
+      {/* Profile Header - Pass the tab change handler */}
       <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
         <ProfileHeader
           profile={user}
           isOwnProfile={true}
           isAuthenticated={isAuthenticated}
           onAvatarUpdate={fetchUserProfile}
+          onTabChange={handleTabChange}
         />
 
         {/* Profile Tabs */}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Book, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import UsersService, { PublicUserProfile, UserSubscriptionResponse } from '../api/users';
 import InteractionService, { GradingMethodSummary } from '../api/interaction';
 import useAuthStore from '../store/authStore';
@@ -21,10 +21,10 @@ const UserProfile = () => {
     const [isFollowing, setIsFollowing] = useState(false);
     const [gradingMethods, setGradingMethods] = useState<GradingMethodSummary[]>([]);
 
-    // Get active tab from URL params or default to overview
+    // Get active tab from URL params or default to grading-methods
     const tabParam = searchParams.get('tab');
     const [activeTab, setActiveTab] = useState<ProfileTabType>(
-      (tabParam as ProfileTabType) || 'overview'
+      (tabParam as ProfileTabType) || 'grading-methods'
     );
 
     const [loading, setLoading] = useState(true);
@@ -36,6 +36,19 @@ const UserProfile = () => {
 
     // Check if viewing own profile
     const isOwnProfile = currentUser?.id === id;
+
+    // Helper to validate tab parameters
+    const isValidTab = (tab: string): boolean => {
+        return ['grading-methods', 'history', 'preferences', 'following', 'followers'].includes(tab);
+    };
+
+    // Listen for URL changes to update the active tab
+    useEffect(() => {
+        const newTabParam = searchParams.get('tab');
+        if (newTabParam && isValidTab(newTabParam) && newTabParam !== activeTab) {
+            setActiveTab(newTabParam as ProfileTabType);
+        }
+    }, [searchParams, activeTab]);
 
     // Update URL when tab changes
     const handleTabChange = (tab: ProfileTabType) => {
@@ -190,6 +203,7 @@ const UserProfile = () => {
                     onFollowToggle={handleFollow}
                     isAuthenticated={isAuthenticated}
                     followLoading={followLoading}
+                    onTabChange={handleTabChange}
                 />
 
                 {/* Profile Tabs */}
@@ -200,62 +214,11 @@ const UserProfile = () => {
                 />
             </div>
 
-            {/* Bio Section - only shown if user has a bio */}
-            {userProfile.bio && activeTab === 'bio' && (
-                <TabContentWrapper
-                    title={`About ${userProfile.name}`}
-                    icon={<Book className="h-5 w-5" />}
-                    className="prose max-w-none"
-                >
-                    <div className="whitespace-pre-line">{userProfile.bio}</div>
-                </TabContentWrapper>
-            )}
-
             {/* Tab Content */}
             <div className="mb-8">
-                {/* Overview Tab */}
-                {activeTab === 'overview' && (
-                    <TabContentWrapper title="Profile Overview" icon={<Book className="h-5 w-5" />}>
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Basic Info</h3>
-                                    <p className="text-gray-700 mb-1"><span className="font-medium">Name:</span> {userProfile.name} {userProfile.surname}</p>
-                                    {userProfile.username && (
-                                        <p className="text-gray-700 mb-1"><span className="font-medium">Username:</span> @{userProfile.username}</p>
-                                    )}
-                                    <p className="text-gray-700 mb-1"><span className="font-medium">Member since:</span> {new Date(userProfile.createdAt).toLocaleDateString()}</p>
-                                </div>
-
-                                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Stats</h3>
-                                    <p className="text-gray-700 mb-1"><span className="font-medium">Followers:</span> {userProfile.followerCount}</p>
-                                    <p className="text-gray-700 mb-1"><span className="font-medium">Following:</span> {userProfile.followingCount}</p>
-                                    <p className="text-gray-700 mb-1"><span className="font-medium">Grading Methods:</span> {gradingMethods.length} public</p>
-                                </div>
-                            </div>
-
-                            {userProfile.bio && (
-                                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Bio</h3>
-                                    <div className="whitespace-pre-line line-clamp-3">{userProfile.bio}</div>
-                                    {userProfile.bio.split('\n').length > 3 && (
-                                        <button
-                                            onClick={() => handleTabChange('bio')}
-                                            className="mt-2 text-primary-600 hover:text-primary-800 text-sm font-medium"
-                                        >
-                                            Read more
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </TabContentWrapper>
-                )}
-
                 {/* Grading Methods Tab */}
                 {activeTab === 'grading-methods' && (
-                    <TabContentWrapper title="Grading Methods" icon={<Book className="h-5 w-5" />}>
+                    <TabContentWrapper title="Grading Methods">
                         {gradingMethods.length > 0 ? (
                             <div className="space-y-4">
                                 {gradingMethods.map((method) => (
