@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { UserProfile } from '../../api/auth';
 import { PublicUserProfile } from '../../api/users';
-import { Edit, Calendar, Book, User } from 'lucide-react';
+import { Edit, Calendar, User } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatDate } from '../../utils/formatters';
 import AvatarUploadModal from './AvatarUploadModal';
@@ -88,7 +88,7 @@ const ProfileHeader = ({
   };
 
   return (
-    <div className="bg-gradient-to-r from-primary-700 to-primary-400 px-6 py-8 text-white">
+    <div className="bg-gradient-to-r from-primary-600 to-primary-400 px-6 py-8 text-white">
       <div className="flex flex-col md:flex-row md:items-center">
         {/* Edit button placed at the top of the container, inside the header */}
         {isOwnProfile && (
@@ -184,7 +184,6 @@ const ProfileHeader = ({
           {'bio' in profile && profile.bio && (
               <div className="mt-4 max-w-3xl rounded-md text-white text-sm relative">
                 <div className="flex">
-                  <Book className="h-4 w-4 mr-2 mt-1 flex-shrink-0" />
                   <div className="whitespace-pre-line">{profile.bio}</div>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ListMusic, History, UserPlus, Users, Settings, UserCog } from 'lucide-react';
+import {Scale, History, UserPlus, Users, Settings, UserCog, ListMusic} from 'lucide-react';
 
 // Define the tab types that can be used in both Profile and UserProfile
 export type ProfileTabType =
@@ -9,6 +9,7 @@ export type ProfileTabType =
   | 'following'
   | 'followers'
   | 'preferences'
+  | 'lists'
 
 interface ProfileTabProps {
   active: boolean;
@@ -60,19 +61,26 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({
           icon={<History className="h-4 w-4" />}
           label="Rating History"
         />
+
+        <ProfileTabButton
+            active={activeTab === 'lists'}
+            onClick={() => onTabChange('lists')}
+            icon={<ListMusic className="h-4 w-4" />}
+            label="Lists"
+        />
+
+        <ProfileTabButton
+            active={activeTab === 'grading-methods'}
+            onClick={() => onTabChange('grading-methods')}
+            icon={<Scale className="h-4 w-4" />}
+            label="Grading Methods"
+        />
         
         <ProfileTabButton
           active={activeTab === 'preferences'}
           onClick={() => onTabChange('preferences')}
           icon={<UserCog className="h-4 w-4" />}
           label="Preferences"
-        />
-
-        <ProfileTabButton
-          active={activeTab === 'grading-methods'}
-          onClick={() => onTabChange('grading-methods')}
-          icon={<ListMusic className="h-4 w-4" />}
-          label="Grading Methods"
         />
 
         <ProfileTabButton

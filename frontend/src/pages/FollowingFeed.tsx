@@ -315,38 +315,27 @@ const FollowingFeed = () => {
                                 <div
                                     className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 pointer-events-none bg-white text-black text-xs rounded border border-gray-200 shadow z-10 whitespace-nowrap p-1"
                                 >
-                                    {item.userProfile ? (
-                                        <>
-                                            {item.userProfile.name} listened to {item.interaction.itemType.toLowerCase()}{' '}
-                                            <strong>{item.catalogItem?.name}</strong>
-                                        </>
-                                    ) : (
-                                        <>
-                                            Someone listened to {item.interaction.itemType.toLowerCase()}{' '}
-                                            <strong>{item.catalogItem?.name}</strong>
-                                        </>
-                                    )}
-
+                                    <strong>{item.catalogItem?.name}</strong>
                                 </div>
 
-                                <div className="aspect-square w-full overflow-hidden">
+                                <div className="aspect-square w-full overflow-hidden rounded-t-lg">
                                     <img
                                         src={item.catalogItem?.imageUrl || '/placeholder-album.jpg'}
                                         alt={`${item.catalogItem?.name || 'Unknown'} by ${item.catalogItem?.artistName || 'Unknown Artist'}`}
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
-                                <div className="p-2 sm:p-3">
+                                <div className="p-1.5">
                                     {/* User info */}
                                     <div className="flex items-center mb-1">
                                         {item.userProfile?.avatarUrl ? (
                                             <img
                                                 src={item.userProfile.avatarUrl}
                                                 alt={`${item.userProfile.name} ${item.userProfile.surname}`}
-                                                className="w-8 h-8 rounded-full mr-2 object-cover"
+                                                className="w-7 h-7 rounded-full mr-2 object-cover"
                                             />
                                         ) : (
-                                            <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold mr-2">
+                                            <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold mr-2">
                                                 {item.userProfile?.name.charAt(0) || '?'}{item.userProfile?.surname.charAt(0) || '?'}
                                             </div>
                                         )}
