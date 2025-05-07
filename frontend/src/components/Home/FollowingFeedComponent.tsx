@@ -102,7 +102,7 @@ const FollowingFeedComponent = () => {
 
     return (
         <div className="bg-white shadow rounded-lg overflow-visible mb-8">
-            <div className="px-3 py-3 sm:px-6 sm:py-4 bg-gradient-to-r from-primary-600 to-primary-700 flex justify-between items-center">
+            <div className="px-3 py-3 sm:px-6 sm:py-4 bg-gradient-to-r from-primary-600 to-primary-500 flex justify-between items-center rounded-t-lg">
                 <h2 className="text-lg sm:text-xl font-bold text-white flex items-center">
                     <UserRoundPlus className="mr-2 h-4 sm:h-5 w-4 sm:w-5" />
                     Following Feed
@@ -139,24 +139,6 @@ const FollowingFeedComponent = () => {
                             className="relative group bg-white rounded-lg overflow-visible shadow-sm hover:shadow-md transition-shadow duration-200"
                             role="listitem"
                         >
-                            {/* Tooltip */}
-                            <div
-                                className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 pointer-events-none bg-white text-black text-xs rounded border border-gray-200 shadow z-10 whitespace-nowrap p-1"
-                            >
-                                {item.userProfile ? (
-                                    <>
-                                        {item.userProfile.name} listened to {item.interaction.itemType.toLowerCase()}{' '}
-                                        <strong>{item.catalogItem?.name}</strong>
-                                    </>
-                                ) : (
-                                    <>
-                                        Someone listened to {item.interaction.itemType.toLowerCase()}{' '}
-                                        <strong>{item.catalogItem?.name}</strong>
-                                    </>
-                                )}
-
-                            </div>
-
                             <div className="aspect-square w-full overflow-hidden rounded-t-lg">
                                 <img
                                     src={item.catalogItem?.imageUrl || '/placeholder-album.jpg'}
@@ -165,7 +147,6 @@ const FollowingFeedComponent = () => {
                                 />
                             </div>
                             <div className="p-1.5">
-
                                 {/* User info */}
                                 <div className="flex items-center mb-1">
                                     {item.userProfile?.avatarUrl ? (
@@ -184,9 +165,9 @@ const FollowingFeedComponent = () => {
                                         {item.userProfile ? `${item.userProfile.name} ${item.userProfile.surname}` : 'Unknown User'}
                                     </div>
                                 </div>
-
+                                <h3 className="font-medium text-gray-900 truncate">{item.catalogItem?.name || 'Unknown Title'}</h3>
                                 {/* Interaction details */}
-                                <div className="flex items-center text-xs">
+                                <div className="flex items-center text-xs mt-1">
                                     {item.interaction.rating && (
                                         <div className="flex items-center">
                                             <NormalizedStarDisplay
