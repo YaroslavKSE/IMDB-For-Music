@@ -1,14 +1,15 @@
 import { Calendar } from 'lucide-react';
 import ItemHistoryEntryComponent from './ItemHistoryEntry';
-import { ItemHistoryEntry, GroupedHistoryEntries } from './ItemHistoryTypes';
+import { GroupedHistoryEntries } from './ItemHistoryTypes';
+import {DiaryEntry} from "../Diary/types.ts";
 
 interface HistoryDateGroupProps {
     group: GroupedHistoryEntries;
-    onReviewClick: (e: React.MouseEvent, entry: ItemHistoryEntry) => void;
-    onViewClick: (e: React.MouseEvent, entry: ItemHistoryEntry) => void;
+    onDeleteClick: (e: React.MouseEvent, entry: DiaryEntry) => void;
+    isPublic: boolean;
 }
 
-const HistoryDateGroup = ({ group, onReviewClick, onViewClick }: HistoryDateGroupProps) => {
+const HistoryDateGroup = ({ group, onDeleteClick, isPublic }: HistoryDateGroupProps) => {
     return (
         <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="bg-primary-50 px-6 py-3 border-b border-primary-100">
@@ -23,8 +24,8 @@ const HistoryDateGroup = ({ group, onReviewClick, onViewClick }: HistoryDateGrou
                     <ItemHistoryEntryComponent
                         key={entry.interaction.aggregateId}
                         entry={entry}
-                        onReviewClick={onReviewClick}
-                        onViewClick={onViewClick}
+                        onDeleteClick={onDeleteClick}
+                        isPublic={isPublic}
                     />
                 ))}
             </div>

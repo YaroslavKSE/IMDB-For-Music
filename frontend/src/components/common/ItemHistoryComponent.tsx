@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import {Loader, RefreshCw, History} from 'lucide-react';
+import {Loader, RefreshCw, History, AlertTriangle} from 'lucide-react';
 import InteractionService from '../../api/interaction';
 import CatalogService from '../../api/catalog';
 import UsersService from '../../api/users';
 import { ItemHistoryEntry, GroupedHistoryEntries } from '../ItemHistory/ItemHistoryTypes';
 import HistoryDateGroup from '../ItemHistory/HistoryDateGroup';
-import ReviewModal from "../Diary/ReviewModal";
 import useAuthStore from '../../store/authStore';
 import EmptyState from "./EmptyState.tsx";
 
@@ -30,15 +29,13 @@ const ItemHistoryComponent = ({
     const [groupedEntries, setGroupedEntries] = useState<GroupedHistoryEntries[]>([]);
     const [offset, setOffset] = useState(0);
     const [, setTotalInteractions] = useState(0);
-    const [reviewModalOpen, setReviewModalOpen] = useState(false);
-    const [selectedReview, setSelectedReview] = useState<{
-        review: { reviewId: string; reviewText: string };
-        itemName: string;
-        artistName: string;
-        date: string;
-    } | null>(null);
     const [hasMore, setHasMore] = useState(true);
     const itemsPerPage = 10;
+
+    // New states for delete functionality
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [entryToDelete, setEntryToDelete] = useState<ItemHistoryEntry | null>(null);
+    const [deleteSuccess, setDeleteSuccess] = useState(false);
 
     // Load item interactions history
     useEffect(() => {
@@ -209,33 +206,48 @@ const ItemHistoryComponent = ({
         setGroupedEntries(result);
     }, [historyEntries]);
 
-    const handleReviewClick = (e: React.MouseEvent, entry: ItemHistoryEntry) => {
+    // Show success message briefly
+    useEffect(() => {
+        if (deleteSuccess) {
+            const timer = setTimeout(() => {
+                setDeleteSuccess(false);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [deleteSuccess]);
+
+    // Handle delete click - prepare for deletion
+    const handleDeleteClick = (e: React.MouseEvent, entry: ItemHistoryEntry) => {
         e.stopPropagation(); // Prevent triggering the row click
-
-        if (!entry.interaction.review) return;
-
-        const formattedDate = new Date(entry.interaction.createdAt).toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-
-        setSelectedReview({
-            review: entry.interaction.review,
-            itemName: entry.catalogItem?.name || 'Unknown Title',
-            artistName: entry.catalogItem?.artistName || 'Unknown Artist',
-            date: formattedDate
-        });
-
-        setReviewModalOpen(true);
+        setEntryToDelete(entry);
+        setDeleteModalOpen(true);
     };
 
-    // Handle view interaction click (navigates to the interaction page)
-    const handleViewClick = (e: React.MouseEvent, entry: ItemHistoryEntry) => {
-        e.stopPropagation(); // Prevent triggering the row click
-        window.location.href = `/interaction/${entry.interaction.aggregateId}`;
+    // Confirm deletion of entry
+    const confirmDelete = async () => {
+        if (!entryToDelete) return;
+
+        try {
+            await InteractionService.deleteInteraction(entryToDelete.interaction.aggregateId);
+
+            // Remove the deleted entry from the history entries
+            const updatedEntries = historyEntries.filter(
+                entry => entry.interaction.aggregateId !== entryToDelete.interaction.aggregateId
+            );
+            setHistoryEntries(updatedEntries);
+
+            // Update total interactions count
+            setTotalInteractions(prev => prev - 1);
+
+            // Show success message
+            setDeleteSuccess(true);
+        } catch (err) {
+            console.error('Error deleting entry:', err);
+            setError('Failed to delete the entry. Please try again.');
+        } finally {
+            setDeleteModalOpen(false);
+            setEntryToDelete(null);
+        }
     };
 
     if (loading && historyEntries.length === 0) {
@@ -277,14 +289,21 @@ const ItemHistoryComponent = ({
 
     return (
         <div className="space-y-6">
+            {/* Success notification */}
+            {deleteSuccess && (
+                <div className="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50 shadow-md">
+                    Entry has been deleted successfully!
+                </div>
+            )}
+
             {/* History entries by date */}
             <div className="space-y-6">
                 {groupedEntries.map((group) => (
                     <HistoryDateGroup
                         key={group.date}
                         group={group}
-                        onReviewClick={handleReviewClick}
-                        onViewClick={handleViewClick}
+                        onDeleteClick={handleDeleteClick}
+                        isPublic={false}
                     />
                 ))}
             </div>
@@ -309,16 +328,49 @@ const ItemHistoryComponent = ({
                 </div>
             )}
 
-            {/* Review Modal */}
-            {selectedReview && (
-                <ReviewModal
-                    isOpen={reviewModalOpen}
-                    onClose={() => setReviewModalOpen(false)}
-                    review={selectedReview.review}
-                    itemName={selectedReview.itemName}
-                    artistName={selectedReview.artistName}
-                    date={selectedReview.date}
-                />
+            {/* Delete Confirmation Modal */}
+            {deleteModalOpen && entryToDelete && (
+                <div className="fixed inset-0 z-50">
+                    <div className="flex items-center justify-center min-h-screen p-4">
+                        {/* Backdrop */}
+                        <div
+                            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+                            onClick={() => setDeleteModalOpen(false)}
+                        ></div>
+
+                        {/* Modal */}
+                        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full z-10">
+                            <div className="p-6">
+                                <div className="flex items-center mb-4">
+                                    <AlertTriangle className="h-8 w-8 text-red-500 mr-4" />
+                                    <h3 className="text-lg font-bold text-gray-900">Delete Entry</h3>
+                                </div>
+
+                                <p className="mb-4">
+                                    Are you sure you want to delete this entry for "{entryToDelete.catalogItem?.name || 'Unknown Title'}"?
+                                    This action cannot be undone.
+                                </p>
+
+                                <div className="flex justify-end space-x-3 mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setDeleteModalOpen(false)}
+                                        className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={confirmDelete}
+                                        className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
