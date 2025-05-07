@@ -55,7 +55,7 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({
   return (
       <div className="border-b border-gray-200">
         {/* Modified to have consistent width with the avatar section */}
-        <nav className="flex overflow-x-auto px-6 md:pl-[136px]"> {/* Adjusted padding to match the avatar width + margin (24px + 6px margin) */}
+        <nav className="flex overflow-x-auto px-6 md:pl-[136px] items-start"> {/* Adjusted padding to match the avatar width + margin (24px + 6px margin) */}
           <ProfileTabButton
               active={activeTab === 'overview'}
               onClick={() => onTabChange('overview')}
@@ -85,13 +85,6 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({
           />
 
           <ProfileTabButton
-              active={activeTab === 'preferences'}
-              onClick={() => onTabChange('preferences')}
-              icon={<UserCog className="h-4 w-4" />}
-              label="Preferences"
-          />
-
-          <ProfileTabButton
               active={activeTab === 'following'}
               onClick={() => onTabChange('following')}
               icon={<UserPlus className="h-4 w-4" />}
@@ -104,6 +97,15 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({
               icon={<Users className="h-4 w-4" />}
               label="Followers"
           />
+
+            {isOwnProfile && (
+                <ProfileTabButton
+                    active={activeTab === 'preferences'}
+                    onClick={() => onTabChange('preferences')}
+                    icon={<UserCog className="h-4 w-4" />}
+                    label="Preferences"
+                />
+            )}
 
           {isOwnProfile && (
               <ProfileTabButton

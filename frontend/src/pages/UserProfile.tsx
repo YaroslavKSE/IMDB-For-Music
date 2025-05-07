@@ -9,7 +9,6 @@ import ProfileHeader from '../components/Profile/ProfileHeader';
 import ProfileTabs, { ProfileTabType } from '../components/Profile/ProfileTabs';
 import SocialTabContent from '../components/Profile/SocialTabContent';
 import TabContentWrapper from '../components/Profile/TabContentWrapper';
-import PreferencesTab from '../components/Profile/PreferencesTab';
 import HistoryTab from '../components/Profile/HistoryTab';
 import ProfileListsTab from '../components/Profile/ProfileListsTab';
 import ProfileOverviewTab from "../components/Profile/ProfileOverviewTab.tsx";
@@ -41,7 +40,7 @@ const UserProfile = () => {
 
     // Helper to validate tab parameters
     const isValidTab = (tab: string): boolean => {
-        return ['grading-methods', 'history', 'preferences', 'following', 'followers'].includes(tab);
+        return ['grading-methods', 'history', 'preferences', 'following', 'followers', 'overview', 'lists'].includes(tab);
     };
 
     // Listen for URL changes to update the active tab
@@ -277,14 +276,6 @@ const UserProfile = () => {
                 {/* Lists Tab */}
                 {activeTab === 'lists' && id && (
                     <ProfileListsTab
-                        userId={id}
-                        username={userProfile.username}
-                        isOwnProfile={false}
-                    />
-                )}
-
-                {activeTab === 'preferences' && id && (
-                    <PreferencesTab
                         userId={id}
                         username={userProfile.username}
                         isOwnProfile={false}
