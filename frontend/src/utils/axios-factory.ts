@@ -21,7 +21,7 @@ const getBaseUrl = (path: string): string => {
       '/review-interactions': 'http://localhost:5003/api/v1/review-interactions',
       '/grading-methods': 'http://localhost:5003/api/v1/grading-methods',
       '/users/preferences': 'http://localhost:5001/api/v1/users/preferences',
-      '/music-lists': 'http://localhost:5004/api/music-lists',
+      '/music-lists': 'http://localhost:5004/api/v1/music-lists',
     };
 
     return servicePorts[path] || `http://localhost:5000${path}`;

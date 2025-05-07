@@ -88,7 +88,7 @@ const ProfileHeader = ({
   };
 
   return (
-    <div className="bg-gradient-to-r from-primary-700 to-primary-900 px-6 py-8 text-white">
+    <div className="bg-gradient-to-r from-primary-700 to-primary-400 px-6 py-8 text-white">
       <div className="flex flex-col md:flex-row md:items-center">
         {/* Edit button placed at the top of the container, inside the header */}
         {isOwnProfile && (
@@ -110,11 +110,11 @@ const ProfileHeader = ({
               <img
                 src={profile.avatarUrl}
                 alt={`${profile.name} ${profile.surname} avatar`}
-                className="h-24 w-24 rounded-full object-cover border-4 border-white"
+                className="h-48 w-48 rounded-full object-cover border-2 border-primary-300"
               />
             ) : (
-              <div className="h-24 w-24 rounded-full bg-primary-600 flex items-center justify-center text-3xl font-bold border-4 border-white">
-                <User className="h-12 w-12 text-white" />
+              <div className="h-48 w-48 rounded-full bg-primary-500 flex items-center justify-center text-3xl font-bold border-2 border-primary-300">
+                <User className="h-24 w-24 text-white" />
               </div>
             )}
             {isOwnProfile && (
@@ -150,54 +150,44 @@ const ProfileHeader = ({
           )}
 
           <div className="mt-2 flex flex-wrap gap-3">
-            <div className="bg-white bg-opacity-20 px-3 py-1 rounded-md text-sm flex items-center">
-              <Calendar className="h-4 w-4 mr-1" />
-              Member since {memberSince}
-            </div>
-
             {/* Updated to use the combined function for both URL and state updates */}
             <button
-              onClick={() => handleTabNavigation('followers')}
-              className="bg-white bg-opacity-20 px-3 py-1 rounded-md text-sm"
+                onClick={() => handleTabNavigation('followers')}
+                className="bg-white bg-opacity-10 px-3 py-1 rounded-md text-sm"
             >
               <span className="font-medium">{followerCount}</span> Followers
             </button>
 
             <button
-              onClick={() => handleTabNavigation('following')}
-              className="bg-white bg-opacity-20 px-3 py-1 rounded-md text-sm"
+                onClick={() => handleTabNavigation('following')}
+                className="bg-white bg-opacity-10 px-3 py-1 rounded-md text-sm"
             >
               <span className="font-medium">{followingCount}</span> Following
             </button>
 
             {!isOwnProfile && isAuthenticated && (
-              <FollowButton
-                isFollowing={isFollowing}
-                isLoading={followLoading}
-                onClick={onFollowToggle}
-                variant="header"
-              />
+                <FollowButton
+                    isFollowing={isFollowing}
+                    isLoading={followLoading}
+                    onClick={onFollowToggle}
+                    variant="header"
+                />
             )}
+
+            <div className="px-3 py-1 rounded-md text-sm flex items-center">
+              <Calendar className="h-4 w-4 mr-1"/>
+              Joined {memberSince}
+            </div>
           </div>
 
-          {/* Bio added here with Bio icon and edit button */}
+          {/* Bio added here*/}
           {'bio' in profile && profile.bio && (
-            <div className="mt-4 max-w-3xl bg-white bg-opacity-10 p-3 rounded-md text-white text-sm relative">
-              <div className="flex">
-                <Book className="h-4 w-4 mr-2 mt-1 flex-shrink-0" />
-                <div className="whitespace-pre-line">{profile.bio}</div>
+              <div className="mt-4 max-w-3xl rounded-md text-white text-sm relative">
+                <div className="flex">
+                  <Book className="h-4 w-4 mr-2 mt-1 flex-shrink-0" />
+                  <div className="whitespace-pre-line">{profile.bio}</div>
+                </div>
               </div>
-
-              {/* Bio edit button */}
-              {isOwnProfile && (
-                <button
-                  onClick={() => setIsProfileEditModalOpen(true)}
-                  className="absolute bottom-1 right-1 bg-primary-600 bg-opacity-70 rounded-md p-1 opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity duration-200"
-                >
-                  <Edit className="h-3 w-3 text-white" />
-                </button>
-              )}
-            </div>
           )}
         </div>
       </div>

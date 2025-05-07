@@ -471,12 +471,6 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
           </div>
         )}
 
-        {isOwnProfile && (
-          <p className="text-gray-600 mb-6">
-            Add up to 5 favorite artists, albums, and tracks to personalize your experience.
-          </p>
-        )}
-
         {!hasPreferences && !loading && (
           <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
             <Music className="h-16 w-16 mx-auto text-gray-400 mb-2" />
