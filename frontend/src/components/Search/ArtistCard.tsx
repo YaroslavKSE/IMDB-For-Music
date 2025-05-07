@@ -13,7 +13,6 @@ const ArtistCard = ({ artist }: { artist: ArtistSummary }) => {
                 </div>
                 <div className="p-3 text-center">
                     <h3 className="font-medium text-gray-900 truncate">{artist.name}</h3>
-                    <p className="text-sm text-gray-600">Artist</p>
                 </div>
             </a>
         </div>
