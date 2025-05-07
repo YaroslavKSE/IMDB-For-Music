@@ -394,6 +394,7 @@ const Lists = () => {
                             key={list.listId}
                             list={list}
                             onDelete={handleDeleteList}
+                            isPublic={false}
                         />
                     ))}
                 </div>

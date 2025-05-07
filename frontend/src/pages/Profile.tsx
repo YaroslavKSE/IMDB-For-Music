@@ -10,6 +10,7 @@ import ProfileTabs, { ProfileTabType } from '../components/Profile/ProfileTabs';
 import SocialTabContent from '../components/Profile/SocialTabContent';
 import PreferencesTab from '../components/Profile/PreferencesTab';
 import ProfileHistoryTab from '../components/Profile/ProfileHistoryTab';
+import ProfileListsTab from '../components/Profile/ProfileListsTab';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -128,6 +129,13 @@ const Profile = () => {
         {/* Fixed: Use ProfileHistoryTab instead of HistoryTab */}
         {activeTab === 'history' && (
           <ProfileHistoryTab />
+        )}
+
+        {/* Lists Tab */}
+        {activeTab === 'lists' && (
+            <ProfileListsTab
+                isOwnProfile={true}
+            />
         )}
 
         {activeTab === 'settings' && <ProfileSettingsTab />}

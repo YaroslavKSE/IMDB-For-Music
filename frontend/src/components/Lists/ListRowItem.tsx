@@ -7,9 +7,10 @@ import CatalogService from '../../api/catalog';
 interface ListRowItemProps {
     list: ListOverview;
     onDelete: (listId: string) => void;
+    isPublic: boolean;
 }
 
-const ListRowItem: React.FC<ListRowItemProps> = ({ list, onDelete }) => {
+const ListRowItem: React.FC<ListRowItemProps> = ({ list, onDelete, isPublic = false }) => {
     const navigate = useNavigate();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [itemImages, setItemImages] = useState<Record<string, string>>({});
@@ -166,35 +167,37 @@ const ListRowItem: React.FC<ListRowItemProps> = ({ list, onDelete }) => {
                 </div>
 
                 {/* Delete button */}
-                {showDeleteConfirm ? (
-                    <div className="flex items-center ml-auto mr-2">
-                        <div className="text-red-600 mr-3 text-sm flex items-center">
-                            <AlertTriangle className="h-5 w-5 mr-1" />
-                            <span>Confirm</span>
+                {!isPublic && (
+                    showDeleteConfirm ? (
+                        <div className="flex items-center ml-auto mr-2">
+                            <div className="text-red-600 mr-3 text-sm flex items-center">
+                                <AlertTriangle className="h-5 w-5 mr-1" />
+                                <span>Confirm</span>
+                            </div>
+                            <button
+                                onClick={confirmDelete}
+                                className="p-3 text-white bg-red-500 hover:bg-red-600 rounded-md mr-2"
+                                title="Confirm delete"
+                            >
+                                <Trash2 className="h-5 w-5" />
+                            </button>
+                            <button
+                                onClick={cancelDelete}
+                                className="p-3 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md"
+                                title="Cancel"
+                            >
+                                <span className="font-bold text-xl">×</span>
+                            </button>
                         </div>
+                    ) : (
                         <button
-                            onClick={confirmDelete}
-                            className="p-3 text-white bg-red-500 hover:bg-red-600 rounded-md mr-2"
-                            title="Confirm delete"
+                            onClick={handleDeleteClick}
+                            className="ml-auto p-3 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-full transition-colors"
+                            title="Delete list"
                         >
-                            <Trash2 className="h-5 w-5" />
+                            <Trash2 className="h-6 w-6" />
                         </button>
-                        <button
-                            onClick={cancelDelete}
-                            className="p-3 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md"
-                            title="Cancel"
-                        >
-                            <span className="font-bold text-xl">×</span>
-                        </button>
-                    </div>
-                ) : (
-                    <button
-                        onClick={handleDeleteClick}
-                        className="ml-auto p-3 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-full transition-colors"
-                        title="Delete list"
-                    >
-                        <Trash2 className="h-6 w-6" />
-                    </button>
+                    )
                 )}
             </div>
         </div>

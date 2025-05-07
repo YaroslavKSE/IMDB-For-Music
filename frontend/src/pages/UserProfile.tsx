@@ -11,6 +11,7 @@ import SocialTabContent from '../components/Profile/SocialTabContent';
 import TabContentWrapper from '../components/Profile/TabContentWrapper';
 import PreferencesTab from '../components/Profile/PreferencesTab';
 import HistoryTab from '../components/Profile/HistoryTab';
+import ProfileListsTab from '../components/Profile/ProfileListsTab';
 
 const UserProfile = () => {
     const { id } = useParams<{ id: string }>();
@@ -267,6 +268,15 @@ const UserProfile = () => {
                     <HistoryTab
                         userId={id}
                         username={userProfile.username}
+                    />
+                )}
+
+                {/* Lists Tab */}
+                {activeTab === 'lists' && id && (
+                    <ProfileListsTab
+                        userId={id}
+                        username={userProfile.username}
+                        isOwnProfile={false}
                     />
                 )}
 
