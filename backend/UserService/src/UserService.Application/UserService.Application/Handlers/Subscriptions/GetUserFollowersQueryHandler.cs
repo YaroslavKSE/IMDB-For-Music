@@ -53,6 +53,7 @@ public class GetUserFollowersQueryHandler : IRequestHandler<GetUserFollowersQuer
             Username = s.Follower.Username,
             Name = s.Follower.Name,
             Surname = s.Follower.Surname,
+            AvatarUrl = s.Follower.AvatarUrl,
             SubscribedAt = s.CreatedAt
         }).ToList();
 

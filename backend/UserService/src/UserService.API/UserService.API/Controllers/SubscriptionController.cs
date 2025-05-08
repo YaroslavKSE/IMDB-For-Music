@@ -221,6 +221,7 @@ public class SubscriptionController : ControllerBase
                     Username = i.Username,
                     Name = i.Name,
                     Surname = i.Surname,
+                    AvatarUrl = i.AvatarUrl,
                     SubscribedAt = i.SubscribedAt
                 }).ToList(),
                 Page = result.Page,
@@ -298,6 +299,7 @@ public class SubscriptionController : ControllerBase
                     Username = i.Username,
                     Name = i.Name,
                     Surname = i.Surname,
+                    AvatarUrl = i.AvatarUrl,
                     SubscribedAt = i.SubscribedAt
                 }).ToList(),
                 Page = result.Page,
