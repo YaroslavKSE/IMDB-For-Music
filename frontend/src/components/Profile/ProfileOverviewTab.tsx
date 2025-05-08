@@ -9,7 +9,6 @@ import ArtistCard from '../Search/ArtistCard';
 import AlbumCard from '../Search/AlbumCard';
 import TrackRow from '../Search/TrackRow';
 import { DiaryEntry } from '../Diary/types';
-import { DiaryErrorState } from '../Diary/DiaryStates';
 
 interface ProfileOverviewTabProps {
     userId?: string;        // Optional: If provided, shows public user preferences
@@ -155,15 +154,11 @@ const ProfileOverviewTab = ({ userId }: ProfileOverviewTabProps) => {
             );
         }
 
-        if (error) {
-            return <DiaryErrorState error={error} onRetry={loadRecentEntries} />;
-        }
-
-        if (recentEntries.length === 0) {
+        if (recentEntries.length === 0 || error) {
             return (
                 <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
                     <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No recent activity yet. Rate and review music to see your activity here.</p>
+                    <p className="text-gray-600">No recent activity yet.</p>
                 </div>
             );
         }

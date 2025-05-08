@@ -10,7 +10,7 @@ public class ReviewHotScoreUpdateService : BackgroundService
 {
     private readonly ILogger<ReviewHotScoreUpdateService> _logger;
     private readonly IServiceProvider _serviceProvider;
-    private readonly TimeSpan _updateInterval = TimeSpan.FromDays(1);
+    private readonly TimeSpan _updateInterval = TimeSpan.FromHours(1);
 
     public ReviewHotScoreUpdateService(
         ILogger<ReviewHotScoreUpdateService> logger,
