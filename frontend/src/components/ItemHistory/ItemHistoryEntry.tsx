@@ -3,14 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { User, Heart, Star, MessageSquare, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { ItemHistoryEntry } from './ItemHistoryTypes';
 import ComplexRatingModal from '../common/ComplexRatingModal';
+import {DiaryEntry} from "../Diary/types.ts";
 
 interface ItemHistoryEntryProps {
     entry: ItemHistoryEntry;
-    onReviewClick: (e: React.MouseEvent, entry: ItemHistoryEntry) => void;
-    onViewClick?: (e: React.MouseEvent, entry: ItemHistoryEntry) => void;
+    onDeleteClick?: (e: React.MouseEvent, entry: DiaryEntry) => void;
+    isPublic: boolean;
 }
 
-const ItemHistoryEntryComponent = ({ entry, onReviewClick, onViewClick }: ItemHistoryEntryProps) => {
+const ItemHistoryEntryComponent = ({ entry, onDeleteClick, isPublic }: ItemHistoryEntryProps) => {
     const navigate = useNavigate();
     const [isHovered, setIsHovered] = useState(false);
     const [isComplexRatingModalOpen, setIsComplexRatingModalOpen] = useState(false);
@@ -25,17 +26,17 @@ const ItemHistoryEntryComponent = ({ entry, onReviewClick, onViewClick }: ItemHi
         navigate(`/people/${entry.userProfile.id}`);
     };
 
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent triggering the row click
+        if (onDeleteClick) {
+            onDeleteClick(e, entry);
+        }
+    };
+
     const handleComplexRatingClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (entry.interaction.rating?.isComplex && entry.interaction.rating?.ratingId) {
             setIsComplexRatingModalOpen(true);
-        }
-    };
-
-    const handleViewClick = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent triggering the row click
-        if (onViewClick) {
-            onViewClick(e, entry);
         }
     };
 
@@ -139,7 +140,6 @@ const ItemHistoryEntryComponent = ({ entry, onReviewClick, onViewClick }: ItemHi
                     {entry.interaction.review ? (
                         <MessageSquare
                             className="h-5 w-5 text-primary-600 cursor-pointer hover:text-primary-800"
-                            onClick={(e) => onReviewClick(e, entry)}
                         />
                     ) : (
                         <MessageSquare
@@ -156,13 +156,15 @@ const ItemHistoryEntryComponent = ({ entry, onReviewClick, onViewClick }: ItemHi
                 </div>
 
                 {/* View button (for individual interaction) */}
-                <button
-                    onClick={handleViewClick}
-                    className={`ml-4 p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-full ${isHovered ? 'visible' : 'invisible'}`}
-                    title="View interaction details"
-                >
-                    <Trash2 className="h-5 w-5" />
-                </button>
+                {!isPublic && (
+                    <button
+                        onClick={handleDelete}
+                        className={`ml-4 p-2 text-gray-500 hover:text-red-500 hover:bg-gray-100 rounded-full ${isHovered ? 'visible' : 'invisible'}`}
+                        title="Delete interaction"
+                    >
+                        <Trash2 className="h-5 w-5"/>
+                    </button>
+                )}
             </div>
 
             {/* Complex Rating Modal */}

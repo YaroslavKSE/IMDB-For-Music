@@ -311,52 +311,35 @@ const FollowingFeed = () => {
                                 className="relative group bg-white rounded-lg overflow-visible shadow-sm hover:shadow-md transition-shadow duration-200"
                                 role="listitem"
                             >
-                                {/* Tooltip */}
-                                <div
-                                    className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 pointer-events-none bg-white text-black text-xs rounded border border-gray-200 shadow z-10 whitespace-nowrap p-1"
-                                >
-                                    {item.userProfile ? (
-                                        <>
-                                            {item.userProfile.name} listened to {item.interaction.itemType.toLowerCase()}{' '}
-                                            <strong>{item.catalogItem?.name}</strong>
-                                        </>
-                                    ) : (
-                                        <>
-                                            Someone listened to {item.interaction.itemType.toLowerCase()}{' '}
-                                            <strong>{item.catalogItem?.name}</strong>
-                                        </>
-                                    )}
-
-                                </div>
-
-                                <div className="aspect-square w-full overflow-hidden">
+                                <div className="aspect-square w-full overflow-hidden rounded-t-lg">
                                     <img
                                         src={item.catalogItem?.imageUrl || '/placeholder-album.jpg'}
                                         alt={`${item.catalogItem?.name || 'Unknown'} by ${item.catalogItem?.artistName || 'Unknown Artist'}`}
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
-                                <div className="p-2 sm:p-3">
+                                <div className="p-1.5">
                                     {/* User info */}
                                     <div className="flex items-center mb-1">
                                         {item.userProfile?.avatarUrl ? (
                                             <img
                                                 src={item.userProfile.avatarUrl}
                                                 alt={`${item.userProfile.name} ${item.userProfile.surname}`}
-                                                className="w-8 h-8 rounded-full mr-2 object-cover"
+                                                className="w-7 h-7 rounded-full mr-2 object-cover"
                                             />
                                         ) : (
-                                            <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold mr-2">
-                                                {item.userProfile?.name.charAt(0) || '?'}{item.userProfile?.surname.charAt(0) || '?'}
+                                            <div
+                                                className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold mr-2">
+                                                {item.userProfile?.name.charAt(0) || '?'}{item.userProfile?.surname.charAt(0) || ''}
                                             </div>
                                         )}
                                         <div className="truncate text-sm leading-tight">
                                             {item.userProfile ? `${item.userProfile.name} ${item.userProfile.surname}` : 'Unknown User'}
                                         </div>
                                     </div>
-
+                                    <h3 className="font-medium text-gray-900 truncate">{item.catalogItem?.name || 'Unknown Title'}</h3>
                                     {/* Interaction details */}
-                                    <div className="flex items-center text-xs">
+                                    <div className="flex items-center text-xs mt-1">
                                         {item.interaction.rating && (
                                             <div className="flex items-center">
                                                 <NormalizedStarDisplay
@@ -366,17 +349,19 @@ const FollowingFeed = () => {
                                                 />
 
                                                 {item.interaction.rating.isComplex && (
-                                                    <SlidersHorizontal className="h-4 w-4 ml-1 text-primary-500" />
+                                                    <SlidersHorizontal className="h-4 w-4 ml-1 text-primary-500"/>
                                                 )}
                                             </div>
                                         )}
 
-                                        {item.interaction.isLiked && <Heart className="h-4 w-4 ml-1 text-red-500 fill-red-500" />}
-                                        {item.interaction.review && <MessageSquare className="h-4 w-4 ml-1 text-primary-600" />}
+                                        {item.interaction.isLiked &&
+                                            <Heart className="h-4 w-4 ml-1 text-red-500 fill-red-500"/>}
+                                        {item.interaction.review &&
+                                            <MessageSquare className="h-4 w-4 ml-1 text-primary-600"/>}
                                     </div>
 
                                     <div className="flex items-center mt-1 text-xs text-gray-500">
-                                        <Calendar className="h-3 w-3 mr-1" />
+                                        <Calendar className="h-3 w-3 mr-1"/>
                                         <span>{formatDate(item.interaction.createdAt)}</span>
                                     </div>
                                 </div>

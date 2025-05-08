@@ -25,6 +25,20 @@ export const formatDate = (dateString: string): string => {
     }
 };
 
+export const formatDay = (dateString: string): string => {
+    if (!dateString) return 'Unknown';
+
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+        });
+    } catch (error) {
+        return error as string; // Return the original string if parsing fails
+    }
+};
+
 /**
  * Truncate a string to a specified length
  */

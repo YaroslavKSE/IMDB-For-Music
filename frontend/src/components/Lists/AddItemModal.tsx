@@ -125,7 +125,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItems, listType, existingItemIds }
         // Set new timer
         debounceTimerRef.current = setTimeout(() => {
             performSearch(value, 0);
-        }, 500); // 500ms debounce delay
+        }, 1000);
     };
 
     // Load more results

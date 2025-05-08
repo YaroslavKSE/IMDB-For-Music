@@ -456,12 +456,6 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
 
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden">
-      <div className="px-6 py-4 bg-primary-50 border-b border-primary-100">
-        <h3 className="text-lg font-medium text-primary-800 flex items-center">
-          <Music className="h-5 w-5 mr-2" />
-          {isOwnProfile ? 'Music Preferences' : `${username || 'User'}'s Music Preferences`}
-        </h3>
-      </div>
 
       <div className="p-6">
         {error && (
@@ -469,12 +463,6 @@ const PreferencesTab = ({ userId, username, isOwnProfile = false }: PreferencesT
             <AlertCircle className="h-5 w-5 mr-2" />
             <span>{error}</span>
           </div>
-        )}
-
-        {isOwnProfile && (
-          <p className="text-gray-600 mb-6">
-            Add up to 5 favorite artists, albums, and tracks to personalize your experience.
-          </p>
         )}
 
         {!hasPreferences && !loading && (

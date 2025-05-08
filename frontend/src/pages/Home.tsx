@@ -153,7 +153,7 @@ const Home = () => {
 
         {/* New Releases section */}
         <div className="bg-white shadow rounded-lg overflow-hidden mb-8">
-          <div className="px-3 py-3 sm:px-6 sm:py-4 bg-gradient-to-r from-primary-600 to-primary-700 flex justify-between items-center">
+          <div className="px-3 py-3 sm:px-6 sm:py-4 bg-gradient-to-r from-primary-600 to-primary-500 flex justify-between items-center">
             <h2 className="text-lg sm:text-xl font-bold text-white flex items-center">
               <Disc className="mr-2 h-4 sm:h-5 w-4 sm:w-5" />
               New Releases

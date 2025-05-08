@@ -10,16 +10,18 @@ import ProfileTabs, { ProfileTabType } from '../components/Profile/ProfileTabs';
 import SocialTabContent from '../components/Profile/SocialTabContent';
 import PreferencesTab from '../components/Profile/PreferencesTab';
 import ProfileHistoryTab from '../components/Profile/ProfileHistoryTab';
+import ProfileListsTab from '../components/Profile/ProfileListsTab';
+import ProfileOverviewTab from '../components/Profile/ProfileOverviewTab';
 
 const Profile = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, fetchUserProfile, isLoading, isAuthenticated } = useAuthStore();
 
-  // Get active tab from URL params or default to history
+  // Get active tab from URL params or default to overview
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState<ProfileTabType>(
-    (tabParam as ProfileTabType) || 'history'
+      (tabParam as ProfileTabType) || 'overview'
   );
 
   // Fixed type definitions for arrays
@@ -38,7 +40,7 @@ const Profile = () => {
 
   // Helper to validate tab parameters
   const isValidTab = (tab: string): boolean => {
-    return ['grading-methods', 'history', 'settings', 'following', 'followers', 'preferences'].includes(tab);
+    return ['overview', 'grading-methods', 'history', 'settings', 'following', 'followers', 'preferences', 'lists'].includes(tab);
   };
 
   // Ensure user data is loaded and user is authenticated
@@ -94,72 +96,79 @@ const Profile = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Profile Header - Pass the tab change handler */}
-      <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
-        <ProfileHeader
-          profile={user}
-          isOwnProfile={true}
-          isAuthenticated={isAuthenticated}
-          onAvatarUpdate={fetchUserProfile}
-          onTabChange={handleTabChange}
-        />
+      <div className="max-w-6xl mx-auto">
+        {/* Profile Header - Pass the tab change handler */}
+        <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
+          <ProfileHeader
+              profile={user}
+              isOwnProfile={true}
+              isAuthenticated={isAuthenticated}
+              onAvatarUpdate={fetchUserProfile}
+              onTabChange={handleTabChange}
+          />
 
-        {/* Profile Tabs */}
-        <ProfileTabs
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          isOwnProfile={true}
-        />
+          {/* Profile Tabs */}
+          <ProfileTabs
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              isOwnProfile={true}
+          />
+        </div>
+
+        {/* Tab Content */}
+        <div className="mb-8">
+          {/* New Overview Tab */}
+          {activeTab === 'overview' && <ProfileOverviewTab userId={user.id} />}
+
+          {activeTab === 'grading-methods' && <GradingMethodsTab />}
+
+          {activeTab === 'preferences' && (
+              <PreferencesTab
+                  userId={user.id}
+                  isOwnProfile={true}
+              />
+          )}
+
+          {activeTab === 'history' && (
+              <ProfileHistoryTab />
+          )}
+
+          {activeTab === 'lists' && (
+              <ProfileListsTab
+                  isOwnProfile={true}
+              />
+          )}
+
+          {activeTab === 'settings' && <ProfileSettingsTab />}
+
+          {/* Following Tab */}
+          {activeTab === 'following' && (
+              <SocialTabContent
+                  type="following"
+                  users={followingData}
+                  loading={socialLoading}
+                  error={socialError}
+                  isOwnProfile={true}
+                  username={user.username}
+                  isAuthenticated={isAuthenticated}
+                  navigateToDiscoverPeople={() => navigate('/people')}
+              />
+          )}
+
+          {/* Followers Tab */}
+          {activeTab === 'followers' && (
+              <SocialTabContent
+                  type="followers"
+                  users={followersData}
+                  loading={socialLoading}
+                  error={socialError}
+                  isOwnProfile={true}
+                  username={user.username}
+                  isAuthenticated={isAuthenticated}
+              />
+          )}
+        </div>
       </div>
-
-      {/* Tab Content */}
-      <div className="mb-8">
-        {activeTab === 'grading-methods' && <GradingMethodsTab />}
-
-        {/* Using unified components */}
-        {activeTab === 'preferences' && (
-          <PreferencesTab
-            userId={user.id}
-            isOwnProfile={true}
-          />
-        )}
-
-        {/* Fixed: Use ProfileHistoryTab instead of HistoryTab */}
-        {activeTab === 'history' && (
-          <ProfileHistoryTab />
-        )}
-
-        {activeTab === 'settings' && <ProfileSettingsTab />}
-
-        {/* Following Tab */}
-        {activeTab === 'following' && (
-          <SocialTabContent
-            type="following"
-            users={followingData}
-            loading={socialLoading}
-            error={socialError}
-            isOwnProfile={true}
-            username={user.username}
-            isAuthenticated={isAuthenticated}
-            navigateToDiscoverPeople={() => navigate('/people')}
-          />
-        )}
-
-        {/* Followers Tab */}
-        {activeTab === 'followers' && (
-          <SocialTabContent
-            type="followers"
-            users={followersData}
-            loading={socialLoading}
-            error={socialError}
-            isOwnProfile={true}
-            username={user.username}
-            isAuthenticated={isAuthenticated}
-          />
-        )}
-      </div>
-    </div>
   );
 };
 

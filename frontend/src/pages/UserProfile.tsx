@@ -9,8 +9,9 @@ import ProfileHeader from '../components/Profile/ProfileHeader';
 import ProfileTabs, { ProfileTabType } from '../components/Profile/ProfileTabs';
 import SocialTabContent from '../components/Profile/SocialTabContent';
 import TabContentWrapper from '../components/Profile/TabContentWrapper';
-import PreferencesTab from '../components/Profile/PreferencesTab';
 import HistoryTab from '../components/Profile/HistoryTab';
+import ProfileListsTab from '../components/Profile/ProfileListsTab';
+import ProfileOverviewTab from "../components/Profile/ProfileOverviewTab.tsx";
 
 const UserProfile = () => {
     const { id } = useParams<{ id: string }>();
@@ -24,7 +25,7 @@ const UserProfile = () => {
     // Get active tab from URL params or default to history (changed from grading-methods)
     const tabParam = searchParams.get('tab');
     const [activeTab, setActiveTab] = useState<ProfileTabType>(
-      (tabParam as ProfileTabType) || 'history'
+      (tabParam as ProfileTabType) || 'overview'
     );
 
     const [loading, setLoading] = useState(true);
@@ -39,7 +40,7 @@ const UserProfile = () => {
 
     // Helper to validate tab parameters
     const isValidTab = (tab: string): boolean => {
-        return ['grading-methods', 'history', 'preferences', 'following', 'followers'].includes(tab);
+        return ['grading-methods', 'history', 'preferences', 'following', 'followers', 'overview', 'lists'].includes(tab);
     };
 
     // Listen for URL changes to update the active tab
@@ -262,6 +263,8 @@ const UserProfile = () => {
                     </TabContentWrapper>
                 )}
 
+                {activeTab === 'overview' && <ProfileOverviewTab userId={id} />}
+
                 {/* Using the unified components */}
                 {activeTab === 'history' && id && (
                     <HistoryTab
@@ -270,8 +273,9 @@ const UserProfile = () => {
                     />
                 )}
 
-                {activeTab === 'preferences' && id && (
-                    <PreferencesTab
+                {/* Lists Tab */}
+                {activeTab === 'lists' && id && (
+                    <ProfileListsTab
                         userId={id}
                         username={userProfile.username}
                         isOwnProfile={false}

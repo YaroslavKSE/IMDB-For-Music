@@ -578,18 +578,6 @@ const InteractionDetailPage = () => {
                                 {totalComments > 0 && <span className="ml-1">({totalComments})</span>}
                             </button>
 
-                            {user && user.id === interaction.userId && (
-                                <button
-                                    onClick={() => {
-                                        alert('Delete functionality to be implemented');
-                                    }}
-                                    className="flex items-center text-sm text-red-500 hover:text-red-700"
-                                >
-                                    <Trash2 className="h-4 w-4 mr-1" />
-                                    <span>Delete</span>
-                                </button>
-                            )}
-
                             {isAuthenticated && user?.id !== interaction.userId && (
                                 <button
                                     onClick={() => {
